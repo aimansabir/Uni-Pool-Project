@@ -3,38 +3,7 @@ PROJECT: UNI-POOL WEB APP
 ======================================================================
 WORKFLOW 1: DRIVER RIDE PUBLICATION (SUPPLY SIDE)
 ======================================================================
-
-Description: This workflow details how a verified driver posts a ride. It integrates Route Intelligence to auto-tag landmarks and a Ride Type Toggle to switch between "Scheduled" (for specific class slots) and "Instant/Flash" (for immediate departures).
-
-1. Login & Verification:
-   - The driver logs in via verified university email.
-   - The system retrieves their vehicle details and gender verification status.
-
-2. Ride Type Selection:
-   - Option A (Scheduled): Driver selects a future time (e.g., "Leaving at 07:45 AM") specifically targeting a "08:30 AM Class Slot."
-   - Option B (Instant/Flash): Driver toggles "Leaving Now."
-     - Action: The system automatically sets the departure time to "Current Time + 10 mins" and marks the ride as "Urgent."
-
-3. Route Mapping & Smart Intelligence:
-   - Input: Driver inputs Start Point (e.g., "Maskan Gate") and Destination (e.g., "University Campus" or "Clifton").
-   - Smart Landmark Detection: The system uses an Open-Ended Mapping Service (e.g., Google Maps/OpenStreetMap) to generate the route path.
-   - Auto-Tagging: The app automatically detects and lists major landmarks along this path (e.g., "Route passes through: Patel Hospital, Nipa Chowrangi, Aladin Park").
-   - Confirmation: The driver confirms these "Key Stops" to let passengers know exactly where they can be picked up.
-
-4. Fare Estimation:
-   - Smart Fare: The system calculates the trip distance and suggests a "Fair Share" price (e.g., 200 PKR per seat) to prevent overcharging.
-   - Adjustment: The driver can lower this price but cannot exceed a capped limit.
-
-5. Preferences & Capacity:
-   - Gender Preference: Driver selects "Females Only" (if eligible) or "Mixed/Any."
-   - Seats: Driver sets available capacity (e.g., 3 seats).
-
-6. Publication & Broadcast:
-   - The ride is published to the database with the route geometry and tagged landmarks.
-   - Notification Logic:
-     - If Scheduled: The system sends Emails/Notifications to passengers subscribed to that route.
-     - If Instant: The system triggers a "Live Toast Popup" to all active users currently searching for rides on that route (e.g., "Clifton"), mimicking a "Right Now" alert.
-
+[Space for Khizer]
 
 ======================================================================
 WORKFLOW 2: PASSENGER SEARCH & BOOKING (DEMAND SIDE)
