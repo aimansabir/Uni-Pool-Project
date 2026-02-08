@@ -73,4 +73,27 @@ Description: This workflow details how a passenger finds a ride, utilizing Smart
 ======================================================================
 WORKFLOW 3: LIVE NAVIGATION & TRUST CYCLE
 ======================================================================
-[Space for Khizer]
+
+Description: This workflow covers the complete execution of the ride, incorporating real-time location tools, pickup verification, no-show handling, cash settlement, and the post-ride reputation system.
+
+1. Ride Start & Live Navigation:
+   - Driver Action: The driver taps "Start Ride."
+   - Deep Link: The app generates a Deep Link that opens the driver's preferred navigation app (e.g., Google Maps) with pre-filled waypoints for all confirmed passengers.
+   - Live Passenger Tracking: Confirmed passengers receive a "Track Ride" link to view the driver's real-time location on an embedded map and estimate arrival time.
+
+2. Pickup Verification & No-Show Handling:
+   - Verification: On arrival, the passenger verifies the car license plate.
+   - Action: The driver swipes "Passenger Picked Up" to confirm the seat is occupied.
+   - No-Show Logic: If a passenger is not at the location after 5 minutes, the Driver can mark them as "No-Show" (cancelling their specific seat) and proceed to the next stop to avoid delaying others.
+
+3. Arrival & Payment Settlement:
+   - Trigger: Upon reaching the destination (University/Drop-off), the app displays a "Payment Due" screen with the calculated amount (e.g., "200 PKR").
+   - Payment Action: The passenger pays via Cash (or settles via external wallet like JazzCash).
+   - Confirmation: The driver taps "Payment Received" in the app to close the transaction.
+
+4. Completion & Trust Score:
+   - Ride End: The driver marks the ride as "Completed."
+   - Mutual Rating:
+     - Passenger rates Driver (1-5 Stars) on Punctuality and Safety.
+     - Driver rates Passenger (1-5 Stars) on Behavior.
+   - Profile Update: The system updates the user's public "Trust Score" (e.g., "98% Punctuality Score"), influencing their ability to use the platform in the future.
