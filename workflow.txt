@@ -8,7 +8,36 @@ WORKFLOW 1: DRIVER RIDE PUBLICATION (SUPPLY SIDE)
 ======================================================================
 WORKFLOW 2: PASSENGER SEARCH & BOOKING (DEMAND SIDE)
 ======================================================================
-[Space for Aiman]
+
+Description: This workflow details how a passenger finds a ride, utilizing Smart Search for landmarks and a Live Feed for urgent departures. It covers safety checks (Occupancy Mix), booking logic, and critical cancellation handling for both scheduled and instant rides.
+
+1. Smart Search & Live Feed:
+   - Input: Passenger enters their pickup location, drop-off, and Target Class Slot.
+   - Landmark Matching: The system searches for any driver whose route passes through that location (generated in Workflow 1).
+   - The "Live Feed" (Urgency Logic): The top of the search results highlights "⚡ Leaving Now" rides in a distinct color (e.g., Red/Orange) to mimic the urgency of WhatsApp groups, separate from standard scheduled rides.
+
+2. Result Visualization (Safety & Fare):
+   - Occupancy Check: The ride card displays the current car mix for safety: "Occupants: 1 Male (Driver), 2 Females (Passengers)."
+   - Fare View: Passenger sees the fixed price per seat (e.g., "200 PKR").
+   - Route Preview: Clicking the ride opens a map view showing the Driver's path and highlighting the specific stop/landmark for the passenger.
+
+3. Booking Request (Instant vs. Standard):
+   - Action:
+     - For Scheduled Rides: Passenger selects a specific landmark and clicks "Request Seat."
+     - For Instant Rides: Passenger clicks "Join Ride Instantly."
+   - Notification: The Driver receives a notification. For "Instant Rides," this is a loud/distinct alert on their phone to ensure immediate attention.
+
+4. Confirmation & State Update:
+   - Acceptance: The driver accepts the request.
+   - State Update: The seat count decreases, and the "Occupancy Mix" is updated for all future searchers.
+   - Navigation:
+     - Standard: Passenger receives confirmation.
+     - Instant: Passenger receives the "Track Ride" link immediately since the car is about to move.
+
+5. Cancellation Handling (Real-Time Logic):
+   - Passenger Cancel: If the passenger clicks "Cancel Ride" before the driver starts, the seat is immediately freed up for others, and the driver is notified.
+   - Driver Cancel (Standard): If the driver cancels a scheduled ride, all booked passengers receive an urgent "Ride Cancelled" alert to find alternatives.
+   - Driver Cancel (Instant): If a driver cancels an "Instant Ride," the system shows a critical full-screen alert to the passenger to prevent them from waiting at the curb.
 
 ======================================================================
 WORKFLOW 3: LIVE NAVIGATION & TRUST CYCLE
