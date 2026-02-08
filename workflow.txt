@@ -14,7 +14,7 @@ Description: This workflow details how a passenger finds a ride, utilizing Smart
 1. Smart Search & Live Feed:
    - Input: Passenger enters their pickup location, drop-off, and Target Class Slot.
    - Landmark Matching: The system searches for any driver whose route passes through that location (generated in Workflow 1).
-   - The "Live Feed" (Urgency Logic): The top of the search results highlights "⚡ Leaving Now" rides in a distinct color (e.g., Red/Orange) to mimic the urgency of WhatsApp groups, separate from standard scheduled rides.
+   - The "Live Feed" (Urgency Logic): The top of the search results highlights "Leaving Now" rides in a distinct color (e.g., Red/Orange) to mimic the urgency of WhatsApp groups, separate from standard scheduled rides.
 
 2. Result Visualization (Safety & Fare):
    - Occupancy Check: The ride card displays the current car mix for safety: "Occupants: 1 Male (Driver), 2 Females (Passengers)."
