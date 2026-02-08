@@ -1,11 +1,6 @@
 PROJECT: UNI-POOL WEB APP
 
 ======================================================================
-WORKFLOW 1: DRIVER RIDE PUBLICATION (SUPPLY SIDE)
-======================================================================
-[Space for Khizer]
-
-======================================================================
 WORKFLOW 2: PASSENGER SEARCH & BOOKING (DEMAND SIDE)
 ======================================================================
 
@@ -38,8 +33,3 @@ Description: This workflow details how a passenger finds a ride, utilizing Smart
    - Passenger Cancel: If the passenger clicks "Cancel Ride" before the driver starts, the seat is immediately freed up for others, and the driver is notified.
    - Driver Cancel (Standard): If the driver cancels a scheduled ride, all booked passengers receive an urgent "Ride Cancelled" alert to find alternatives.
    - Driver Cancel (Instant): If a driver cancels an "Instant Ride," the system shows a critical full-screen alert to the passenger to prevent them from waiting at the curb.
-
-======================================================================
-WORKFLOW 3: LIVE NAVIGATION & TRUST CYCLE
-======================================================================
-[Space for Khizer]
