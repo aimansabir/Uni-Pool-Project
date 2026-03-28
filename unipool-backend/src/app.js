@@ -4,6 +4,7 @@ const { notFound, errorHandler } = require('./middlewares/error.middleware');
 
 const authRoutes = require('./routes/auth.routes');
 const vehicleRoutes = require('./routes/vehicle.routes');
+const rideRoutes = require('./routes/ride.routes');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/rides', rideRoutes);
 
 // 404 + error handlers (MUST be last)
 app.use(notFound);

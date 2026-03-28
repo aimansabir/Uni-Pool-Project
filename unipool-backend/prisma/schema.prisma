@@ -75,7 +75,7 @@ model Ride {
 model RideStop {
   id        String  @id @default(uuid())
   rideId    String
-  ride      Ride    @relation(fields: [rideId], references: [id])
+  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
   stopName  String
   sequence  Int
   lat       Float?
