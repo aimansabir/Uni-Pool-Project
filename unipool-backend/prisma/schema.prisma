@@ -36,7 +36,6 @@ enum RideType {
 
 enum GenderPreference {
   ANY
-  MALES_ONLY
   FEMALES_ONLY
 }
 

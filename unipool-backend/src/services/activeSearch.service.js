@@ -42,14 +42,10 @@ const heartbeatActiveSearch = async (userId, id) => {
         },
     });
 
-    console.log('PATCH id:', id, typeof id);
-    console.log('auth userId:', userId, typeof userId);
 
     const existingById = await prisma.activeRouteSearch.findUnique({ where: { id } });
-    console.log('existingById:', existingById);
 
     if (existingById) {
-        console.log('existing.userId:', existingById.userId, typeof existingById.userId);
     }
 
     if (!existing) {
