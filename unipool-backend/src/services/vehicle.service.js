@@ -69,17 +69,48 @@ const updateVehicle = async (id, driverId, data) => {
 };
 
 const deleteVehicle = async (id, driverId) => {
+    console.log('deleteVehicle called with:', { id, driverId });
+
     const vehicle = await prisma.vehicle.findUnique({
         where: { id },
     });
 
+    console.log('vehicle found:', vehicle);
+
     if (!vehicle) {
-        throw new Error('Vehicle not found.');
+        const err = new Error('Vehicle not found.');
+        err.statusCode = 404;
+        throw err;
     }
 
     if (vehicle.driverId !== driverId) {
-        throw new Error('Unauthorized.');
+        const err = new Error('Unauthorized.');
+        err.statusCode = 403;
+        throw err;
     }
+
+    const linkedRide = await prisma.ride.findFirst({
+        where: {
+            vehicleId: id,
+        },
+        select: {
+            id: true,
+            vehicleId: true,
+            status: true,
+        },
+    });
+
+    console.log('linkedRide found:', linkedRide);
+
+    if (linkedRide) {
+        const err = new Error(
+            'Cannot delete a vehicle that is attached to existing rides. Delete the ride(s) first.'
+        );
+        err.statusCode = 400;
+        throw err;
+    }
+
+    console.log('NO LINKED RIDE, deleting vehicle now');
 
     return prisma.vehicle.delete({
         where: { id },

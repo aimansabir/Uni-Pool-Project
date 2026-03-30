@@ -4,6 +4,16 @@ const router = express.Router();
 const rideService = require('../services/ride.service');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { success, error } = require('../utils/response');
+const { buildRideIntelligence } = require('../services/mapping.service');
+
+router.post('/intelligence/preview', authenticate, async (req, res) => {
+    try {
+        const preview = await buildRideIntelligence(req.body);
+        return success(res, preview, 200, 'Route intelligence ready.');
+    } catch (err) {
+        return error(res, err.message, 400);
+    }
+});
 
 router.post('/', authenticate, async (req, res) => {
     try {

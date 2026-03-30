@@ -51,7 +51,7 @@ router.delete('/:id', authenticate, async (req, res) => {
         await vehicleService.deleteVehicle(req.params.id, req.user.id);
         return success(res, null, 200, 'Vehicle deleted.');
     } catch (err) {
-        return error(res, err.message, 400);
+        return error(res, err.message, err.statusCode || 500);
     }
 });
 

@@ -1,4 +1,6 @@
 const prisma = require('../lib/prisma');
+const { buildRideIntelligence } = require('./mapping.service');
+const { dispatchRideNotifications } = require('./notification.service');
 
 const createRide = async (driverId, data) => {
     const {
@@ -10,9 +12,8 @@ const createRide = async (driverId, data) => {
         rideType,
         seatsTotal,
         farePerSeat,
-        genderPreference,
-        isUrgent,
-        stops = [],
+        genderPreference = 'ANY',
+        confirmedStops,
     } = data;
 
     if (
@@ -20,15 +21,21 @@ const createRide = async (driverId, data) => {
         !startLocation ||
         !destinationLocation ||
         !rideType ||
-        seatsTotal == null ||
-        farePerSeat == null
+        seatsTotal == null
     ) {
-        throw new Error('vehicleId, startLocation, destinationLocation, rideType, seatsTotal, and farePerSeat are required.');
+        throw new Error(
+            'vehicleId, startLocation, destinationLocation, rideType, and seatsTotal are required.'
+        );
     }
 
-    const vehicle = await prisma.vehicle.findUnique({
-        where: { id: vehicleId },
-    });
+    const [driver, vehicle] = await Promise.all([
+        prisma.user.findUnique({ where: { id: driverId } }),
+        prisma.vehicle.findUnique({ where: { id: vehicleId } }),
+    ]);
+
+    if (!driver) {
+        throw new Error('Driver not found.');
+    }
 
     if (!vehicle) {
         throw new Error('Vehicle not found.');
@@ -38,66 +45,105 @@ const createRide = async (driverId, data) => {
         throw new Error('You can only publish rides using your own vehicle.');
     }
 
-    const normalizedRideType = String(rideType).toUpperCase();
-
-    if (!['SCHEDULED', 'INSTANT'].includes(normalizedRideType)) {
-        throw new Error('rideType must be SCHEDULED or INSTANT.');
+    if (!driver.isVerified) {
+        const err = new Error('Only verified drivers can publish rides.');
+        err.statusCode = 403;
+        throw err;
     }
 
-    const totalSeats = Number(seatsTotal);
-    const price = Number(farePerSeat);
+    const normalizedRideType = String(rideType).toUpperCase();
+    if (!['SCHEDULED', 'INSTANT'].includes(normalizedRideType)) {
+        const err = new Error('rideType must be SCHEDULED or INSTANT.');
+        err.statusCode = 400;
+        throw err;
+    }
 
-    if (Number.isNaN(totalSeats) || totalSeats <= 0) {
+    const normalizedGenderPreference = String(genderPreference).toUpperCase();
+    if (!['ANY', 'FEMALES_ONLY'].includes(normalizedGenderPreference)) {
+        const err = new Error('genderPreference must be ANY or FEMALES_ONLY.');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (
+        genderPreference === 'FEMALES_ONLY' &&
+        !(driver.gender === 'female' && driver.genderVerified)
+    ) {
+        throw new Error(
+            'Only gender-verified female drivers can publish Females Only rides.'
+        );
+    }
+
+    const seatCount = Number(seatsTotal);
+    if (Number.isNaN(seatCount) || seatCount <= 0) {
         throw new Error('seatsTotal must be a positive number.');
     }
 
-    if (Number.isNaN(price) || price < 0) {
+    const intelligence = await buildRideIntelligence({
+        startLocation,
+        destinationLocation,
+        seatsTotal: seatCount,
+        rideType: normalizedRideType,
+        departureTime,
+    });
+
+    const requestedFare =
+        farePerSeat != null
+            ? Number(farePerSeat)
+            : intelligence.fareSuggestion.suggestedFarePerSeat;
+
+    if (Number.isNaN(requestedFare) || requestedFare < 0) {
         throw new Error('farePerSeat must be a valid non-negative number.');
     }
 
-    let finalDepartureTime;
-
-    if (normalizedRideType === 'INSTANT') {
-        finalDepartureTime = departureTime
-            ? new Date(departureTime)
-            : new Date(Date.now() + 10 * 60 * 1000);
-    } else {
-        if (!departureTime) {
-            throw new Error('departureTime is required for scheduled rides.');
-        }
-        finalDepartureTime = new Date(departureTime);
+    if (requestedFare > intelligence.fareSuggestion.fareCap) {
+        throw new Error(
+            `farePerSeat cannot exceed capped limit of PKR ${intelligence.fareSuggestion.fareCap}.`
+        );
     }
 
-    if (Number.isNaN(finalDepartureTime.getTime())) {
-        throw new Error('Invalid departureTime.');
+    if (!Array.isArray(confirmedStops)) {
+        const err = new Error(
+            'confirmedStops array is required. Confirm suggested stops or send [] if there are no intermediate stops.'
+        );
+        err.statusCode = 400;
+        throw err;
     }
 
-    const formattedStops = Array.isArray(stops)
-        ? stops.map((stop, index) => ({
-            stopName: stop.stopName,
-            sequence: stop.sequence ?? index + 1,
-            lat: stop.lat ?? null,
-            lng: stop.lng ?? null,
-        }))
-        : [];
+    const stopSource = confirmedStops.map((stop, index) => ({
+        stopName: stop.stopName,
+        sequence: stop.sequence ?? index + 1,
+        lat: stop.lat ?? null,
+        lng: stop.lng ?? null,
+        isSuggested: false,
+        isConfirmed: true,
+    }));
 
-    return prisma.ride.create({
+    const ride = await prisma.ride.create({
         data: {
             driverId,
             vehicleId,
             startLocation,
             destinationLocation,
-            departureTime: finalDepartureTime,
+            departureTime: intelligence.departureTime,
             targetSlot: targetSlot ?? null,
-            rideType: normalizedRideType,
-            seatsTotal: totalSeats,
-            seatsAvailable: totalSeats,
-            farePerSeat: price,
-            genderPreference: genderPreference ?? 'ANY',
+            rideType: intelligence.rideType,
+            seatsTotal: seatCount,
+            seatsAvailable: seatCount,
+            farePerSeat: requestedFare,
+            genderPreference,
             status: 'PUBLISHED',
-            isUrgent: normalizedRideType === 'INSTANT' ? true : Boolean(isUrgent),
+            isUrgent: intelligence.isUrgent,
+            routeKey: intelligence.routeKey,
+            destinationKey: intelligence.destinationKey,
+            routeGeometry: intelligence.routeGeometry,
+            distanceKm: intelligence.distanceKm,
+            durationMin: intelligence.durationMin,
+            suggestedFarePerSeat: intelligence.fareSuggestion.suggestedFarePerSeat,
+            fareCap: intelligence.fareSuggestion.fareCap,
+            mappingProvider: intelligence.mappingProvider,
             stops: {
-                create: formattedStops,
+                create: stopSource,
             },
         },
         include: {
@@ -107,6 +153,10 @@ const createRide = async (driverId, data) => {
             },
         },
     });
+
+    await dispatchRideNotifications(ride);
+
+    return ride;
 };
 
 const getMyRides = async (driverId) => {
@@ -147,7 +197,9 @@ const getRideById = async (rideId, driverId) => {
 const updateRide = async (rideId, driverId, data) => {
     const existingRide = await prisma.ride.findUnique({
         where: { id: rideId },
-        include: { stops: true },
+        include: {
+            stops: true,
+        },
     });
 
     if (!existingRide) {
@@ -156,6 +208,14 @@ const updateRide = async (rideId, driverId, data) => {
 
     if (existingRide.driverId !== driverId) {
         throw new Error('Unauthorized.');
+    }
+
+    const driver = await prisma.user.findUnique({
+        where: { id: driverId },
+    });
+
+    if (!driver) {
+        throw new Error('Driver not found.');
     }
 
     if (data.vehicleId) {
@@ -172,42 +232,125 @@ const updateRide = async (rideId, driverId, data) => {
         }
     }
 
+    const nextGenderPreference =
+        data.genderPreference ?? existingRide.genderPreference;
+
+    if (
+        nextGenderPreference === 'FEMALES_ONLY' &&
+        !(driver.gender === 'female' && driver.genderVerified)
+    ) {
+        throw new Error(
+            'Only gender-verified female drivers can publish Females Only rides.'
+        );
+    }
+
+    const nextRideType = data.rideType
+        ? String(data.rideType).toUpperCase()
+        : existingRide.rideType;
+
+    if (!['SCHEDULED', 'INSTANT'].includes(nextRideType)) {
+        throw new Error('rideType must be SCHEDULED or INSTANT.');
+    }
+
+    const shouldRefreshIntelligence =
+        data.startLocation ||
+        data.destinationLocation ||
+        data.seatsTotal != null ||
+        data.rideType ||
+        data.departureTime;
+
+    let refreshed = null;
+
+    if (shouldRefreshIntelligence) {
+        refreshed = await buildRideIntelligence({
+            startLocation: data.startLocation ?? existingRide.startLocation,
+            destinationLocation:
+                data.destinationLocation ?? existingRide.destinationLocation,
+            seatsTotal: data.seatsTotal ?? existingRide.seatsTotal,
+            rideType: nextRideType,
+            departureTime: data.departureTime ?? existingRide.departureTime,
+        });
+    }
+
     const updateData = {
         vehicleId: data.vehicleId ?? existingRide.vehicleId,
         startLocation: data.startLocation ?? existingRide.startLocation,
-        destinationLocation: data.destinationLocation ?? existingRide.destinationLocation,
+        destinationLocation:
+            data.destinationLocation ?? existingRide.destinationLocation,
         targetSlot: data.targetSlot ?? existingRide.targetSlot,
-        rideType: data.rideType ? String(data.rideType).toUpperCase() : existingRide.rideType,
-        seatsTotal: data.seatsTotal != null ? Number(data.seatsTotal) : existingRide.seatsTotal,
-        farePerSeat: data.farePerSeat != null ? Number(data.farePerSeat) : existingRide.farePerSeat,
-        genderPreference: data.genderPreference ?? existingRide.genderPreference,
+        rideType: nextRideType,
+        seatsTotal:
+            data.seatsTotal != null ? Number(data.seatsTotal) : existingRide.seatsTotal,
+        farePerSeat:
+            data.farePerSeat != null
+                ? Number(data.farePerSeat)
+                : existingRide.farePerSeat,
+        genderPreference: nextGenderPreference,
         status: data.status ?? existingRide.status,
-        isUrgent: data.isUrgent != null ? Boolean(data.isUrgent) : existingRide.isUrgent,
+        isUrgent: refreshed ? refreshed.isUrgent : existingRide.isUrgent,
+        routeKey: refreshed ? refreshed.routeKey : existingRide.routeKey,
+        destinationKey: refreshed
+            ? refreshed.destinationKey
+            : existingRide.destinationKey,
+        routeGeometry: refreshed ? refreshed.routeGeometry : existingRide.routeGeometry,
+        distanceKm: refreshed ? refreshed.distanceKm : existingRide.distanceKm,
+        durationMin: refreshed ? refreshed.durationMin : existingRide.durationMin,
+        suggestedFarePerSeat: refreshed
+            ? refreshed.fareSuggestion.suggestedFarePerSeat
+            : existingRide.suggestedFarePerSeat,
+        fareCap: refreshed ? refreshed.fareSuggestion.fareCap : existingRide.fareCap,
+        mappingProvider: refreshed
+            ? refreshed.mappingProvider
+            : existingRide.mappingProvider,
     };
 
-    if (data.departureTime) {
+    if (data.departureTime && !refreshed) {
         const parsedDate = new Date(data.departureTime);
         if (Number.isNaN(parsedDate.getTime())) {
             throw new Error('Invalid departureTime.');
         }
         updateData.departureTime = parsedDate;
+    } else if (refreshed) {
+        updateData.departureTime = refreshed.departureTime;
     }
 
-    if (updateData.seatsTotal <= 0) {
+    if (Number.isNaN(updateData.seatsTotal) || updateData.seatsTotal <= 0) {
         throw new Error('seatsTotal must be a positive number.');
     }
 
-    if (updateData.farePerSeat < 0) {
+    if (Number.isNaN(updateData.farePerSeat) || updateData.farePerSeat < 0) {
         throw new Error('farePerSeat must be a valid non-negative number.');
     }
 
-    if (existingRide.seatsAvailable > updateData.seatsTotal) {
-        throw new Error('Cannot reduce seatsTotal below already available capacity logic.');
+    const effectiveFareCap =
+        refreshed?.fareSuggestion?.fareCap ??
+        existingRide.fareCap ??
+        updateData.farePerSeat;
+
+    if (updateData.farePerSeat > effectiveFareCap) {
+        throw new Error(
+            `farePerSeat cannot exceed capped limit of PKR ${effectiveFareCap}.`
+        );
     }
 
-    updateData.seatsAvailable = Math.min(existingRide.seatsAvailable, updateData.seatsTotal);
+    const reservedSeats = existingRide.seatsTotal - existingRide.seatsAvailable;
 
-    const shouldReplaceStops = Array.isArray(data.stops);
+    if (updateData.seatsTotal < reservedSeats) {
+        const err = new Error('Cannot reduce seatsTotal below already reserved seats.');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    updateData.seatsAvailable = updateData.seatsTotal - reservedSeats;
+
+    const shouldReplaceStops =
+        Array.isArray(data.confirmedStops) || Array.isArray(data.stops);
+
+    const incomingStops = Array.isArray(data.confirmedStops)
+        ? data.confirmedStops
+        : Array.isArray(data.stops)
+            ? data.stops
+            : [];
 
     return prisma.ride.update({
         where: { id: rideId },
@@ -217,11 +360,13 @@ const updateRide = async (rideId, driverId, data) => {
                 ? {
                     stops: {
                         deleteMany: {},
-                        create: data.stops.map((stop, index) => ({
+                        create: incomingStops.map((stop, index) => ({
                             stopName: stop.stopName,
                             sequence: stop.sequence ?? index + 1,
                             lat: stop.lat ?? null,
                             lng: stop.lng ?? null,
+                            isSuggested: stop.isSuggested ?? false,
+                            isConfirmed: stop.isConfirmed ?? true,
                         })),
                     },
                 }

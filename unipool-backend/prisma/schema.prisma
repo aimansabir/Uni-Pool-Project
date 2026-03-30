@@ -17,6 +17,35 @@ enum UserRole {
   admin
 }
 
+enum NotificationChannel {
+  EMAIL
+  IN_APP_TOAST
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum RideType {
+  SCHEDULED
+  INSTANT
+}
+
+enum GenderPreference {
+  ANY
+  MALES_ONLY
+  FEMALES_ONLY
+}
+
+enum RideStatus {
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
 model User {
   id          String   @id @default(uuid())
   fullName    String
@@ -28,10 +57,14 @@ model User {
   role        UserRole @default(student)
   trustScore  Float    @default(5.0)
   isVerified  Boolean  @default(false)
+  genderVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   vehicles Vehicle[] @relation("DriverVehicles")
   rides    Ride[]    @relation("DriverRides")
+  routeSubscriptions RouteSubscription[]
+  activeRouteSearches ActiveRouteSearch[]
+  notifications      Notification[]
 }
 
 model Vehicle {
@@ -59,17 +92,26 @@ model Ride {
   destinationLocation String
   departureTime       DateTime
   targetSlot          String?    // e.g. "08:30 AM Class"
-  rideType            String     // "SCHEDULED" | "INSTANT"
+  rideType            RideType
   seatsTotal          Int
   seatsAvailable      Int
   farePerSeat         Float
-  genderPreference    String     @default("ANY")
-  status              String     @default("PUBLISHED")
+  genderPreference    GenderPreference  @default(ANY)
+  status              RideStatus  @default(PUBLISHED)
   isUrgent            Boolean    @default(false)
+  routeKey             String?
+  destinationKey       String?
+  routeGeometry        Json?
+  distanceKm           Float?
+  durationMin          Int?
+  suggestedFarePerSeat Float?
+  fareCap              Float?
+  mappingProvider      String?
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
   stops               RideStop[]
+  notifications        Notification[]
 }
 
 model RideStop {
@@ -80,4 +122,59 @@ model RideStop {
   sequence  Int
   lat       Float?
   lng       Float?
+  isSuggested Boolean @default(false)
+  isConfirmed Boolean @default(true)
+}
+
+model RouteSubscription {
+  id                  String              @id @default(uuid())
+  userId              String
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeKey            String
+  destinationKey      String?
+  startLocation       String
+  destinationLocation String
+  channel             NotificationChannel @default(EMAIL)
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([userId, routeKey])
+  @@index([routeKey, isActive])
+  @@index([destinationKey, isActive])
+}
+
+model ActiveRouteSearch {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeKey            String
+  destinationKey      String?
+  startLocation       String
+  destinationLocation String
+  isActive            Boolean  @default(true)
+  lastSeenAt          DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, routeKey])
+  @@index([routeKey, isActive])
+  @@index([destinationKey, isActive])
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rideId    String?
+  ride      Ride?               @relation(fields: [rideId], references: [id], onDelete: SetNull)
+  channel   NotificationChannel
+  status    NotificationStatus  @default(PENDING)
+  title     String
+  message   String
+  payload   Json?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([userId, createdAt])
 }
