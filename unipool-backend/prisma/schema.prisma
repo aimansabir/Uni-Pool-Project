@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ──────────────────────────────────────────────────────────
+
 enum Gender {
   male
   female
@@ -17,17 +19,278 @@ enum UserRole {
   admin
 }
 
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SSE
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+enum RideType {
+  SCHEDULED
+  INSTANT
+}
+
+enum GenderPreference {
+  ANY
+  FEMALES_ONLY
+}
+
+enum RideStatus {
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+// ─── WF3 Enums ─────────────────────────────────────────────────────
+
+enum RideParticipantStatus {
+  BOOKED
+  PICKED_UP
+  NO_SHOW
+  DROPPED_OFF
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum PaymentMethod {
+  CASH
+  JAZZCASH
+  OTHER
+}
+
+enum RatingType {
+  PASSENGER_TO_DRIVER
+  DRIVER_TO_PASSENGER
+}
+
+// ─── Models ─────────────────────────────────────────────────────────
+
 model User {
-  id          String   @id @default(uuid())
-  fullName    String
-  ibaEmail    String   @unique
-  password    String
-  phone       String?
-  studentErp  String?  @unique
-  gender      Gender
-  role        UserRole @default(student)
-  trustScore  Float    @default(5.0)
-  isVerified  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  fullName       String
+  ibaEmail       String   @unique
+  password       String
+  phone          String?
+  studentErp     String?  @unique
+  gender         Gender
+  role           UserRole @default(student)
+  isVerified     Boolean  @default(false)
+  genderVerified Boolean  @default(false)
+
+  // Trust & reputation (WF3)
+  trustScore           Float  @default(100)
+  punctualityScore     Float?
+  safetyScore          Float?
+  behaviorScore        Float?
+  totalRatingsReceived Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vehicles            Vehicle[]
+  rides               Ride[]
+  bookingRequests     BookingRequest[]
+  routeSubscriptions  RouteSubscription[]
+  activeRouteSearches ActiveRouteSearch[]
+  notifications       Notification[]
+  paymentsAsPassenger RidePayment[]       @relation("PassengerPayments")
+  paymentsAsDriver    RidePayment[]       @relation("DriverPayments")
+  ratingsGiven        RideRating[]        @relation("RatingsGiven")
+  ratingsReceived     RideRating[]        @relation("RatingsReceived")
+}
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  make               String
+  model              String
+  year               Int?
+  color              String?
+  registrationNumber String   @unique
+  driverId           String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  driver User   @relation(fields: [driverId], references: [id])
+  rides  Ride[]
+}
+
+model Ride {
+  id                   String           @id @default(uuid())
+  driverId             String
+  vehicleId            String
+  rideType             RideType
+  departureTime        DateTime
+  seatsTotal           Int
+  seatsAvailable       Int
+  farePerSeat          Float
+  fareCap              Float?
+  suggestedFarePerSeat Float?
+  genderPreference     GenderPreference @default(ANY)
+  status               RideStatus       @default(PUBLISHED)
+  isUrgent             Boolean          @default(false)
+
+  // Route intelligence
+  routeGeometry   Json?
+  distanceKm      Float?
+  durationMin     Float?
+  mappingProvider String?
+
+  // WF3: Ride execution
+  startedAt      DateTime?
+  completedAt    DateTime?
+  currentLat     Float?
+  currentLng     Float?
+  lastLocationAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  driver          User             @relation(fields: [driverId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  stops           RideStop[]
+  bookingRequests BookingRequest[]
+  notifications   Notification[]
+  payments        RidePayment[]
+  ratings         RideRating[]
+}
+
+model RideStop {
+  id        String   @id @default(uuid())
+  rideId    String
+  name      String
+  lat       Float
+  lng       Float
+  stopOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+}
+
+model BookingRequest {
+  id              String               @id @default(uuid())
+  passengerId     String
+  rideId          String
+  status          BookingRequestStatus @default(PENDING)
+  pickupStopName  String?
+  dropoffStopName String?
+  pickupLat       Float?
+  pickupLng       Float?
+  dropoffLat      Float?
+  dropoffLng      Float?
+
+  // WF3: Ride execution participation (only set on accepted bookings)
+  participantStatus RideParticipantStatus?
+  pickedUpAt        DateTime?
+  noShowMarkedAt    DateTime?
+  droppedOffAt      DateTime?
+  plateVerified     Boolean                @default(false)
+  plateVerifiedAt   DateTime?
+  arrivedAtStopAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  passenger User         @relation(fields: [passengerId], references: [id])
+  ride      Ride         @relation(fields: [rideId], references: [id])
+  payment   RidePayment?
+}
+
+model RouteSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  routeKey  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ActiveRouteSearch {
+  id            String    @id @default(uuid())
+  userId        String
+  routeKey      String
+  isActive      Boolean   @default(true)
+  lastPingedAt  DateTime  @default(now())
+  deactivatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  rideId    String?
+  channel   NotificationChannel @default(IN_APP)
+  status    NotificationStatus  @default(UNREAD)
+  title     String
+  message   String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User  @relation(fields: [userId], references: [id])
+  ride Ride? @relation(fields: [rideId], references: [id])
+}
+
+// ─── WF3 Models ─────────────────────────────────────────────────────
+
+model RidePayment {
+  id                  String         @id @default(uuid())
+  rideId              String
+  bookingRequestId    String         @unique
+  passengerId         String
+  driverId            String
+  amount              Float
+  paymentMethod       PaymentMethod?
+  status              PaymentStatus  @default(PENDING)
+  paidAt              DateTime?
+  confirmedByDriverAt DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  ride           Ride           @relation(fields: [rideId], references: [id])
+  bookingRequest BookingRequest @relation(fields: [bookingRequestId], references: [id])
+  passenger      User           @relation("PassengerPayments", fields: [passengerId], references: [id])
+  driver         User           @relation("DriverPayments", fields: [driverId], references: [id])
+}
+
+model RideRating {
+  id               String     @id @default(uuid())
+  rideId           String
+  bookingRequestId String?
+  raterId          String
+  rateeId          String
+  ratingType       RatingType
+  punctualityStars Int?
+  safetyStars      Int?
+  behaviorStars    Int?
+  comment          String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  ride  Ride @relation(fields: [rideId], references: [id])
+  rater User @relation("RatingsGiven", fields: [raterId], references: [id])
+  ratee User @relation("RatingsReceived", fields: [rateeId], references: [id])
+
+  @@unique([rideId, raterId, rateeId, ratingType])
 }
