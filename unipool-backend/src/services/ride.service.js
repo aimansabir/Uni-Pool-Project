@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { buildRideIntelligence } = require('./mapping.service');
 const { dispatchRideNotifications } = require('./notification.service');
+const { emitToUser } = require('../lib/sseHub');
 
 const createRide = async (driverId, data) => {
     const {
@@ -384,6 +385,12 @@ const updateRide = async (rideId, driverId, data) => {
 const deleteRide = async (rideId, driverId) => {
     const ride = await prisma.ride.findUnique({
         where: { id: rideId },
+        include: {
+            bookingRequests: {
+                where: { status: 'ACCEPTED' },
+                select: { passengerId: true },
+            },
+        },
     });
 
     if (!ride) {
@@ -392,6 +399,47 @@ const deleteRide = async (rideId, driverId) => {
 
     if (ride.driverId !== driverId) {
         throw new Error('Unauthorized.');
+    }
+
+    const passengerIds = ride.bookingRequests.map(
+        (booking) => booking.passengerId
+    );
+
+    if (passengerIds.length > 0) {
+        const title = 'Ride Cancelled';
+
+        const message =
+            ride.rideType === 'INSTANT'
+                ? `Your instant ride from ${ride.startLocation} → ${ride.destinationLocation} has been cancelled by the driver. Please find an alternative immediately.`
+                : `Your scheduled ride from ${ride.startLocation} → ${ride.destinationLocation} has been cancelled by the driver. Please find an alternative ride.`;
+
+        await prisma.notification.createMany({
+            data: passengerIds.map((passengerId) => ({
+                userId: passengerId,
+                channel: 'IN_APP_TOAST',
+                status: 'SENT',
+                title,
+                message,
+                payload: {
+                    rideId: ride.id,
+                    rideType: ride.rideType,
+                    startLocation: ride.startLocation,
+                    destinationLocation: ride.destinationLocation,
+                },
+            })),
+        });
+
+        if (ride.rideType === 'INSTANT') {
+            for (const passengerId of passengerIds) {
+                emitToUser(passengerId, 'ride-cancelled', {
+                    rideId: ride.id,
+                    title: 'Ride Cancelled',
+                    message:
+                        'Your instant ride has been cancelled. Please book an alternative immediately.',
+                    severity: 'critical',
+                });
+            }
+        }
     }
 
     return prisma.ride.delete({
