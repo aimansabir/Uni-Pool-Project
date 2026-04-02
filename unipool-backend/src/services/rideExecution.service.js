@@ -25,7 +25,7 @@ const getTrackUrl = (rideId) => {
 const buildNavigationLink = (stops) => {
   if (!stops || stops.length === 0) return null;
 
-  const sorted = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
+  const sorted = [...stops].sort((a, b) => a.sequence - b.sequence);
 
   if (sorted.length === 1) {
     return `https://www.google.com/maps/dir/?api=1&destination=${sorted[0].lat},${sorted[0].lng}`;
@@ -59,7 +59,7 @@ const startRide = async (rideId, driverId) => {
           }
         }
       },
-      stops: { orderBy: { stopOrder: 'asc' } }
+      stops: { orderBy: { sequence: 'asc' } }
     }
   });
 
@@ -132,7 +132,7 @@ const getNavigationLink = async (rideId, driverId) => {
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
     include: {
-      stops: { orderBy: { stopOrder: 'asc' } }
+      stops: { orderBy: { sequence: 'asc' } }
     }
   });
 
@@ -192,7 +192,7 @@ const getTrackingData = async (rideId, userId) => {
       vehicle: {
         select: { make: true, model: true, color: true, registrationNumber: true }
       },
-      stops: { orderBy: { stopOrder: 'asc' } },
+      stops: { orderBy: { sequence: 'asc' } },
       bookingRequests: {
         where: { status: 'ACCEPTED' },
         select: { passengerId: true }
