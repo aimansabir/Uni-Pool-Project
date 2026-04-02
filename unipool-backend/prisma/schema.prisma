@@ -7,7 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Enums ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Shared base enums (WF1/WF2) + additive WF3 compatibility
+// ─────────────────────────────────────────────────────────────
 
 enum Gender {
   male
@@ -20,12 +22,16 @@ enum UserRole {
 }
 
 enum NotificationChannel {
-  IN_APP
   EMAIL
+  IN_APP_TOAST
+  IN_APP
   SSE
 }
 
 enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
   UNREAD
   READ
 }
@@ -54,7 +60,9 @@ enum BookingRequestStatus {
   CANCELLED
 }
 
-// ─── WF3 Enums ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// WF3 additive enums
+// ─────────────────────────────────────────────────────────────
 
 enum RideParticipantStatus {
   BOOKED
@@ -80,80 +88,97 @@ enum RatingType {
   DRIVER_TO_PASSENGER
 }
 
-// ─── Models ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────────────────────
 
 model User {
-  id             String   @id @default(uuid())
-  fullName       String
-  ibaEmail       String   @unique
-  password       String
-  phone          String?
-  studentErp     String?  @unique
-  gender         Gender
-  role           UserRole @default(student)
-  isVerified     Boolean  @default(false)
-  genderVerified Boolean  @default(false)
+  id         String   @id @default(uuid())
+  fullName   String
+  ibaEmail   String   @unique
+  password   String
+  phone      String?
+  studentErp String?  @unique
+  gender     Gender
+  role       UserRole @default(student)
 
-  // Trust & reputation (WF3)
-  trustScore           Float  @default(100)
-  punctualityScore     Float?
-  safetyScore          Float?
-  behaviorScore        Float?
+  // Keep WF2 base trustScore for compatibility
+  trustScore     Float   @default(5.0)
+  isVerified     Boolean @default(false)
+  genderVerified Boolean @default(false)
+
+  // WF3 additive trust/reputation fields
+  punctualityScore     Float? @default(100)
+  safetyScore          Float? @default(100)
+  behaviorScore        Float? @default(100)
   totalRatingsReceived Int    @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  vehicles            Vehicle[]
-  rides               Ride[]
-  bookingRequests     BookingRequest[]
+  // Existing shared relations
+  vehicles            Vehicle[]           @relation("DriverVehicles")
+  rides               Ride[]              @relation("DriverRides")
   routeSubscriptions  RouteSubscription[]
   activeRouteSearches ActiveRouteSearch[]
   notifications       Notification[]
-  paymentsAsPassenger RidePayment[]       @relation("PassengerPayments")
-  paymentsAsDriver    RidePayment[]       @relation("DriverPayments")
-  ratingsGiven        RideRating[]        @relation("RatingsGiven")
-  ratingsReceived     RideRating[]        @relation("RatingsReceived")
+  bookingRequests     BookingRequest[]    @relation("PassengerBookings")
+
+  // WF3 additive relations
+  paymentsAsPassenger RidePayment[] @relation("PassengerPayments")
+  paymentsAsDriver    RidePayment[] @relation("DriverPayments")
+  ratingsGiven        RideRating[]  @relation("RatingsGiven")
+  ratingsReceived     RideRating[]  @relation("RatingsReceived")
 }
 
 model Vehicle {
-  id                 String   @id @default(uuid())
+  id       String @id @default(uuid())
+  driverId String
+  driver   User   @relation("DriverVehicles", fields: [driverId], references: [id])
+
   make               String
   model              String
   year               Int?
-  color              String?
-  registrationNumber String   @unique
-  driverId           String
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  color              String
+  registrationNumber String  @unique
+  imageUrl           String?
 
-  driver User   @relation(fields: [driverId], references: [id])
-  rides  Ride[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rides Ride[]
 }
 
 model Ride {
-  id                   String           @id @default(uuid())
-  driverId             String
-  vehicleId            String
-  rideType             RideType
-  departureTime        DateTime
-  seatsTotal           Int
-  seatsAvailable       Int
-  farePerSeat          Float
-  fareCap              Float?
+  id        String  @id @default(uuid())
+  driverId  String
+  driver    User    @relation("DriverRides", fields: [driverId], references: [id])
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  // Shared WF1/WF2 ride publication/search fields
+  startLocation       String
+  destinationLocation String
+  departureTime       DateTime
+  targetSlot          String?
+  rideType            RideType
+  seatsTotal          Int
+  seatsAvailable      Int
+  farePerSeat         Float
+  genderPreference    GenderPreference @default(ANY)
+  status              RideStatus       @default(PUBLISHED)
+  isUrgent            Boolean          @default(false)
+
+  routeKey             String?
+  destinationKey       String?
+  routeGeometry        Json?
+  distanceKm           Float?
+  durationMin          Int?
   suggestedFarePerSeat Float?
-  genderPreference     GenderPreference @default(ANY)
-  status               RideStatus       @default(PUBLISHED)
-  isUrgent             Boolean          @default(false)
+  fareCap              Float?
+  mappingProvider      String?
 
-  // Route intelligence
-  routeGeometry   Json?
-  distanceKm      Float?
-  durationMin     Float?
-  mappingProvider String?
-
-  // WF3: Ride execution
+  // WF3 additive ride execution fields
   startedAt      DateTime?
   completedAt    DateTime?
   currentLat     Float?
@@ -163,33 +188,123 @@ model Ride {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  driver          User             @relation(fields: [driverId], references: [id])
-  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
   stops           RideStop[]
-  bookingRequests BookingRequest[]
   notifications   Notification[]
-  payments        RidePayment[]
-  ratings         RideRating[]
+  bookingRequests BookingRequest[]
+
+  // WF3 additive relations
+  payments RidePayment[]
+  ratings  RideRating[]
 }
 
 model RideStop {
-  id        String   @id @default(uuid())
-  rideId    String
-  name      String
-  lat       Float
-  lng       Float
-  stopOrder Int
+  id     String @id @default(uuid())
+  rideId String
+  ride   Ride   @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  // Keep WF2 canonical naming to avoid breaking search/booking logic
+  stopName    String
+  sequence    Int
+  lat         Float?
+  lng         Float?
+  isSuggested Boolean @default(false)
+  isConfirmed Boolean @default(true)
+
+  // WF2 booking relations
+  pickupBookings BookingRequest[] @relation("PickupStopBookings")
+  dropBookings   BookingRequest[] @relation("DropStopBookings")
+}
+
+model RouteSubscription {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  routeKey            String
+  destinationKey      String?
+  startLocation       String
+  destinationLocation String
+  channel             NotificationChannel @default(EMAIL)
+  isActive            Boolean             @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  @@unique([userId, routeKey])
+  @@index([routeKey, isActive])
+  @@index([destinationKey, isActive])
+}
+
+model ActiveRouteSearch {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  routeKey            String
+  destinationKey      String?
+  startLocation       String
+  destinationLocation String
+  isActive            Boolean @default(true)
+
+  // Keep WF2 field name for compatibility
+  lastSeenAt DateTime @default(now())
+
+  // WF3 additive lifecycle field
+  deactivatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, routeKey])
+  @@index([routeKey, isActive])
+  @@index([destinationKey, isActive])
+}
+
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rideId String?
+  ride   Ride?   @relation(fields: [rideId], references: [id], onDelete: SetNull)
+
+  channel NotificationChannel @default(EMAIL)
+  status  NotificationStatus  @default(PENDING)
+  title   String
+  message String
+  payload Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model BookingRequest {
-  id              String               @id @default(uuid())
-  passengerId     String
-  rideId          String
-  status          BookingRequestStatus @default(PENDING)
+  id          String @id @default(uuid())
+  passengerId String
+  passenger   User   @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  rideId String
+  ride   Ride   @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  // Keep WF2 relational stop fields
+  pickupStopId String?
+  pickupStop   RideStop? @relation("PickupStopBookings", fields: [pickupStopId], references: [id], onDelete: SetNull)
+
+  dropStopId String?
+  dropStop   RideStop? @relation("DropStopBookings", fields: [dropStopId], references: [id], onDelete: SetNull)
+
+  requestedSeats Int                  @default(1)
+  note           String?
+  status         BookingRequestStatus @default(PENDING)
+  requestedAt    DateTime             @default(now())
+  respondedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  // WF3 additive pickup/drop snapshot fields
   pickupStopName  String?
   dropoffStopName String?
   pickupLat       Float?
@@ -197,7 +312,7 @@ model BookingRequest {
   dropoffLat      Float?
   dropoffLng      Float?
 
-  // WF3: Ride execution participation (only set on accepted bookings)
+  // WF3 additive ride execution fields
   participantStatus RideParticipantStatus?
   pickedUpAt        DateTime?
   noShowMarkedAt    DateTime?
@@ -206,72 +321,41 @@ model BookingRequest {
   plateVerifiedAt   DateTime?
   arrivedAtStopAt   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // WF3 additive one-to-one payment
+  payment RidePayment?
 
-  passenger User         @relation(fields: [passengerId], references: [id])
-  ride      Ride         @relation(fields: [rideId], references: [id])
-  payment   RidePayment?
+  // WF3 additive optional ratings
+  ratings RideRating[]
+
+  @@index([passengerId, status])
+  @@index([rideId, status])
 }
-
-model RouteSubscription {
-  id        String   @id @default(uuid())
-  userId    String
-  routeKey  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model ActiveRouteSearch {
-  id            String    @id @default(uuid())
-  userId        String
-  routeKey      String
-  isActive      Boolean   @default(true)
-  lastPingedAt  DateTime  @default(now())
-  deactivatedAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model Notification {
-  id        String              @id @default(uuid())
-  userId    String
-  rideId    String?
-  channel   NotificationChannel @default(IN_APP)
-  status    NotificationStatus  @default(UNREAD)
-  title     String
-  message   String
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-
-  user User  @relation(fields: [userId], references: [id])
-  ride Ride? @relation(fields: [rideId], references: [id])
-}
-
-// ─── WF3 Models ─────────────────────────────────────────────────────
 
 model RidePayment {
-  id                  String         @id @default(uuid())
-  rideId              String
-  bookingRequestId    String         @unique
-  passengerId         String
-  driverId            String
+  id               String @id @default(uuid())
+  rideId           String
+  bookingRequestId String @unique
+  passengerId      String
+  driverId         String
+
   amount              Float
   paymentMethod       PaymentMethod?
   status              PaymentStatus  @default(PENDING)
   paidAt              DateTime?
   confirmedByDriverAt DateTime?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   ride           Ride           @relation(fields: [rideId], references: [id])
   bookingRequest BookingRequest @relation(fields: [bookingRequestId], references: [id])
   passenger      User           @relation("PassengerPayments", fields: [passengerId], references: [id])
   driver         User           @relation("DriverPayments", fields: [driverId], references: [id])
+
+  @@index([rideId])
+  @@index([passengerId])
+  @@index([driverId])
+  @@index([status])
 }
 
 model RideRating {
@@ -281,16 +365,22 @@ model RideRating {
   raterId          String
   rateeId          String
   ratingType       RatingType
+
   punctualityStars Int?
   safetyStars      Int?
   behaviorStars    Int?
   comment          String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
 
-  ride  Ride @relation(fields: [rideId], references: [id])
-  rater User @relation("RatingsGiven", fields: [raterId], references: [id])
-  ratee User @relation("RatingsReceived", fields: [rateeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ride           Ride            @relation(fields: [rideId], references: [id])
+  bookingRequest BookingRequest? @relation(fields: [bookingRequestId], references: [id], onDelete: SetNull)
+  rater          User            @relation("RatingsGiven", fields: [raterId], references: [id])
+  ratee          User            @relation("RatingsReceived", fields: [rateeId], references: [id])
 
   @@unique([rideId, raterId, rateeId, ratingType])
+  @@index([bookingRequestId])
+  @@index([raterId])
+  @@index([rateeId])
 }
