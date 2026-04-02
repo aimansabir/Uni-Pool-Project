@@ -103,7 +103,7 @@ model User {
   role       UserRole @default(student)
 
   // Keep WF2 base trustScore for compatibility
-  trustScore     Float   @default(5.0)
+  trustScore     Float   @default(100)
   isVerified     Boolean @default(false)
   genderVerified Boolean @default(false)
 
