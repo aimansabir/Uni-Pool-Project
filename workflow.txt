@@ -69,3 +69,35 @@ Description: This workflow details how a passenger finds a ride, utilizing Smart
    - Passenger Cancel: If the passenger clicks "Cancel Ride" before the driver starts, the seat is immediately freed up for others, and the driver is notified.
    - Driver Cancel (Standard): If the driver cancels a scheduled ride, all booked passengers receive an urgent "Ride Cancelled" alert to find alternatives.
    - Driver Cancel (Instant): If a driver cancels an "Instant Ride," the system shows a critical full-screen alert to the passenger to prevent them from waiting at the curb.
+
+
+======================================================================
+WORKFLOW 3: LIVE NAVIGATION & TRUST CYCLE
+======================================================================
+
+Description: This workflow covers the complete execution of a ride after booking. It includes live navigation for drivers, real-time tracking for passengers, pickup verification, no-show handling, payment settlement, and a mutual rating system that feeds into the platform's trust score.
+
+1. Ride Start & Live Navigation:
+   - The driver taps "Start Ride" which transitions the ride to IN_PROGRESS.
+   - A Google Maps deep link is generated with pre-filled waypoints for turn-by-turn navigation.
+   - The driver periodically updates their GPS location via the app.
+   - Passengers can track the driver's real-time location on a map.
+
+2. Pickup Verification & No-Show Handling:
+   - The driver marks arrival at a passenger's pickup stop.
+   - The passenger verifies the vehicle's license plate before boarding for safety.
+   - The driver confirms the passenger has boarded (picked up).
+   - If the passenger doesn't show up within 5 minutes of the driver's arrival, the driver can mark them as a no-show.
+
+3. Drop-off & Payment Settlement:
+   - The driver marks each passenger as dropped off at their destination.
+   - Passengers view their payment due amount and record their payment method (Cash, JazzCash, or Other).
+   - The driver confirms receipt of the payment, completing the settlement.
+   - No-show passengers are excluded from the payment flow.
+
+4. Completion & Trust Score:
+   - Ride End: The driver marks the ride as "Completed."
+   - Mutual Rating:
+     - Passenger rates Driver (1-5 Stars) on Punctuality and Safety.
+     - Driver rates Passenger (1-5 Stars) on Behavior.
+   - Profile Update: The system updates the user's public "Trust Score" (e.g., "98% Punctuality Score"), influencing their ability to use the platform in the future.

@@ -16,6 +16,11 @@ const routeSubscriptionRoutes = require('./routes/routeSubscription.routes');
 const searchRoutes = require('./routes/search.routes');
 const bookingRequestRoutes = require('./routes/bookingRequest.routes');
 
+// Workflow 3 routes
+const rideExecutionRoutes = require('./routes/rideExecution.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const ratingRoutes = require('./routes/rating.routes');
+
 const app = express();
 
 app.use(cors());
@@ -38,6 +43,11 @@ app.use('/api/route-subscriptions', routeSubscriptionRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/booking-requests', bookingRequestRoutes);
 
+// Mount routes — Workflow 3
+app.use('/api/ride-execution', rideExecutionRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/ratings', ratingRoutes);
+
 // SSE notification stream — real-time push for authenticated users
 app.get('/api/notifications/stream', authenticate, (req, res) => {
   res.writeHead(200, {
@@ -45,7 +55,7 @@ app.get('/api/notifications/stream', authenticate, (req, res) => {
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
   });
-  res.write(':\n\n'); // SSE comment — keeps connection alive
+  res.write(':\n\n');
 
   const userId = req.user.id;
   addClient(userId, res);
