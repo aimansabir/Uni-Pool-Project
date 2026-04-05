@@ -1,4 +1,4 @@
-# UniPool Backend README INSIDE BACKEND FOLDER
+# UniPool Backend — Complete API Documentation (Workflow 1 + Workflow 2)
 
 > **University Carpooling Platform – Backend API**
 > A RESTful backend for UniPool, a ride-sharing web app exclusively for IBA University students. Built with **Express.js**, **PostgreSQL**, and **Prisma ORM**.
@@ -23,8 +23,11 @@
    - [Route Subscriptions](#5-route-subscriptions)
    - [Active Route Searches](#6-active-route-searches)
    - [Notifications](#7-notifications)
-10. [Database Schema (ERD)](#database-schema-erd)
-11. [Version Control Practices](#version-control-practices)
+   - [Search (Smart Search & Live Feed)](#8-search-smart-search--live-feed)
+   - [Booking Requests (CRUD)](#9-booking-requests-crud)
+10. [Workflow 2 — Feature Mapping](#workflow-2--feature-mapping)
+11. [Database Schema (ERD)](#database-schema-erd)
+12. [Version Control Practices](#version-control-practices)
 
 ---
 
@@ -183,6 +186,7 @@ Prisma manages the database schema through migrations. The following migrations 
 | `wf1_intelligence_notifications`       | Adds route intelligence & notification models |
 | `add_gender_verified_to_user`          | Adds gender verification flag to User    |
 | `add_ride_enums`                       | Adds ride status, type, and preference enums |
+| `add_booking_request`                  | Adds BookingRequest model with passenger/stop relations, status enum, and ride/user foreign keys |
 
 Apply all migrations:
 
@@ -202,13 +206,13 @@ npx prisma studio
 
 ## Running the Server
 
-| Command          | Description                          |
-| ---------------- | ------------------------------------ |
-| `npm run dev`    | Start dev server with hot-reload (nodemon) |
-| `npm start`      | Start production server              |
-| `npm run prisma:validate` | Validate the Prisma schema  |
-| `npm run prisma:generate` | Generate Prisma Client      |
-| `npm run prisma:migrate`  | Run database migrations     |
+| Command                   | Description                              |
+| ------------------------- | ---------------------------------------- |
+| `npm run dev`             | Start dev server with hot-reload (nodemon) |
+| `npm start`               | Start production server                  |
+| `npm run prisma:validate` | Validate the Prisma schema               |
+| `npm run prisma:generate` | Generate Prisma Client                   |
+| `npm run prisma:migrate`  | Run database migrations                  |
 
 ---
 
@@ -228,7 +232,9 @@ unipool-backend/
 │   │   ├── ride.routes.js         # CRUD: POST, GET, GET/:id, PUT/:id, DELETE/:id + intelligence
 │   │   ├── notification.routes.js # GET /, PATCH /:id/read, GET /stream (SSE)
 │   │   ├── activeSearch.routes.js # POST /, PATCH /:id/ping, PATCH /:id/deactivate
-│   │   └── routeSubscription.routes.js # POST /, GET /, DELETE /:id
+│   │   ├── routeSubscription.routes.js # POST /, GET /, DELETE /:id
+│   │   ├── search.routes.js       # GET /rides (search), GET /rides/:id/preview  [WF2]
+│   │   └── bookingRequest.routes.js # POST, GET, GET/:id, PATCH/respond, PATCH/cancel, DELETE  [WF2]
 │   ├── services/                  # Business logic layer (no HTTP awareness)
 │   │   ├── auth.service.js        # Register, login, getMe
 │   │   ├── vehicle.service.js     # Vehicle CRUD operations
@@ -236,7 +242,9 @@ unipool-backend/
 │   │   ├── mapping.service.js     # Geocoding, routing, landmark detection, fare calc
 │   │   ├── notification.service.js# Notification dispatch (email + SSE toast + IN-APP)
 │   │   ├── activeSearch.service.js# Active route search management
-│   │   └── routeSubscription.service.js # Route subscription management
+│   │   ├── routeSubscription.service.js # Route subscription management
+│   │   ├── search.service.js      # Smart search, occupancy mix, ride preview  [WF2]
+│   │   └── bookingRequest.service.js # Booking create, respond, cancel, delete  [WF2]
 │   ├── middlewares/
 │   │   ├── auth.middleware.js     # JWT token verification
 │   │   └── error.middleware.js    # 404 handler + global error handler
@@ -248,10 +256,11 @@ unipool-backend/
 │   │   ├── geo.js                 # Haversine distance calculations
 │   │   └── routekey.js            # Route key normalization for matching
 │   ├── data/
-│   │   ├── landmarks.js           # Pre-geocoded Karachi landmark coordinates and critical Karachi landmarks are pre-seeded manually in src/data/landmarks.js to avoid missed detections from geocoder failures.
+│   │   ├── landmarks.js           # Pre-geocoded Karachi landmark coordinates
 │   │   └── landmarks.unresolved.json # Landmarks that failed geocoding
 │   └── scripts/
 │       └── build-landmarks.js     # Utility to re-geocode landmark data
+├── Backend_API_WF-2.md            # API Quick Reference for Workflow 2
 ├── .env.example                   # Template for environment variables
 ├── .gitignore                     # Ignores node_modules/ and .env
 ├── package.json                   # Dependencies and npm scripts
@@ -309,6 +318,38 @@ This is the full **Driver Ride Publication** flow from the project design, imple
 - **Active Route Searches** (Create/Ping/Deactivate) – Tracks active passengers for instant ride toast alerts.
 - **Notifications** (Read/Mark Read/SSE Stream) – Delivers scheduled email notifications and in-app notifications and instant toast pop-ups via Server-Sent Events.
 
+### Workflow 2 — Passenger Search & Booking (Demand Side)
+
+Workflow 2 covers the **demand side** of UniPool — how a passenger finds a ride, books a seat, and handles cancellations. It implements two new modules:
+
+#### Smart Search & Ride Preview (Read Operations)
+
+| Operation         | Method | Endpoint                            | Description                                          |
+| ----------------- | ------ | ----------------------------------- | ---------------------------------------------------- |
+| **Search Rides**  | GET    | `/api/search/rides`                 | Smart search with pickup, dropoff, slot & urgency filters |
+| **Ride Preview**  | GET    | `/api/search/rides/:rideId/preview` | Detailed ride view with route, stops, and occupancy   |
+
+#### Booking Request Management (Full CRUD)
+
+| Operation  | Method | Endpoint                             | Description                          |
+| ---------- | ------ | ------------------------------------ | ------------------------------------ |
+| **Create** | POST   | `/api/booking-requests`              | Request a seat on a ride             |
+| **Read**   | GET    | `/api/booking-requests`              | List passenger's booking requests    |
+| **Read**   | GET    | `/api/booking-requests/incoming`     | Driver lists incoming booking requests |
+| **Read**   | GET    | `/api/booking-requests/:id`          | Get a specific booking request       |
+| **Update** | PATCH  | `/api/booking-requests/:id/respond`  | Driver accepts or rejects a request  |
+| **Update** | PATCH  | `/api/booking-requests/:id/cancel`   | Passenger cancels their booking      |
+| **Delete** | DELETE | `/api/booking-requests/:id`          | Passenger deletes a non-accepted booking |
+
+**Key Sub-Flows:**
+
+- **Occupancy Mix (Safety)** – Every search result and ride preview includes the live gender composition of the car (e.g., "Occupants: 1 Male, 2 Female") computed from accepted bookings.
+- **Instant vs. Scheduled Booking** – The booking system handles both ride types with distinct labels ("Join Ride Instantly" vs. "Request Seat") and notification priorities.
+- **Tiered Notification System** – Driver and passenger notifications use priority levels (`HIGH`/`NORMAL`) and presentation styles (`LIVE_TOAST`/`STANDARD_PUSH`) to differentiate instant and scheduled ride alerts.
+- **Passenger Navigation Hints** – After driver responds, the API returns navigation hints (`TRACK_RIDE`, `BOOKING_CONFIRMED`, `REQUEST_REJECTED`) for frontend routing.
+- **Gender Safety Enforcement** – Males are blocked from `FEMALES_ONLY` rides (403), and driver gender configuration is validated.
+- **Driver Ride Cancellation** – When a driver deletes/cancels a ride that has accepted bookings, all affected passengers are automatically notified. This cancellation logic is implemented in Workflow 1's ride deletion flow (`DELETE /api/rides/:id`) and fulfils the cancellation handling requirement described in Workflow 2's design.
+
 ---
 
 ## API Documentation
@@ -320,7 +361,7 @@ All endpoints return consistent JSON responses:
 {
   "success": true,
   "message": "Descriptive message.",
-  "data": { ... }
+  "data": { "..." }
 }
 ```
 
@@ -511,25 +552,6 @@ List all vehicles belonging to the authenticated driver.
 
 Get details of a specific vehicle (must belong to authenticated user).
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": {
-    "id": "uuid",
-    "driverId": "uuid",
-    "make": "Toyota",
-    "model": "Corolla",
-    "color": "White",
-    "registrationNumber": "ABC-1234",
-    "imageUrl": null,
-    "createdAt": "2026-04-01T12:00:00.000Z",
-    "updatedAt": "2026-04-01T12:00:00.000Z"
-  }
-}
-```
-
 ---
 
 #### `PUT /api/vehicles/:id`
@@ -544,29 +566,11 @@ Update a vehicle's details. Only `make`, `model`, `color`, and `imageUrl` can be
 }
 ```
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Vehicle updated.",
-  "data": { "...updated vehicle object..." }
-}
-```
-
 ---
 
 #### `DELETE /api/vehicles/:id`
 
 Delete a vehicle. Cannot delete if it is attached to any existing rides.
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Vehicle deleted.",
-  "data": null
-}
-```
 
 **Error (400) – Vehicle has linked rides:**
 ```json
@@ -619,63 +623,11 @@ Publish a new ride. Integrates Route Intelligence for auto-tagging landmarks, co
 - `FEMALES_ONLY` gender preference requires a gender-verified female driver
 - `confirmedStops` array is required (can be empty `[]`)
 
-**Success Response (201):**
-```json
-{
-  "success": true,
-  "message": "Ride published successfully.",
-  "data": {
-    "id": "uuid",
-    "driverId": "uuid",
-    "vehicleId": "uuid",
-    "startLocation": "Maskan Gate",
-    "destinationLocation": "IBA City Campus",
-    "departureTime": "2026-04-05T07:45:00.000Z",
-    "targetSlot": "08:30 AM Class",
-    "rideType": "SCHEDULED",
-    "seatsTotal": 3,
-    "seatsAvailable": 3,
-    "farePerSeat": 200,
-    "genderPreference": "ANY",
-    "status": "PUBLISHED",
-    "isUrgent": false,
-    "routeKey": "maskan-gate__iba-city-campus",
-    "distanceKm": 12.5,
-    "durationMin": 28,
-    "suggestedFarePerSeat": 180,
-    "fareCap": 230,
-    "mappingProvider": "Nominatim + OSRM",
-    "routeGeometry": { "...GeoJSON..." },
-    "vehicle": { "...vehicle object..." },
-    "stops": [
-      {
-        "id": "uuid",
-        "stopName": "Nipa Chowrangi",
-        "sequence": 1,
-        "lat": 24.9178,
-        "lng": 67.0971,
-        "isSuggested": false,
-        "isConfirmed": true
-      }
-    ]
-  }
-}
-```
-
 ---
 
 #### `GET /api/rides`
 
 List all rides published by the authenticated driver.
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": [ { "...ride objects with vehicle and stops..." } ]
-}
-```
 
 ---
 
@@ -683,53 +635,17 @@ List all rides published by the authenticated driver.
 
 Get details of a specific ride (must belong to authenticated driver).
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": { "...full ride object with vehicle and stops..." }
-}
-```
-
 ---
 
 #### `PUT /api/rides/:id`
 
-Update an existing ride. Route intelligence is automatically refreshed if route-related fields change. 
-
-**Request Body (partial update):**
-```json
-{
-  "seatsTotal": 4,
-  "farePerSeat": 180,
-  "confirmedStops": []
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Ride updated successfully.",
-  "data": { "...updated ride object..." }
-}
-```
+Update an existing ride. Route intelligence is automatically refreshed if route-related fields change.
 
 ---
 
 #### `DELETE /api/rides/:id`
 
 Delete a ride. If the ride has accepted bookings, all affected passengers are notified (via in-app toast and SSE for instant rides).
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Ride deleted successfully.",
-  "data": null
-}
-```
 
 ---
 
@@ -747,45 +663,6 @@ Preview route intelligence without publishing a ride. Returns geocoded locations
   "seatsTotal": 3,
   "rideType": "SCHEDULED",
   "departureTime": "2026-04-05T07:45:00.000Z"
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Route intelligence ready.",
-  "data": {
-    "mappingProvider": "Nominatim + OSRM",
-    "startPoint": { "label": "...", "lat": 24.92, "lng": 67.09 },
-    "destinationPoint": { "label": "...", "lat": 24.83, "lng": 67.03 },
-    "distanceKm": 15.2,
-    "durationMin": 35,
-    "routeGeometry": { "type": "LineString", "coordinates": [...] },
-    "suggestedLandmarks": [
-      { "stopName": "Nipa Chowrangi", "sequence": 1, "lat": 24.917, "lng": 67.097, "isSuggested": true, "isConfirmed": false }
-    ],
-    "fareSuggestion": {
-      "suggestedFarePerSeat": 150,
-      "fareCap": 190
-    },
-    "rideType": "SCHEDULED",
-    "departureTime": "2026-04-05T07:45:00.000Z",
-    "isUrgent": false,
-    "routeKey": "maskan-gate__clifton",
-    "destinationKey": "clifton",
-    "routeOptions": [
-      {
-        "optionNumber": 1,
-        "isPrimary": true,
-        "distanceKm": 15.2,
-        "durationMin": 35,
-        "roadHighlights": ["University Road", "Shahrah-e-Faisal"],
-        "routeGeometry": { "...GeoJSON..." },
-        "suggestedLandmarks": [...]
-      }
-    ]
-  }
 }
 ```
 
@@ -808,53 +685,17 @@ Create or update a route subscription.
 }
 ```
 
-**Success Response (201):**
-```json
-{
-  "success": true,
-  "message": "Route subscription saved.",
-  "data": {
-    "id": "uuid",
-    "userId": "uuid",
-    "routeKey": "maskan-gate__iba-city-campus",
-    "destinationKey": "iba-city-campus",
-    "startLocation": "Maskan Gate",
-    "destinationLocation": "IBA City Campus",
-    "channel": "EMAIL",
-    "isActive": true
-  }
-}
-```
-
 ---
 
 #### `GET /api/route-subscriptions`
 
 List all route subscriptions for the authenticated user.
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": [ { "...subscription objects..." } ]
-}
-```
-
 ---
 
 #### `DELETE /api/route-subscriptions/:id`
 
 Delete a route subscription.
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Route subscription deleted.",
-  "data": null
-}
-```
 
 ---
 
@@ -866,58 +707,17 @@ Delete a route subscription.
 
 Register or re-activate an active route search.
 
-**Request Body:**
-```json
-{
-  "startLocation": "Clifton",
-  "destinationLocation": "IBA City Campus"
-}
-```
-
-**Success Response (201):**
-```json
-{
-  "success": true,
-  "message": "Active route search saved.",
-  "data": {
-    "id": "uuid",
-    "userId": "uuid",
-    "routeKey": "clifton__iba-city-campus",
-    "isActive": true,
-    "lastSeenAt": "2026-04-04T12:00:00.000Z"
-  }
-}
-```
-
 ---
 
 #### `PATCH /api/active-searches/:id/ping`
 
 Send a heartbeat to keep the search active.
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Active route search refreshed.",
-  "data": { "...updated search with new lastSeenAt..." }
-}
-```
-
 ---
 
 #### `PATCH /api/active-searches/:id/deactivate`
 
 Deactivate a route search.
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Active route search deactivated.",
-  "data": { "...search with isActive: false..." }
-}
-```
 
 ---
 
@@ -927,41 +727,11 @@ Deactivate a route search.
 
 List all notifications for the authenticated user (newest first).
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": [
-    {
-      "id": "uuid",
-      "userId": "uuid",
-      "rideId": "uuid",
-      "channel": "EMAIL",
-      "status": "SENT",
-      "title": "New scheduled ride on your subscribed route",
-      "message": "Maskan Gate → IBA City Campus at 4/5/2026, 12:45:00 PM",
-      "payload": { "rideId": "uuid", "routeKey": "...", "farePerSeat": 200 },
-      "createdAt": "2026-04-04T12:00:00.000Z"
-    }
-  ]
-}
-```
-
 ---
 
 #### `PATCH /api/notifications/:id/read`
 
 Mark a notification as read.
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Notification marked as read.",
-  "data": { "...notification with status: READ..." }
-}
-```
 
 ---
 
@@ -980,6 +750,204 @@ data: {"ok":true}
 event: ride-toast
 data: {"id":"uuid","title":"Instant ride available now","message":"Clifton → IBA leaving shortly","rideId":"uuid","farePerSeat":150}
 ```
+
+---
+
+### 8. Search (Smart Search & Live Feed)
+
+#### `GET /api/search/rides`
+
+Search for available rides using smart filters. Implements **Landmark Matching** (matches pickup/dropoff against start location, route key, and individual stop names) and the **Live Feed** (urgent "Leaving Now" rides are sorted to the top of results).
+
+**Query Parameters:**
+
+| Parameter    | Type    | Required | Description                                                                    |
+| ------------ | ------- | -------- | ------------------------------------------------------------------------------ |
+| `pickup`     | string  | ❌       | Pickup location keyword (matches start location, route key, or stop names)     |
+| `dropoff`    | string  | ❌       | Drop-off keyword (matches destination, destination key, or stop names)         |
+| `targetSlot` | string  | ❌       | Target class time slot (e.g., "08:30 AM")                                      |
+| `rideType`   | string  | ❌       | Filter by ride type: `SCHEDULED` or `INSTANT`                                  |
+| `onlyUrgent` | boolean | ❌       | If `true`, show only urgent "Leaving Now" rides                                |
+
+**Example Request:**
+```
+GET /api/search/rides?pickup=Clifton&dropoff=IBA&targetSlot=08:30 AM
+```
+
+**Sort Order:**
+1. Urgent rides first (`isUrgent: desc`)
+2. Earliest departure time (`departureTime: asc`)
+3. Newest first (`createdAt: desc`)
+
+**Key Features in Response:**
+- `bookingActionLabel` – Returns `"Join Ride Instantly"` for `INSTANT` rides and `"Request Seat"` for `SCHEDULED` rides.
+- `isUrgent` – Boolean flag for frontend to highlight urgent rides.
+- `occupancyMix` – Live gender composition of the car for passenger safety decisions.
+
+---
+
+#### `GET /api/search/rides/:rideId/preview`
+
+Get a detailed preview of a specific ride. Returns full route data, all stops with coordinates, accepted passenger details, and occupancy information.
+
+**Key Features in Response:**
+- `routeGeometry` – GeoJSON LineString for rendering the driver's route on a map.
+- `stops` – All ordered stops with lat/lng coordinates for map markers.
+- `acceptedPassengers` – List of confirmed passengers with their pickup/drop stops.
+- `occupancyMix` – Live gender composition of current occupants.
+- `driver.phone` – Exposed in preview for contact after booking.
+
+---
+
+### 9. Booking Requests (CRUD)
+
+#### `POST /api/booking-requests`
+
+Create a new booking request. Handles both **Scheduled** ("Request Seat") and **Instant** ("Join Ride Instantly") flows.
+
+**Request Body:**
+```json
+{
+  "rideId": "uuid",
+  "pickupStopId": "uuid",
+  "dropStopId": "uuid",
+  "requestedSeats": 1,
+  "note": "I'll be at the main gate"
+}
+```
+
+**Fields:**
+
+| Field            | Type   | Required | Description                                       |
+| ---------------- | ------ | -------- | ------------------------------------------------- |
+| `rideId`         | string | ✅       | ID of the ride to book                            |
+| `pickupStopId`   | string | ✅       | ID of the preferred pickup stop (from ride stops) |
+| `dropStopId`     | string | ❌       | ID of the preferred drop-off stop                 |
+| `requestedSeats` | number | ❌       | Must be `1` (only one seat per booking allowed)   |
+| `note`           | string | ❌       | Optional message for the driver                   |
+
+**Validations:**
+- Ride must exist and be in `PUBLISHED` status
+- Driver cannot book their own ride (400)
+- `pickupStopId` is required (400)
+- `requestedSeats` must be exactly `1` (400)
+- Pickup and drop stops must follow route order (400)
+- Ride must have enough available seats (400)
+- Passenger must not have an existing `PENDING` or `ACCEPTED` booking on the same ride (409)
+- `FEMALES_ONLY` rides block male passengers (403)
+
+**Notification Behavior:**
+
+| Ride Type   | Label                 | Notification Type          | Priority | Presentation    |
+| ----------- | --------------------- | -------------------------- | -------- | --------------- |
+| `SCHEDULED` | "Request Seat"        | `STANDARD_BOOKING_REQUEST` | `NORMAL` | `STANDARD_PUSH` |
+| `INSTANT`   | "Join Ride Instantly" | `INSTANT_BOOKING_ALERT`    | `HIGH`   | `LIVE_TOAST`    |
+
+---
+
+#### `GET /api/booking-requests`
+
+List all booking requests belonging to the authenticated passenger.
+
+---
+
+#### `GET /api/booking-requests/incoming`
+
+List all **PENDING** booking requests for rides owned by the authenticated driver.
+
+---
+
+#### `GET /api/booking-requests/:id`
+
+Get details of a specific booking request. Accessible by either the passenger or the ride driver.
+
+---
+
+#### `PATCH /api/booking-requests/:id/respond`
+
+Driver accepts or rejects a booking request. On acceptance, the seat count is atomically decremented.
+
+**Request Body:**
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+**Passenger Navigation Behavior:**
+
+| Ride Type   | Response   | `passengerNavigation` | Frontend Action                |
+| ----------- | ---------- | --------------------- | ------------------------------ |
+| `SCHEDULED` | `ACCEPTED` | `BOOKING_CONFIRMED`   | Show confirmation screen       |
+| `INSTANT`   | `ACCEPTED` | `TRACK_RIDE`          | Redirect to live ride tracking |
+| Any         | `REJECTED` | `REQUEST_REJECTED`    | Show rejection notice          |
+
+---
+
+#### `PATCH /api/booking-requests/:id/cancel`
+
+Passenger cancels their booking. If accepted, the seat is immediately freed up.
+
+**Cancellation Logic:**
+
+| Previous Status | Seat Restored?              | Driver Notification Priority           |
+| --------------- | --------------------------- | -------------------------------------- |
+| `PENDING`       | No                          | `NORMAL` / `STANDARD_PUSH`            |
+| `ACCEPTED`      | ✅ Yes (incremented back)   | Depends on ride type (HIGH for instant)|
+
+---
+
+#### `DELETE /api/booking-requests/:id`
+
+Permanently delete a booking request record. `ACCEPTED` bookings must be cancelled first.
+
+---
+
+## Workflow 2 — Feature Mapping
+
+This section maps each requirement from the Workflow 2 design document to its implementation in the codebase.
+
+### 1. Smart Search & Live Feed ✅
+
+| Design Requirement | Implementation | Location |
+| ------------------ | -------------- | -------- |
+| Passenger enters pickup, drop-off, Target Class Slot | `pickup`, `dropoff`, `targetSlot` query params | `search.routes.js` → `GET /rides` |
+| Landmark Matching — search drivers whose route passes through a location | Prisma `OR` filter checks `startLocation`, `routeKey`, AND `stops.stopName` (case-insensitive) | `search.service.js` → `searchRides()` |
+| Live Feed — urgent "Leaving Now" rides highlighted at top | Results sorted `isUrgent: 'desc'` first; `onlyUrgent` filter available; `isUrgent` flag in response for frontend color styling | `search.service.js` → `searchRides()` |
+
+### 2. Result Visualization (Safety & Fare) ✅
+
+| Design Requirement | Implementation | Location |
+| ------------------ | -------------- | -------- |
+| Occupancy Mix — display "Occupants: 1 Male, 2 Females" | `buildOccupancyMix()` counts driver gender + all accepted passengers' genders | `search.service.js` → `buildOccupancyMix()` |
+| Fare View — fixed price per seat | `farePerSeat`, `suggestedFarePerSeat`, `fareCap` in ride card | `search.service.js` → `mapRideCard()` |
+| Route Preview — map view with driver's path and stops | `routeGeometry` (GeoJSON), `stops[]` (with lat/lng), `distanceKm`, `durationMin` | `search.service.js` → `getRidePreview()` |
+
+### 3. Booking Request (Instant vs. Standard) ✅
+
+| Design Requirement | Implementation | Location |
+| ------------------ | -------------- | -------- |
+| Scheduled: Select landmark, click "Request Seat" | `pickupStopId`/`dropStopId` accepted, validated against ride stops; label `"Request Seat"` | `bookingRequest.service.js` → `createBookingRequest()` |
+| Instant: Click "Join Ride Instantly" | Same endpoint; label `"Join Ride Instantly"` for instant rides | `bookingRequest.service.js` → `createBookingRequest()` |
+| Driver notification — distinct alert for instant rides | Notification created in transaction with `priority: HIGH` + `presentation: LIVE_TOAST` for instant | `bookingRequest.service.js` → `createBookingRequest()` |
+
+### 4. Confirmation & State Update ✅
+
+| Design Requirement | Implementation | Location |
+| ------------------ | -------------- | -------- |
+| Driver accepts the request | `respondToBookingRequest()` with `status: ACCEPTED` | `bookingRequest.service.js` → `respondToBookingRequest()` |
+| Seat count decreases | Atomic `seatsAvailable` decrement in `$transaction` | `bookingRequest.service.js` → `respondToBookingRequest()` |
+| Occupancy Mix updated for future searchers | `buildOccupancyMix()` computed live from current accepted bookings on every search query | `search.service.js` → `buildOccupancyMix()` |
+| Standard → Passenger receives confirmation | Notification with `passengerNavigation: 'BOOKING_CONFIRMED'` | `bookingRequest.service.js` → `respondToBookingRequest()` |
+| Instant → "Track Ride" link immediately | Notification with `passengerNavigation: 'TRACK_RIDE'` | `bookingRequest.service.js` → `respondToBookingRequest()` |
+
+### 5. Cancellation Handling (Real-Time Logic) ✅
+
+| Design Requirement | Implementation | Location |
+| ------------------ | -------------- | -------- |
+| Passenger cancels → seat freed + driver notified | `cancelBookingRequest()` sets `CANCELLED`, increments `seatsAvailable` (if accepted), creates driver notification | `bookingRequest.service.js` → `cancelBookingRequest()` |
+| Driver cancels scheduled ride → all passengers alerted | Implemented in Workflow 1's ride deletion flow (`DELETE /api/rides/:id`) | `ride.service.js` (Workflow 1) |
+| Driver cancels instant ride → critical alert to passenger | Same as above — handles instant rides with appropriate alert priority | `ride.service.js` (Workflow 1) |
 
 ---
 
@@ -1028,6 +996,8 @@ The following models are defined in `prisma/schema.prisma`:
 │ isActive         │           │ lat, lng         │
 │ lastSeenAt       │           │ isSuggested      │
 └──────────────────┘           │ isConfirmed      │
+                               │ pickupBookings[] │──▶ BookingRequest
+                               │ dropBookings[]   │──▶ BookingRequest
                                └──────────────────┘
 ┌──────────────────┐
 │  Notification     │
@@ -1041,19 +1011,39 @@ The following models are defined in `prisma/schema.prisma`:
 │ message          │
 │ payload (JSON)   │
 └──────────────────┘
+
+┌──────────────────────────────┐
+│       BookingRequest          │
+│                              │
+│ id (PK)                      │
+│ passengerId (FK) ──▶ User     │
+│ rideId (FK)      ──▶ Ride     │
+│ pickupStopId (FK)──▶ RideStop │
+│ dropStopId (FK)  ──▶ RideStop │
+│ requestedSeats   (default: 1) │
+│ note                          │
+│ status           (enum)       │
+│ requestedAt                   │
+│ respondedAt                   │
+│ cancelledAt                   │
+│                              │
+│ @@index([passengerId, status]) │
+│ @@index([rideId, status])      │
+└──────────────────────────────┘
 ```
 
 ### Enums
 
-| Enum Name             | Values                          |
-| --------------------- | ------------------------------- |
-| `Gender`              | `male`, `female`                |
-| `UserRole`            | `student`, `admin`              |
-| `RideType`            | `SCHEDULED`, `INSTANT`          |
-| `RideStatus`          | `PUBLISHED`, `CANCELLED`, `COMPLETED` |
-| `GenderPreference`    | `ANY`, `FEMALES_ONLY`           |
-| `NotificationChannel` | `EMAIL`, `IN_APP_TOAST`         |
-| `NotificationStatus`  | `PENDING`, `SENT`, `FAILED`, `READ` |
+| Enum Name              | Values                                         |
+| ---------------------- | ---------------------------------------------- |
+| `Gender`               | `male`, `female`                               |
+| `UserRole`             | `student`, `admin`                             |
+| `RideType`             | `SCHEDULED`, `INSTANT`                         |
+| `RideStatus`           | `PUBLISHED`, `CANCELLED`, `COMPLETED`          |
+| `GenderPreference`     | `ANY`, `FEMALES_ONLY`                          |
+| `NotificationChannel`  | `EMAIL`, `IN_APP_TOAST`, `IN_APP`              |
+| `NotificationStatus`   | `PENDING`, `SENT`, `FAILED`, `READ`            |
+| `BookingRequestStatus` | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED` |
 
 ---
 
@@ -1061,8 +1051,8 @@ The following models are defined in `prisma/schema.prisma`:
 
 This project follows best practices for version control:
 
-- **Meaningful Commit Messages** – Each commit describes the specific change made (e.g., `feat: add ride CRUD endpoints`, `fix: cascade delete for ride stops`).
-- **Feature Branches** – Development is done on feature branches (e.g., `feature/workflow-1`, `feature/ride-intelligence`) and merged into `main` via pull requests.
+- **Meaningful Commit Messages** – Each commit describes the specific change made (e.g., `feat: add ride CRUD endpoints`, `feat: add booking request CRUD`).
+- **Feature Branches** – Development is done on feature branches (e.g., `feature/workflow-1`, `feature/workflow-2`) and merged into `main` via pull requests.
 - **Pull Requests** – Code changes are reviewed through pull requests before merging to the main branch.
 - **`.gitignore`** – Sensitive files (`.env`) and dependencies (`node_modules/`) are excluded from version control.
 - **Final Code on `main`** – The final version of milestone code is always merged into the `main` branch.
@@ -1071,7 +1061,10 @@ This project follows best practices for version control:
 
 ## Contributors
 
-| Khizer | Workflow-1 |
+| Name   | Responsibility                                          |
+| ------ | ------------------------------------------------------- |
+| Khizer | Workflow 1 — Driver Ride Publication (Supply Side)      |
+| Aiman  | Workflow 2 — Passenger Search & Booking (Demand Side)   |
 
 ---
 

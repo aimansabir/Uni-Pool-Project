@@ -15,6 +15,11 @@ UniPool solves the daily commuting challenge for university students by providin
 - **Fair Pricing** – System-calculated fare suggestions with anti-overcharging caps
 - **Gender-Aware Rides** – Verified female drivers can publish "Females Only" rides
 - **Real-Time Notifications** – Email alerts for scheduled rides, live SSE toast pop-ups for instant rides
+- **Smart Search** – Find rides by pickup, drop-off, or class time slot with landmark matching across route stops
+- **Live Feed** – Urgent "Leaving Now" rides highlighted at the top of search results
+- **Occupancy Safety** – Real-time gender composition displayed on every ride card (e.g., "1 Male, 2 Female")
+- **Instant & Scheduled Booking** – Different booking flows with tiered notification priorities
+- **Cancellation Handling** – Seat restoration, driver alerts, and passenger protection for both ride types
 
 ---
 
@@ -35,13 +40,16 @@ UniPool solves the daily commuting challenge for university students by providin
 
 ```
 Uni-Pool-Project/
-├── unipool-backend/          # Backend API (Express.js + Prisma + PostgreSQL)
-│   ├── prisma/               # Database schema and migrations
-│   ├── src/                  # Source code (routes, services, middlewares, utils)
-│   ├── package.json          # Dependencies
-│   ├── .env.example          # Environment variable template
-│   └── README.md             # Detailed backend documentation & API reference
-└── README.md                 # This file (project overview)
+├── unipool-backend/            # Backend API (Express.js + Prisma + PostgreSQL)
+│   ├── prisma/                 # Database schema and migrations
+│   ├── src/                    # Source code (routes, services, middlewares, utils)
+│   ├── Backend_API_WF-1.md     # API Quick Reference for Workflow 1
+│   ├── Backend_API_WF-2.md     # API Quick Reference for Workflow 2
+│   ├── package.json            # Dependencies
+│   ├── .env.example            # Environment variable template
+│   └── README.md               # Detailed backend documentation & API reference (Workflow 2)
+├── workflow.txt                # Workflow descriptions
+└── README.md                   # This file (project overview)
 ```
 
 ---
@@ -110,35 +118,89 @@ The complete driver ride publication flow with two full CRUD entities:
 - Active Route Searches (Create/Ping/Deactivate)
 - Notifications (Read/Mark Read/SSE Real-Time Stream)
 
+### Workflow 2 — Passenger Search & Booking (Demand Side)
+
+The complete passenger experience with Smart Search and Booking Request CRUD:
+
+1. **Smart Search & Live Feed**
+   - Search rides by pickup, drop-off, and target class slot
+   - Landmark matching across start location, route key, and individual stop names
+   - Urgent "Leaving Now" rides sorted to the top with `isUrgent` flag for frontend highlighting
+   - Filter by ride type (`SCHEDULED`/`INSTANT`) or urgent-only
+
+2. **Result Visualization (Safety & Fare)**
+   - Live occupancy mix on every ride card (driver + accepted passengers by gender)
+   - Fare per seat, suggested fare, and fare cap displayed
+   - Route preview with GeoJSON geometry, ordered stops with lat/lng, and accepted passenger list
+
+3. **Booking Request (Full CRUD)**
+   - **Create**: Request a seat with pickup stop selection (required) and optional drop stop
+   - **Read**: List all bookings; get specific booking (accessible by passenger or ride driver)
+   - **Read**: Driver views incoming pending requests via dedicated endpoint
+   - **Update**: Driver accepts/rejects; Passenger cancels
+   - **Delete**: Hard-delete non-accepted bookings
+   - _Validation notes:_
+     - `pickupStopId` is required
+     - `dropStopId` is optional
+     - Only one seat per booking request is allowed
+     - Pickup and drop must follow route order
+
+4. **Instant vs. Scheduled Flow**
+   - "Join Ride Instantly" vs. "Request Seat" labels
+   - HIGH priority + LIVE_TOAST notifications for instant rides
+   - TRACK_RIDE navigation hint for accepted instant bookings
+   - BOOKING_CONFIRMED for accepted scheduled bookings
+
+5. **Cancellation Handling**
+   - Passenger cancel → seat restored (if accepted) + driver notified
+   - Driver cancel → all booked passengers alerted (handled via Workflow 1's ride deletion)
+   - Instant ride cancellations use elevated priority to prevent passengers from waiting
+   - Cancel is allowed only before ride start
+   - Accept can return `409 Conflict` if another request already took the last seat
+
+6. **Real-Time SSE Notifications**
+   - Instant ride booking alerts are pushed to the driver in real time via Server-Sent Events
+   - `GET /api/notifications/stream` — authenticated SSE endpoint for live push
+
 ---
 
 ## API Endpoints Summary
 
-| Method   | Endpoint                              | Description                      |
-| -------- | ------------------------------------- | -------------------------------- |
-| `POST`   | `/api/auth/register`                  | Register new user                |
-| `POST`   | `/api/auth/login`                     | Login and receive JWT            |
-| `GET`    | `/api/auth/me`                        | Get current user profile         |
-| `POST`   | `/api/vehicles`                       | Add a vehicle                    |
-| `GET`    | `/api/vehicles`                       | List my vehicles                 |
-| `GET`    | `/api/vehicles/:id`                   | Get vehicle by ID                |
-| `PUT`    | `/api/vehicles/:id`                   | Update a vehicle                 |
-| `DELETE` | `/api/vehicles/:id`                   | Delete a vehicle                 |
-| `POST`   | `/api/rides/intelligence/preview`     | Preview route intelligence       |
-| `POST`   | `/api/rides`                          | Publish a ride                   |
-| `GET`    | `/api/rides`                          | List my rides                    |
-| `GET`    | `/api/rides/:id`                      | Get ride by ID                   |
-| `PUT`    | `/api/rides/:id`                      | Update a ride                    |
-| `DELETE` | `/api/rides/:id`                      | Delete a ride                    |
-| `POST`   | `/api/route-subscriptions`            | Subscribe to a route             |
-| `GET`    | `/api/route-subscriptions`            | List my subscriptions            |
-| `DELETE` | `/api/route-subscriptions/:id`        | Delete a subscription            |
-| `POST`   | `/api/active-searches`                | Register active search           |
-| `PATCH`  | `/api/active-searches/:id/ping`       | Heartbeat active search          |
-| `PATCH`  | `/api/active-searches/:id/deactivate` | Deactivate search                |
-| `GET`    | `/api/notifications`                  | List my notifications            |
-| `PATCH`  | `/api/notifications/:id/read`         | Mark notification as read        |
-| `GET`    | `/api/notifications/stream`           | SSE real-time notification stream|
+| Method   | Endpoint                              | Description                        |
+| -------- | ------------------------------------- | ---------------------------------- |
+| `POST`   | `/api/auth/register`                  | Register new user                  |
+| `POST`   | `/api/auth/login`                     | Login and receive JWT              |
+| `GET`    | `/api/auth/me`                        | Get current user profile           |
+| `POST`   | `/api/vehicles`                       | Add a vehicle                      |
+| `GET`    | `/api/vehicles`                       | List my vehicles                   |
+| `GET`    | `/api/vehicles/:id`                   | Get vehicle by ID                  |
+| `PUT`    | `/api/vehicles/:id`                   | Update a vehicle                   |
+| `DELETE` | `/api/vehicles/:id`                   | Delete a vehicle                   |
+| `POST`   | `/api/rides/intelligence/preview`     | Preview route intelligence         |
+| `POST`   | `/api/rides`                          | Publish a ride                     |
+| `GET`    | `/api/rides`                          | List my rides                      |
+| `GET`    | `/api/rides/:id`                      | Get ride by ID                     |
+| `PUT`    | `/api/rides/:id`                      | Update a ride                      |
+| `DELETE` | `/api/rides/:id`                      | Delete a ride                      |
+| `POST`   | `/api/route-subscriptions`            | Subscribe to a route               |
+| `GET`    | `/api/route-subscriptions`            | List my subscriptions              |
+| `DELETE` | `/api/route-subscriptions/:id`        | Delete a subscription              |
+| `POST`   | `/api/active-searches`                | Register active search             |
+| `PATCH`  | `/api/active-searches/:id/ping`       | Heartbeat active search            |
+| `PATCH`  | `/api/active-searches/:id/deactivate` | Deactivate search                  |
+| `GET`    | `/api/notifications`                  | List my notifications              |
+| `PATCH`  | `/api/notifications/:id/read`         | Mark notification as read          |
+| `GET`    | `/api/notifications/stream`           | SSE real-time notification stream  |
+| `GET`    | `/api/search/rides`                   | Smart search for rides             |
+| `GET`    | `/api/search/rides/:rideId/preview`   | Detailed ride preview              |
+| `POST`   | `/api/booking-requests`               | Request a seat on a ride           |
+| `GET`    | `/api/booking-requests`               | List passenger's bookings          |
+| `GET`    | `/api/booking-requests/incoming`      | Driver lists incoming booking requests |
+| `GET`    | `/api/booking-requests/:id`           | Get a specific booking             |
+| `PATCH`  | `/api/booking-requests/:id/respond`   | Driver accepts/rejects booking     |
+| `PATCH`  | `/api/booking-requests/:id/cancel`    | Passenger cancels booking          |
+| `DELETE` | `/api/booking-requests/:id`           | Delete a booking request           |
+| `GET`    | `/api/notifications/stream`           | SSE stream for real-time push      |
 
 ---
 
@@ -154,6 +216,7 @@ The complete driver ride publication flow with two full CRUD entities:
 ## Contributors
 
 | Khizer | Workflow-1 |
+| Aiman | Workflow-2 |
 
 ---
 
