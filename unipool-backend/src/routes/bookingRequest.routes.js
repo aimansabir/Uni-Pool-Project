@@ -41,6 +41,25 @@ router.get('/', authenticate, async (req, res, next) => {
   }
 });
 
+// Must be before /:id so Express doesn't treat 'incoming' as an id param
+router.get('/incoming', authenticate, async (req, res, next) => {
+  try {
+    const incomingRequests =
+      await bookingRequestService.listIncomingBookingRequests(req.user.id, {
+        rideId: req.query.rideId,
+        status: req.query.status,
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Incoming booking requests fetched successfully.',
+      data: incomingRequests,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const bookingRequest = await bookingRequestService.getBookingRequestById(

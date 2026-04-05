@@ -145,6 +145,10 @@ CREATE TABLE "BookingRequest" (
     CONSTRAINT "BookingRequest_pkey" PRIMARY KEY ("id")
 );
 
+CREATE UNIQUE INDEX "BookingRequest_active_unique"
+ON "BookingRequest" ("rideId", "passengerId")
+WHERE "status" IN ('PENDING', 'ACCEPTED');
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Vehicle_registrationNumber_key" ON "Vehicle"("registrationNumber");
 

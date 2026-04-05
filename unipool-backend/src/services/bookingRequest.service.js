@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { emitToUser } = require('../lib/sseHub');
 
 const ACTIVE_BOOKING_STATUSES = ['PENDING', 'ACCEPTED'];
 
@@ -36,16 +37,25 @@ const validateStopBelongsToRide = async (rideId, stopId, label) => {
     where: {
       id: stopId,
       rideId,
+      isConfirmed: true,
     },
   });
 
   if (!stop) {
-    const err = new Error(`${label} stop is invalid for this ride.`);
+    const err = new Error(`${label} stop must be a confirmed stop on this ride.`);
     err.statusCode = 400;
     throw err;
   }
 
   return stop;
+};
+
+const ensureStopOrder = (pickupStop, dropStop) => {
+  if (pickupStop && dropStop && dropStop.sequence <= pickupStop.sequence) {
+    const err = new Error('Drop stop must come after pickup stop on the route.');
+    err.statusCode = 400;
+    throw err;
+  }
 };
 
 const createBookingRequest = async ({
@@ -76,9 +86,18 @@ const createBookingRequest = async ({
     throw err;
   }
 
-  const seats = Number(requestedSeats || 1);
-  if (!Number.isInteger(seats) || seats < 1) {
-    const err = new Error('requestedSeats must be a positive integer.');
+  const seats = Number(requestedSeats ?? 1);
+  if (!Number.isInteger(seats) || seats !== 1) {
+    const err = new Error('Only one seat per booking request is allowed in this version.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (
+    ride.genderPreference === 'FEMALES_ONLY' &&
+    ride.driver.gender !== 'female'
+  ) {
+    const err = new Error('This ride has an invalid females-only configuration.');
     err.statusCode = 400;
     throw err;
   }
@@ -129,89 +148,126 @@ const createBookingRequest = async ({
     throw err;
   }
 
-  await validateStopBelongsToRide(rideId, pickupStopId, 'Pickup');
-  await validateStopBelongsToRide(rideId, dropStopId, 'Drop');
+  if (!pickupStopId) {
+    const err = new Error('pickupStopId is required.');
+    err.statusCode = 400;
+    throw err;
+  }
 
-  return prisma.$transaction(async (tx) => {
-    const request = await tx.bookingRequest.create({
-      data: {
-        passengerId,
-        rideId,
-        pickupStopId: pickupStopId || null,
-        dropStopId: dropStopId || null,
-        requestedSeats: seats,
-        note: note || null,
-        status: 'PENDING',
-      },
-      include: {
-        passenger: {
-          select: {
-            id: true,
-            fullName: true,
-            gender: true,
-          },
-        },
-        ride: {
-          select: {
-            id: true,
-            driverId: true,
-            rideType: true,
-            startLocation: true,
-            destinationLocation: true,
-            departureTime: true,
-            seatsAvailable: true,
-            farePerSeat: true,
-            isUrgent: true,
-          },
-        },
-        pickupStop: true,
-        dropStop: true,
-      },
-    });
+  const pickupStop = await validateStopBelongsToRide(rideId, pickupStopId, 'Pickup');
+  const dropStop = await validateStopBelongsToRide(rideId, dropStopId, 'Drop');
 
-    const driverNotification = await tx.notification.create({
-      data: {
-        userId: request.ride.driverId,
-        rideId: request.ride.id,
-        channel: 'IN_APP_TOAST',
-        status: 'PENDING',
-        title:
-          request.ride.rideType === 'INSTANT'
+  ensureStopOrder(pickupStop, dropStop);
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const request = await tx.bookingRequest.create({
+        data: {
+          passengerId,
+          rideId,
+          pickupStopId: pickupStopId || null,
+          dropStopId: dropStopId || null,
+          requestedSeats: seats,
+          note: note || null,
+          status: 'PENDING',
+        },
+        include: {
+          passenger: {
+            select: {
+              id: true,
+              fullName: true,
+              gender: true,
+            },
+          },
+          ride: {
+            select: {
+              id: true,
+              driverId: true,
+              rideType: true,
+              startLocation: true,
+              destinationLocation: true,
+              departureTime: true,
+              seatsAvailable: true,
+              farePerSeat: true,
+              isUrgent: true,
+            },
+          },
+          pickupStop: true,
+          dropStop: true,
+        },
+      });
+
+      const isInstantRide = request.ride.rideType === 'INSTANT';
+
+      const driverNotification = await tx.notification.create({
+        data: {
+          userId: request.ride.driverId,
+          rideId: request.ride.id,
+          channel: 'IN_APP_TOAST',
+          status: 'PENDING',
+          title: isInstantRide
             ? 'Instant ride join request'
             : 'New booking request',
-        message:
-          request.ride.rideType === 'INSTANT'
+          message: isInstantRide
             ? `${request.passenger.fullName} wants to join your instant ride right away.`
             : `${request.passenger.fullName} requested a seat on your ride.`,
-        payload: {
-          type:
-            request.ride.rideType === 'INSTANT'
+          payload: {
+            type: isInstantRide
               ? 'INSTANT_BOOKING_ALERT'
               : 'STANDARD_BOOKING_REQUEST',
-          bookingRequestId: request.id,
-          passengerId: request.passenger.id,
-          passengerName: request.passenger.fullName,
-          rideId: request.ride.id,
-          pickupStopId: request.pickupStopId,
-          dropStopId: request.dropStopId,
-          requestedSeats: request.requestedSeats,
+            priority: isInstantRide ? 'HIGH' : 'NORMAL',
+            presentation: isInstantRide ? 'LIVE_TOAST' : 'STANDARD_PUSH',
+            bookingRequestId: request.id,
+            passengerId: request.passenger.id,
+            passengerName: request.passenger.fullName,
+            rideId: request.ride.id,
+            pickupStopId: request.pickupStopId,
+            dropStopId: request.dropStopId,
+            requestedSeats: request.requestedSeats,
+          },
         },
-      },
+      });
+
+      return { request, driverNotification };
     });
 
+    if (result.request.ride.rideType === 'INSTANT') {
+      try {
+        emitToUser(result.request.ride.driverId, 'ride-toast', {
+          type: 'INSTANT_BOOKING_ALERT',
+          bookingRequestId: result.request.id,
+          rideId: result.request.ride.id,
+          passengerId: result.request.passenger.id,
+          passengerName: result.request.passenger.fullName,
+          requestedSeats: result.request.requestedSeats,
+          title: 'Instant ride join request',
+          message: `${result.request.passenger.fullName} wants to join your instant ride right away.`,
+        });
+      } catch (sseError) {
+        console.error('Failed to emit instant ride SSE event:', sseError);
+      }
+    }
+
     return {
-      ...request,
+      ...result.request,
       requestActionLabel:
-        request.ride.rideType === 'INSTANT'
+        result.request.ride.rideType === 'INSTANT'
           ? 'Join Ride Instantly'
           : 'Request Seat',
       driverNotificationType:
-        request.ride.rideType === 'INSTANT'
+        result.request.ride.rideType === 'INSTANT'
           ? 'INSTANT_BOOKING_ALERT'
           : 'STANDARD_BOOKING_REQUEST',
-      driverNotificationId: driverNotification.id,
+      driverNotificationId: result.driverNotification.id,
     };
-  });
+  } catch (err) {
+    if (err.code === 'P2002') {
+      const e = new Error('You already have an active request for this ride.');
+      e.statusCode = 409;
+      throw e;
+    }
+    throw err;
+  }
 };
 
 const listMyBookingRequests = async (passengerId) => {
@@ -312,67 +368,97 @@ const respondToBookingRequest = async ({
   status,
 }) => {
   if (!['ACCEPTED', 'REJECTED'].includes(status)) {
-    const err = new Error('Status must be ACCEPTED or REJECTED.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const bookingRequest = await prisma.bookingRequest.findUnique({
-    where: { id: bookingRequestId },
-    include: {
-      ride: true,
-      passenger: {
-        select: {
-          id: true,
-          fullName: true,
-          gender: true,
-        },
-      },
-      pickupStop: true,
-      dropStop: true,
-    },
-  });
-
-  if (!bookingRequest) {
-    const err = new Error('Booking request not found.');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  if (bookingRequest.ride.driverId !== driverId) {
-    const err = new Error('Only the ride driver can respond to this request.');
-    err.statusCode = 403;
-    throw err;
-  }
-
-  if (bookingRequest.status !== 'PENDING') {
-    const err = new Error('Only pending requests can be updated by the driver.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  if (bookingRequest.ride.status !== 'PUBLISHED') {
-    const err = new Error('Cannot respond to a request for a non-published ride.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  if (
-    status === 'ACCEPTED' &&
-    bookingRequest.ride.seatsAvailable < bookingRequest.requestedSeats
-  ) {
-    const err = new Error('Not enough seats available to accept this request.');
-    err.statusCode = 400;
-    throw err;
+    throw createError('Status must be ACCEPTED or REJECTED.', 400);
   }
 
   return prisma.$transaction(async (tx) => {
-    const updatedRequest = await tx.bookingRequest.update({
+    const current = await tx.bookingRequest.findUnique({
       where: { id: bookingRequestId },
+      include: {
+        ride: true,
+        passenger: {
+          select: {
+            id: true,
+            fullName: true,
+            gender: true,
+          },
+        },
+        pickupStop: true,
+        dropStop: true,
+      },
+    });
+
+    if (!current) {
+      throw createError('Booking request not found.', 404);
+    }
+
+    if (current.ride.driverId !== driverId) {
+      throw createError('Only the ride driver can respond to this request.', 403);
+    }
+
+    if (current.status !== 'PENDING') {
+      throw createError('This booking request has already been processed.', 409);
+    }
+
+    if (current.ride.status !== 'PUBLISHED') {
+      throw createError('Cannot respond to a request for a non-published ride.', 400);
+    }
+
+    let updatedRide = current.ride;
+
+    if (status === 'ACCEPTED') {
+      const reserve = await tx.ride.updateMany({
+        where: {
+          id: current.rideId,
+          status: 'PUBLISHED',
+          seatsAvailable: {
+            gte: current.requestedSeats,
+          },
+        },
+        data: {
+          seatsAvailable: {
+            decrement: current.requestedSeats,
+          },
+        },
+      });
+
+      if (reserve.count === 0) {
+        throw createError('Not enough seats available to accept this request.', 409);
+      }
+
+      updatedRide = await tx.ride.findUnique({
+        where: { id: current.rideId },
+        select: {
+          id: true,
+          driverId: true,
+          startLocation: true,
+          destinationLocation: true,
+          departureTime: true,
+          rideType: true,
+          seatsAvailable: true,
+          status: true,
+          isUrgent: true,
+        },
+      });
+    }
+
+    const mark = await tx.bookingRequest.updateMany({
+      where: {
+        id: bookingRequestId,
+        status: 'PENDING',
+      },
       data: {
         status,
         respondedAt: new Date(),
       },
+    });
+
+    if (mark.count === 0) {
+      throw createError('This booking request has already been processed.', 409);
+    }
+
+    const updatedRequest = await tx.bookingRequest.findUnique({
+      where: { id: bookingRequestId },
       include: {
         passenger: {
           select: {
@@ -406,23 +492,19 @@ const respondToBookingRequest = async ({
       },
     });
 
-    let updatedRide = updatedRequest.ride;
+    const isInstantRide = current.ride.rideType === 'INSTANT';
 
-    if (status === 'ACCEPTED') {
-      updatedRide = await tx.ride.update({
-        where: { id: bookingRequest.rideId },
-        data: {
-          seatsAvailable: {
-            decrement: bookingRequest.requestedSeats,
-          },
-        },
-      });
-    }
+    const passengerNavigation =
+      isInstantRide && status === 'ACCEPTED'
+        ? 'TRACK_RIDE'
+        : status === 'ACCEPTED'
+          ? 'BOOKING_CONFIRMED'
+          : 'REQUEST_REJECTED';
 
     const passengerNotification = await tx.notification.create({
       data: {
-        userId: bookingRequest.passengerId,
-        rideId: bookingRequest.rideId,
+        userId: current.passengerId,
+        rideId: current.rideId,
         channel: 'IN_APP_TOAST',
         status: 'PENDING',
         title:
@@ -431,25 +513,26 @@ const respondToBookingRequest = async ({
             : 'Booking request rejected',
         message:
           status === 'ACCEPTED'
-            ? `Your booking request for the ride from ${bookingRequest.ride.startLocation} to ${bookingRequest.ride.destinationLocation} was accepted.`
-            : `Your booking request for the ride from ${bookingRequest.ride.startLocation} to ${bookingRequest.ride.destinationLocation} was rejected.`,
+            ? `Your booking request for the ride from ${current.ride.startLocation} to ${current.ride.destinationLocation} was accepted.`
+            : `Your booking request for the ride from ${current.ride.startLocation} to ${current.ride.destinationLocation} was rejected.`,
         payload: {
           type:
             status === 'ACCEPTED'
               ? 'BOOKING_REQUEST_ACCEPTED'
               : 'BOOKING_REQUEST_REJECTED',
-          bookingRequestId: bookingRequest.id,
-          rideId: bookingRequest.rideId,
-          passengerId: bookingRequest.passengerId,
-          driverId: bookingRequest.ride.driverId,
-          requestedSeats: bookingRequest.requestedSeats,
-          rideType: bookingRequest.ride.rideType,
-          passengerNavigation:
-            bookingRequest.ride.rideType === 'INSTANT' && status === 'ACCEPTED'
-              ? 'TRACK_RIDE'
-              : status === 'ACCEPTED'
-              ? 'BOOKING_CONFIRMED'
-              : 'REQUEST_REJECTED',
+          priority:
+            isInstantRide && status === 'ACCEPTED' ? 'HIGH' : 'NORMAL',
+          presentation:
+            isInstantRide && status === 'ACCEPTED'
+              ? 'LIVE_TOAST'
+              : 'STANDARD_PUSH',
+          bookingRequestId: current.id,
+          rideId: current.rideId,
+          passengerId: current.passengerId,
+          driverId: current.ride.driverId,
+          requestedSeats: current.requestedSeats,
+          rideType: current.ride.rideType,
+          passengerNavigation,
         },
       },
     });
@@ -460,12 +543,7 @@ const respondToBookingRequest = async ({
         ...updatedRequest.ride,
         seatsAvailable: updatedRide.seatsAvailable,
       },
-      passengerNavigation:
-        updatedRequest.ride.rideType === 'INSTANT' && status === 'ACCEPTED'
-          ? 'TRACK_RIDE'
-          : status === 'ACCEPTED'
-          ? 'BOOKING_CONFIRMED'
-          : 'REQUEST_REJECTED',
+      passengerNavigation,
       passengerNotificationId: passengerNotification.id,
       passengerNotificationType:
         status === 'ACCEPTED'
@@ -476,47 +554,82 @@ const respondToBookingRequest = async ({
 };
 
 const cancelBookingRequest = async ({ bookingRequestId, passengerId }) => {
-  const bookingRequest = await prisma.bookingRequest.findUnique({
-    where: { id: bookingRequestId },
-    include: {
-      ride: true,
-      passenger: {
-        select: {
-          id: true,
-          fullName: true,
-          gender: true,
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.bookingRequest.findUnique({
+      where: { id: bookingRequestId },
+      include: {
+        ride: true,
+        passenger: {
+          select: {
+            id: true,
+            fullName: true,
+            gender: true,
+          },
+        },
+        pickupStop: true,
+        dropStop: true,
+      },
+    });
+
+    if (!current) {
+      throw createError('Booking request not found.', 404);
+    }
+
+    if (current.passengerId !== passengerId) {
+      throw createError('Only the passenger can cancel this request.', 403);
+    }
+
+    if (!['PENDING', 'ACCEPTED'].includes(current.status)) {
+      throw createError('Only pending or accepted requests can be cancelled.', 400);
+    }
+
+    if (current.ride.status !== 'PUBLISHED') {
+      throw createError('Booking can only be cancelled before the ride starts.', 400);
+    }
+
+    const cancelMark = await tx.bookingRequest.updateMany({
+      where: {
+        id: bookingRequestId,
+        status: {
+          in: ['PENDING', 'ACCEPTED'],
         },
       },
-      pickupStop: true,
-      dropStop: true,
-    },
-  });
-
-  if (!bookingRequest) {
-    const err = new Error('Booking request not found.');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  if (bookingRequest.passengerId !== passengerId) {
-    const err = new Error('Only the passenger can cancel this request.');
-    err.statusCode = 403;
-    throw err;
-  }
-
-  if (!['PENDING', 'ACCEPTED'].includes(bookingRequest.status)) {
-    const err = new Error('Only pending or accepted requests can be cancelled.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const updatedRequest = await tx.bookingRequest.update({
-      where: { id: bookingRequestId },
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
       },
+    });
+
+    if (cancelMark.count === 0) {
+      throw createError('This booking request can no longer be cancelled.', 409);
+    }
+
+    let updatedRide = current.ride;
+
+    if (current.status === 'ACCEPTED') {
+      const restore = await tx.ride.updateMany({
+        where: {
+          id: current.rideId,
+          status: 'PUBLISHED',
+        },
+        data: {
+          seatsAvailable: {
+            increment: current.requestedSeats,
+          },
+        },
+      });
+
+      if (restore.count === 0) {
+        throw createError('Booking can only be cancelled before the ride starts.', 400);
+      }
+
+      updatedRide = await tx.ride.findUnique({
+        where: { id: current.rideId },
+      });
+    }
+
+    const updatedRequest = await tx.bookingRequest.findUnique({
+      where: { id: bookingRequestId },
       include: {
         passenger: {
           select: {
@@ -531,36 +644,27 @@ const cancelBookingRequest = async ({ bookingRequestId, passengerId }) => {
       },
     });
 
-    let updatedRide = updatedRequest.ride;
-
-    if (bookingRequest.status === 'ACCEPTED') {
-      updatedRide = await tx.ride.update({
-        where: { id: bookingRequest.rideId },
-        data: {
-          seatsAvailable: {
-            increment: bookingRequest.requestedSeats,
-          },
-        },
-      });
-    }
+    const isInstantRide = current.ride.rideType === 'INSTANT';
 
     const driverNotification = await tx.notification.create({
       data: {
-        userId: bookingRequest.ride.driverId,
-        rideId: bookingRequest.rideId,
+        userId: current.ride.driverId,
+        rideId: current.rideId,
         channel: 'IN_APP_TOAST',
         status: 'PENDING',
         title: 'Passenger cancelled booking',
-        message: `${bookingRequest.passenger.fullName} cancelled their booking before ride start.`,
+        message: `${current.passenger.fullName} cancelled their booking before ride start.`,
         payload: {
           type: 'PASSENGER_CANCELLED_RIDE',
-          bookingRequestId: bookingRequest.id,
-          passengerId: bookingRequest.passengerId,
-          passengerName: bookingRequest.passenger.fullName,
-          rideId: bookingRequest.rideId,
-          pickupStopId: bookingRequest.pickupStopId,
-          dropStopId: bookingRequest.dropStopId,
-          requestedSeats: bookingRequest.requestedSeats,
+          priority: isInstantRide ? 'HIGH' : 'NORMAL',
+          presentation: isInstantRide ? 'LIVE_TOAST' : 'STANDARD_PUSH',
+          bookingRequestId: current.id,
+          passengerId: current.passengerId,
+          passengerName: current.passenger.fullName,
+          rideId: current.rideId,
+          pickupStopId: current.pickupStopId,
+          dropStopId: current.dropStopId,
+          requestedSeats: current.requestedSeats,
         },
       },
     });
@@ -574,6 +678,65 @@ const cancelBookingRequest = async ({ bookingRequestId, passengerId }) => {
       driverNotificationType: 'PASSENGER_CANCELLED_RIDE',
       driverNotificationId: driverNotification.id,
     };
+  });
+};
+
+const createError = (message, statusCode) => {
+  const err = new Error(message);
+  err.statusCode = statusCode;
+  return err;
+};
+
+const listIncomingBookingRequests = async (driverId, query = {}) => {
+  const { rideId, status } = query;
+
+  const allowedStatuses = ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'];
+  const normalizedStatus = status ? String(status).toUpperCase() : null;
+
+  if (normalizedStatus && !allowedStatuses.includes(normalizedStatus)) {
+    throw createError(
+      'status must be one of PENDING, ACCEPTED, REJECTED, CANCELLED.',
+      400
+    );
+  }
+
+  return prisma.bookingRequest.findMany({
+    where: {
+      ride: {
+        is: {
+          driverId,
+        },
+      },
+      ...(rideId ? { rideId } : {}),
+      ...(normalizedStatus ? { status: normalizedStatus } : {}),
+    },
+    include: {
+      passenger: {
+        select: {
+          id: true,
+          fullName: true,
+          gender: true,
+        },
+      },
+      ride: {
+        select: {
+          id: true,
+          startLocation: true,
+          destinationLocation: true,
+          departureTime: true,
+          rideType: true,
+          status: true,
+          isUrgent: true,
+          seatsAvailable: true,
+        },
+      },
+      pickupStop: true,
+      dropStop: true,
+    },
+    orderBy: [
+      { requestedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
   });
 };
 
@@ -610,6 +773,7 @@ const deleteBookingRequest = async ({ bookingRequestId, passengerId }) => {
 module.exports = {
   createBookingRequest,
   listMyBookingRequests,
+  listIncomingBookingRequests,
   getBookingRequestById,
   respondToBookingRequest,
   cancelBookingRequest,

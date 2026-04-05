@@ -1,19 +1,30 @@
 const prisma = require('../lib/prisma');
 
 const buildOccupancyMix = (acceptedBookings, driverGender) => {
-  let maleCount = driverGender === 'male' ? 1 : 0;
-  let femaleCount = driverGender === 'female' ? 1 : 0;
+  const maleDriverCount = driverGender === 'male' ? 1 : 0;
+  const femaleDriverCount = driverGender === 'female' ? 1 : 0;
+
+  let malePassengerCount = 0;
+  let femalePassengerCount = 0;
 
   for (const booking of acceptedBookings) {
-    const passengerGender = booking.passenger?.gender;
-    if (passengerGender === 'male') maleCount += booking.requestedSeats || 1;
-    if (passengerGender === 'female') femaleCount += booking.requestedSeats || 1;
+    if (booking.passenger?.gender === 'male') malePassengerCount += 1;
+    if (booking.passenger?.gender === 'female') femalePassengerCount += 1;
   }
 
   return {
-    male: maleCount,
-    female: femaleCount,
-    text: `Occupants: ${maleCount} Male, ${femaleCount} Female`,
+    maleDriverCount,
+    femaleDriverCount,
+    malePassengerCount,
+    femalePassengerCount,
+    totalOccupants:
+      maleDriverCount +
+      femaleDriverCount +
+      malePassengerCount +
+      femalePassengerCount,
+    text:
+      `${maleDriverCount ? '1 Male Driver' : '1 Female Driver'}, ` +
+      `${malePassengerCount} Male Passengers, ${femalePassengerCount} Female Passengers`,
   };
 };
 
@@ -53,15 +64,54 @@ const mapRideCard = (ride) => {
     },
     vehicle: ride.vehicle
       ? {
-          id: ride.vehicle.id,
-          make: ride.vehicle.make,
-          model: ride.vehicle.model,
-          color: ride.vehicle.color,
-          registrationNumber: ride.vehicle.registrationNumber,
-        }
+        id: ride.vehicle.id,
+        make: ride.vehicle.make,
+        model: ride.vehicle.model,
+        color: ride.vehicle.color,
+        registrationNumber: ride.vehicle.registrationNumber,
+      }
       : null,
     occupancyMix,
   };
+};
+
+const normalize = (value = '') => String(value).trim().toLowerCase();
+
+const buildOrderedStops = (ride) => {
+  const confirmedStops = ride.stops
+    .filter((stop) => stop.isConfirmed !== false)
+    .sort((a, b) => a.sequence - b.sequence);
+
+  return [
+    { stopName: ride.startLocation, sequence: -1 },
+    ...confirmedStops,
+    { stopName: ride.destinationLocation, sequence: Number.MAX_SAFE_INTEGER },
+  ];
+};
+
+const findStopPosition = (orderedStops, term) => {
+  if (!term) return null;
+
+  const q = normalize(term);
+  return orderedStops.findIndex((stop) =>
+    normalize(stop.stopName).includes(q)
+  );
+};
+
+const matchesRouteDirection = (ride, pickup, dropoff) => {
+  const orderedStops = buildOrderedStops(ride);
+
+  const pickupPos = pickup ? findStopPosition(orderedStops, pickup) : null;
+  const dropPos = dropoff ? findStopPosition(orderedStops, dropoff) : null;
+
+  if (pickup && pickupPos === -1) return false;
+  if (dropoff && dropPos === -1) return false;
+
+  if (pickup && dropoff && dropPos <= pickupPos) {
+    return false;
+  }
+
+  return true;
 };
 
 const searchRides = async ({
@@ -79,46 +129,48 @@ const searchRides = async ({
     AND: [
       pickup
         ? {
-            OR: [
-              { startLocation: { contains: pickup, mode: 'insensitive' } },
-              { routeKey: { contains: pickup, mode: 'insensitive' } },
-              {
-                stops: {
-                  some: {
-                    stopName: { contains: pickup, mode: 'insensitive' },
-                  },
+          OR: [
+            { startLocation: { contains: pickup, mode: 'insensitive' } },
+            { routeKey: { contains: pickup, mode: 'insensitive' } },
+            {
+              stops: {
+                some: {
+                  isConfirmed: true,
+                  stopName: { contains: pickup, mode: 'insensitive' },
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : {},
       dropoff
         ? {
-            OR: [
-              {
-                destinationLocation: {
-                  contains: dropoff,
-                  mode: 'insensitive',
+          OR: [
+            {
+              destinationLocation: {
+                contains: dropoff,
+                mode: 'insensitive',
+              },
+            },
+            { destinationKey: { contains: dropoff, mode: 'insensitive' } },
+            {
+              stops: {
+                some: {
+                  isConfirmed: true,
+                  stopName: { contains: dropoff, mode: 'insensitive' },
                 },
               },
-              { destinationKey: { contains: dropoff, mode: 'insensitive' } },
-              {
-                stops: {
-                  some: {
-                    stopName: { contains: dropoff, mode: 'insensitive' },
-                  },
-                },
-              },
-            ],
-          }
+            },
+          ],
+        }
         : {},
       targetSlot
         ? {
-            targetSlot: {
-              contains: targetSlot,
-              mode: 'insensitive',
-            },
-          }
+          targetSlot: {
+            contains: targetSlot,
+            mode: 'insensitive',
+          },
+        }
         : {},
     ],
   };
@@ -167,7 +219,11 @@ const searchRides = async ({
     ],
   });
 
-  return rides.map(mapRideCard);
+  const filteredRides = rides.filter((ride) =>
+    matchesRouteDirection(ride, pickup, dropoff)
+  );
+
+  return filteredRides.map(mapRideCard);
 };
 
 const getRidePreview = async (rideId) => {
@@ -221,6 +277,8 @@ const getRidePreview = async (rideId) => {
     throw err;
   }
 
+  const confirmedStops = ride.stops.filter((stop) => stop.isConfirmed !== false);
+
   const occupancyMix = buildOccupancyMix(
     ride.bookingRequests,
     ride.driver.gender
@@ -251,7 +309,7 @@ const getRidePreview = async (rideId) => {
     mappingProvider: ride.mappingProvider,
     driver: ride.driver,
     vehicle: ride.vehicle,
-    stops: ride.stops,
+    stops: confirmedStops,
     occupancyMix,
     acceptedPassengers: ride.bookingRequests.map((booking) => ({
       id: booking.id,
