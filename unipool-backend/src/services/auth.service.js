@@ -58,7 +58,12 @@ const login = async ({ ibaEmail, password }) => {
 
   const normalizedEmail = ibaEmail.trim().toLowerCase();
 
-  const user = await prisma.user.findUnique({ where: { ibaEmail: normalizedEmail } });
+  const user = await prisma.user.findUnique({
+    where: { ibaEmail: normalizedEmail },
+    include: {
+      vehicles: true,
+    },
+  });
   if (!user) {
     const err = new Error('Invalid email or password.');
     err.statusCode = 401;
@@ -92,6 +97,10 @@ const login = async ({ ibaEmail, password }) => {
       gender: user.gender,
       role: user.role,
       trustScore: user.trustScore,
+      isVerified: user.isVerified,
+      genderVerified: user.genderVerified,
+      isDriver: user.isDriver,
+      vehicles: user.vehicles,
     },
   };
 };
@@ -105,7 +114,10 @@ const getMe = async (userId) => {
       ibaEmail: true,
       gender: true,
       role: true,
-      trustScore: true
+      trustScore: true,
+      isVerified: true,
+      genderVerified: true,
+      isDriver: true,
     }
   });
 

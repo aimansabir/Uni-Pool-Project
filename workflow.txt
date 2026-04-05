@@ -70,26 +70,30 @@ Description: This workflow details how a passenger finds a ride, utilizing Smart
    - Driver Cancel (Standard): If the driver cancels a scheduled ride, all booked passengers receive an urgent "Ride Cancelled" alert to find alternatives.
    - Driver Cancel (Instant): If a driver cancels an "Instant Ride," the system shows a critical full-screen alert to the passenger to prevent them from waiting at the curb.
 
+
 ======================================================================
 WORKFLOW 3: LIVE NAVIGATION & TRUST CYCLE
 ======================================================================
 
-Description: This workflow covers the complete execution of the ride, incorporating real-time location tools, pickup verification, no-show handling, cash settlement, and the post-ride reputation system.
+Description: This workflow covers the complete execution of a ride after booking. It includes live navigation for drivers, real-time tracking for passengers, pickup verification, no-show handling, payment settlement, and a mutual rating system that feeds into the platform's trust score.
 
 1. Ride Start & Live Navigation:
-   - Driver Action: The driver taps "Start Ride."
-   - Deep Link: The app generates a Deep Link that opens the driver's preferred navigation app (e.g., Google Maps) with pre-filled waypoints for all confirmed passengers.
-   - Live Passenger Tracking: Confirmed passengers receive a "Track Ride" link to view the driver's real-time location on an embedded map and estimate arrival time.
+   - The driver taps "Start Ride" which transitions the ride to IN_PROGRESS.
+   - A Google Maps deep link is generated with pre-filled waypoints for turn-by-turn navigation.
+   - The driver periodically updates their GPS location via the app.
+   - Passengers can track the driver's real-time location on a map.
 
 2. Pickup Verification & No-Show Handling:
-   - Verification: On arrival, the passenger verifies the car license plate.
-   - Action: The driver swipes "Passenger Picked Up" to confirm the seat is occupied.
-   - No-Show Logic: If a passenger is not at the location after 5 minutes, the Driver can mark them as "No-Show" (cancelling their specific seat) and proceed to the next stop to avoid delaying others.
+   - The driver marks arrival at a passenger's pickup stop.
+   - The passenger verifies the vehicle's license plate before boarding for safety.
+   - The driver confirms the passenger has boarded (picked up).
+   - If the passenger doesn't show up within 5 minutes of the driver's arrival, the driver can mark them as a no-show.
 
-3. Arrival & Payment Settlement:
-   - Trigger: Upon reaching the destination (University/Drop-off), the app displays a "Payment Due" screen with the calculated amount (e.g., "200 PKR").
-   - Payment Action: The passenger pays via Cash (or settles via external wallet like JazzCash).
-   - Confirmation: The driver taps "Payment Received" in the app to close the transaction.
+3. Drop-off & Payment Settlement:
+   - The driver marks each passenger as dropped off at their destination.
+   - Passengers view their payment due amount and record their payment method (Cash, JazzCash, or Other).
+   - The driver confirms receipt of the payment, completing the settlement.
+   - No-show passengers are excluded from the payment flow.
 
 4. Completion & Trust Score:
    - Ride End: The driver marks the ride as "Completed."
