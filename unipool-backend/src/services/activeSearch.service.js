@@ -42,12 +42,6 @@ const heartbeatActiveSearch = async (userId, id) => {
         },
     });
 
-
-    const existingById = await prisma.activeRouteSearch.findUnique({ where: { id } });
-
-    if (existingById) {
-    }
-
     if (!existing) {
         throw new Error('Active search not found.');
     }
@@ -75,7 +69,10 @@ const deactivateActiveSearch = async (userId, id) => {
 
     return prisma.activeRouteSearch.update({
         where: { id: existing.id },
-        data: { isActive: false },
+        data: {
+            isActive: false,
+            deactivatedAt: new Date(),
+        },
     });
 };
 

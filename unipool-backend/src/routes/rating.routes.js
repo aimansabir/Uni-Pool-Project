@@ -63,16 +63,6 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// READ — Public trust score
-router.get('/users/:userId/trust-score', async (req, res, next) => {
-  try {
-    const data = await ratingService.getUserTrustScore(req.params.userId);
-    return success(res, data, 200, 'Trust score retrieved.');
-  } catch (err) {
-    next(err);
-  }
-});
-
 // READ — Single rating
 router.get('/:id', async (req, res, next) => {
   try {
