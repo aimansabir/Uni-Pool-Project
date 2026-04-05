@@ -20,6 +20,7 @@ enum UserRole {
 enum NotificationChannel {
   EMAIL
   IN_APP_TOAST
+  IN_APP
 }
 
 enum NotificationStatus {
@@ -46,24 +47,25 @@ enum RideStatus {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  fullName    String
-  ibaEmail    String   @unique
-  password    String
-  phone       String?
-  studentErp  String?  @unique
-  gender      Gender
-  role        UserRole @default(student)
-  trustScore  Float    @default(5.0)
-  isVerified  Boolean  @default(false)
-  genderVerified  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  vehicles Vehicle[] @relation("DriverVehicles")
-  rides    Ride[]    @relation("DriverRides")
-  routeSubscriptions RouteSubscription[]
+  id                  String              @id @default(uuid())
+  fullName            String
+  ibaEmail            String              @unique
+  password            String
+  phone               String?
+  studentErp          String?             @unique
+  gender              Gender
+  role                UserRole            @default(student)
+  trustScore          Float               @default(5.0)
+  isVerified          Boolean             @default(false)
+  genderVerified      Boolean             @default(false)
+  isDriver            Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  vehicles            Vehicle[]           @relation("DriverVehicles")
+  rides               Ride[]              @relation("DriverRides")
+  routeSubscriptions  RouteSubscription[]
   activeRouteSearches ActiveRouteSearch[]
-  notifications      Notification[]
+  notifications       Notification[]
 }
 
 model Vehicle {
@@ -78,26 +80,26 @@ model Vehicle {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  rides              Ride[]
+  rides Ride[]
 }
 
 model Ride {
-  id                  String     @id @default(uuid())
-  driverId            String
-  driver              User       @relation("DriverRides", fields: [driverId], references: [id])
-  vehicleId           String
-  vehicle             Vehicle    @relation(fields: [vehicleId], references: [id])
-  startLocation       String
-  destinationLocation String
-  departureTime       DateTime
-  targetSlot          String?    // e.g. "08:30 AM Class"
-  rideType            RideType
-  seatsTotal          Int
-  seatsAvailable      Int
-  farePerSeat         Float
-  genderPreference    GenderPreference  @default(ANY)
-  status              RideStatus  @default(PUBLISHED)
-  isUrgent            Boolean    @default(false)
+  id                   String           @id @default(uuid())
+  driverId             String
+  driver               User             @relation("DriverRides", fields: [driverId], references: [id])
+  vehicleId            String
+  vehicle              Vehicle          @relation(fields: [vehicleId], references: [id])
+  startLocation        String
+  destinationLocation  String
+  departureTime        DateTime
+  targetSlot           String? // e.g. "08:30 AM Class"
+  rideType             RideType
+  seatsTotal           Int
+  seatsAvailable       Int
+  farePerSeat          Float
+  genderPreference     GenderPreference @default(ANY)
+  status               RideStatus       @default(PUBLISHED)
+  isUrgent             Boolean          @default(false)
   routeKey             String?
   destinationKey       String?
   routeGeometry        Json?
@@ -106,21 +108,21 @@ model Ride {
   suggestedFarePerSeat Float?
   fareCap              Float?
   mappingProvider      String?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  stops               RideStop[]
-  notifications        Notification[]
+  stops         RideStop[]
+  notifications Notification[]
 }
 
 model RideStop {
-  id        String  @id @default(uuid())
-  rideId    String
-  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
-  stopName  String
-  sequence  Int
-  lat       Float?
-  lng       Float?
+  id          String  @id @default(uuid())
+  rideId      String
+  ride        Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  stopName    String
+  sequence    Int
+  lat         Float?
+  lng         Float?
   isSuggested Boolean @default(false)
   isConfirmed Boolean @default(true)
 }

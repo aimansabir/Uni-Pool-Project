@@ -50,20 +50,30 @@ const dispatchRideNotifications = async (ride) => {
         return;
     }
 
+    const buildRouteMatch = (ride) => {
+        const orConditions = [{ routeKey: ride.routeKey }];
+
+        if (ride.destinationKey) {
+            orConditions.push({ destinationKey: ride.destinationKey });
+        }
+
+        return orConditions;
+    };
+
     const [scheduledSubscribers, activeSearchUsers] = await Promise.all([
         prisma.routeSubscription.findMany({
             where: {
                 isActive: true,
-                routeKey: ride.routeKey,
                 userId: { not: ride.driverId },
+                OR: buildRouteMatch(ride),
             },
             include: { user: true },
         }),
         prisma.activeRouteSearch.findMany({
             where: {
                 isActive: true,
-                routeKey: ride.routeKey,
                 userId: { not: ride.driverId },
+                OR: buildRouteMatch(ride),
             },
             include: { user: true },
         }),
@@ -71,7 +81,7 @@ const dispatchRideNotifications = async (ride) => {
 
     if (ride.rideType === 'SCHEDULED') {
         for (const subscriber of scheduledSubscribers) {
-            const notification = await createNotification({
+            const emailNotification = await createNotification({
                 userId: subscriber.userId,
                 rideId: ride.id,
                 channel: 'EMAIL',
@@ -86,6 +96,29 @@ const dispatchRideNotifications = async (ride) => {
                     rideType: ride.rideType,
                     departureTime: ride.departureTime,
                     farePerSeat: ride.farePerSeat,
+                    priority: 'NORMAL',
+                    presentation: 'STANDARD_PUSH',
+                },
+            });
+
+            await createNotification({
+                userId: subscriber.userId,
+                rideId: ride.id,
+                channel: 'IN_APP',
+                status: 'SENT',
+                title: 'New scheduled ride available',
+                message: `${ride.startLocation} → ${ride.destinationLocation} at ${new Date(
+                    ride.departureTime
+                ).toLocaleString()}`,
+                payload: {
+                    rideId: ride.id,
+                    routeKey: ride.routeKey,
+                    destinationKey: ride.destinationKey,
+                    rideType: ride.rideType,
+                    departureTime: ride.departureTime,
+                    farePerSeat: ride.farePerSeat,
+                    priority: 'NORMAL',
+                    presentation: 'STANDARD_PUSH',
                 },
             });
 
@@ -99,12 +132,12 @@ const dispatchRideNotifications = async (ride) => {
                 });
 
                 await prisma.notification.update({
-                    where: { id: notification.id },
+                    where: { id: emailNotification.id },
                     data: { status: result.sent ? 'SENT' : 'PENDING' },
                 });
             } catch (err) {
                 await prisma.notification.update({
-                    where: { id: notification.id },
+                    where: { id: emailNotification.id },
                     data: { status: 'FAILED' },
                 });
             }

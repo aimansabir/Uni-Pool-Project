@@ -47,7 +47,13 @@ const createRide = async (driverId, data) => {
     }
 
     if (!driver.isVerified) {
-        const err = new Error('Only verified drivers can publish rides.');
+        const err = new Error('Only verified users can publish rides.');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    if (!driver.isDriver) {
+        const err = new Error('Only users with Driver status can publish rides.');
         err.statusCode = 403;
         throw err;
     }
@@ -60,6 +66,7 @@ const createRide = async (driverId, data) => {
     }
 
     const normalizedGenderPreference = String(genderPreference).toUpperCase();
+
     if (!['ANY', 'FEMALES_ONLY'].includes(normalizedGenderPreference)) {
         const err = new Error('genderPreference must be ANY or FEMALES_ONLY.');
         err.statusCode = 400;
@@ -67,12 +74,14 @@ const createRide = async (driverId, data) => {
     }
 
     if (
-        genderPreference === 'FEMALES_ONLY' &&
+        normalizedGenderPreference === 'FEMALES_ONLY' &&
         !(driver.gender === 'female' && driver.genderVerified)
     ) {
-        throw new Error(
+        const err = new Error(
             'Only gender-verified female drivers can publish Females Only rides.'
         );
+        err.statusCode = 403;
+        throw err;
     }
 
     const seatCount = Number(seatsTotal);
@@ -132,7 +141,7 @@ const createRide = async (driverId, data) => {
             seatsTotal: seatCount,
             seatsAvailable: seatCount,
             farePerSeat: requestedFare,
-            genderPreference,
+            genderPreference: normalizedGenderPreference,
             status: 'PUBLISHED',
             isUrgent: intelligence.isUrgent,
             routeKey: intelligence.routeKey,
@@ -233,16 +242,26 @@ const updateRide = async (rideId, driverId, data) => {
         }
     }
 
-    const nextGenderPreference =
+    const nextGenderPreferenceRaw =
         data.genderPreference ?? existingRide.genderPreference;
+
+    const nextGenderPreference = String(nextGenderPreferenceRaw).toUpperCase();
+
+    if (!['ANY', 'FEMALES_ONLY'].includes(nextGenderPreference)) {
+        const err = new Error('genderPreference must be ANY or FEMALES_ONLY.');
+        err.statusCode = 400;
+        throw err;
+    }
 
     if (
         nextGenderPreference === 'FEMALES_ONLY' &&
         !(driver.gender === 'female' && driver.genderVerified)
     ) {
-        throw new Error(
+        const err = new Error(
             'Only gender-verified female drivers can publish Females Only rides.'
         );
+        err.statusCode = 403;
+        throw err;
     }
 
     const nextRideType = data.rideType
@@ -425,6 +444,7 @@ const deleteRide = async (rideId, driverId) => {
                     rideType: ride.rideType,
                     startLocation: ride.startLocation,
                     destinationLocation: ride.destinationLocation,
+                    severity: ride.rideType === 'INSTANT' ? 'critical' : 'high',
                 },
             })),
         });

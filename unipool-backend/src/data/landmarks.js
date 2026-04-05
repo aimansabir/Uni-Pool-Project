@@ -133,5 +133,56 @@ module.exports = [
         "name": "Karsaz - Shahrah-e-Faisal / Karsaz corridor",
         "lat": 24.8778199,
         "lng": 67.0989711
+    },
+    {
+        name: "Maskan Gate - Gulshan-e-Iqbal / Rashid Minhas side",
+        lat: 24.9350000,
+        lng: 67.1052700
+    },
+    {
+        name: "Patel Hospital - Gulshan-e-Iqbal, University Road",
+        lat: 24.9349900,
+        lng: 67.0972300
+    },
+    {
+        name: "Aladin Park - Gulshan-e-Iqbal Block 10A",
+        lat: 24.9071917,
+        lng: 67.1101829
+    },
+    {
+        name: "IBA Main Campus - University Road, Gulshan-e-Iqbal",
+        lat: 24.9406000,
+        lng: 67.1144300
+    },
+    {
+        name: "LuckyOne Mall - Rashid Minhas Road / F.B. Area side",
+        lat: 24.9323000,
+        lng: 67.0871700
+    },
+    {
+        name: "JPMC - Saddar / Rafiqui Shaheed Road",
+        lat: 24.8524800,
+        lng: 67.0459100
+    },
+    {
+        name: "Dow University Hospital Ojha - Gulzar-e-Hijri / Ojha side",
+        lat: 24.9439300,
+        lng: 67.1420400
+    },
+    {
+        name: "Indus Hospital Korangi Campus - Korangi Crossing",
+        lat: 24.8163900,
+        lng: 67.1113900
+    },
+    {
+        name: "Five Star Chowrangi - North Nazimabad",
+        lat: 24.9425000,
+        lng: 67.0475000
+    },
+    {
+        name: "Baloch Colony Bridge - Shahrah-e-Faisal connector",
+        lat: 24.8661111,
+        lng: 67.0830556
     }
+
 ];

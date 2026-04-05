@@ -99,6 +99,7 @@ const login = async ({ ibaEmail, password }) => {
       trustScore: user.trustScore,
       isVerified: user.isVerified,
       genderVerified: user.genderVerified,
+      isDriver: user.isDriver,
       vehicles: user.vehicles,
     },
   };
@@ -113,7 +114,10 @@ const getMe = async (userId) => {
       ibaEmail: true,
       gender: true,
       role: true,
-      trustScore: true
+      trustScore: true,
+      isVerified: true,
+      genderVerified: true,
+      isDriver: true,
     }
   });
 

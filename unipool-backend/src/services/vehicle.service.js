@@ -9,15 +9,24 @@ const createVehicle = async (driverId, { make, model, color, registrationNumber,
         throw new Error('A vehicle with this registration number already exists.');
     }
 
-    return prisma.vehicle.create({
-        data: {
-            driverId,
-            make,
-            model,
-            color,
-            registrationNumber,
-            imageUrl,
-        },
+    return prisma.$transaction(async (tx) => {
+        const vehicle = await tx.vehicle.create({
+            data: {
+                driverId,
+                make,
+                model,
+                color,
+                registrationNumber,
+                imageUrl,
+            },
+        });
+
+        await tx.user.update({
+            where: { id: driverId },
+            data: { isDriver: true },
+        });
+
+        return vehicle;
     });
 };
 

@@ -234,7 +234,7 @@ unipool-backend/
 │   │   ├── vehicle.service.js     # Vehicle CRUD operations
 │   │   ├── ride.service.js        # Ride CRUD + intelligence integration
 │   │   ├── mapping.service.js     # Geocoding, routing, landmark detection, fare calc
-│   │   ├── notification.service.js# Notification dispatch (email + SSE toast)
+│   │   ├── notification.service.js# Notification dispatch (email + SSE toast + IN-APP)
 │   │   ├── activeSearch.service.js# Active route search management
 │   │   └── routeSubscription.service.js # Route subscription management
 │   ├── middlewares/
@@ -248,7 +248,7 @@ unipool-backend/
 │   │   ├── geo.js                 # Haversine distance calculations
 │   │   └── routekey.js            # Route key normalization for matching
 │   ├── data/
-│   │   ├── landmarks.js           # Pre-geocoded Karachi landmark coordinates
+│   │   ├── landmarks.js           # Pre-geocoded Karachi landmark coordinates and critical Karachi landmarks are pre-seeded manually in src/data/landmarks.js to avoid missed detections from geocoder failures.
 │   │   └── landmarks.unresolved.json # Landmarks that failed geocoding
 │   └── scripts/
 │       └── build-landmarks.js     # Utility to re-geocode landmark data
@@ -305,9 +305,9 @@ This is the full **Driver Ride Publication** flow from the project design, imple
 **Additional Workflow Sub-Flows:**
 
 - **Route Intelligence Preview** (`POST /api/rides/intelligence/preview`) – Geocodes start/end, generates route via OSRM, detects landmarks, calculates fare.
-- **Route Subscriptions** (Create/Read/Delete) – Passengers subscribe to routes for email notifications.
+- **Route Subscriptions** (Create/Read/Delete) – Passengers subscribe to routes for both Email and standard in-app notifications.
 - **Active Route Searches** (Create/Ping/Deactivate) – Tracks active passengers for instant ride toast alerts.
-- **Notifications** (Read/Mark Read/SSE Stream) – Delivers scheduled email notifications and instant toast pop-ups via Server-Sent Events.
+- **Notifications** (Read/Mark Read/SSE Stream) – Delivers scheduled email notifications and in-app notifications and instant toast pop-ups via Server-Sent Events.
 
 ---
 
@@ -793,7 +793,7 @@ Preview route intelligence without publishing a ride. Returns geocoded locations
 
 ### 5. Route Subscriptions
 
-> Passengers subscribe to email notifications for scheduled rides on specific routes.
+> Passengers subscribe to both Email and standard in-app notifications for scheduled rides on specific routes.
 
 #### `POST /api/route-subscriptions`
 
