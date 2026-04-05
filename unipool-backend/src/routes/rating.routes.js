@@ -4,6 +4,16 @@ const ratingService = require('../services/rating.service');
 const { success } = require('../utils/response');
 const { authenticate } = require('../middlewares/auth.middleware');
 
+// PUBLIC — Trust score
+router.get('/users/:userId/trust-score', async (req, res, next) => {
+  try {
+    const data = await ratingService.getUserTrustScore(req.params.userId);
+    return success(res, data, 200, 'Trust score retrieved.');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // All routes require authentication
 router.use(authenticate);
 

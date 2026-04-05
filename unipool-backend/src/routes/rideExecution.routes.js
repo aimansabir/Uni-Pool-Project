@@ -66,7 +66,11 @@ router.patch('/rides/:rideId/complete', async (req, res, next) => {
 // PATCH /api/ride-execution/bookings/:bookingRequestId/verify-plate
 router.patch('/bookings/:bookingRequestId/verify-plate', async (req, res, next) => {
   try {
-    const data = await rideExecutionService.verifyPlate(req.params.bookingRequestId, req.user.id);
+    const data = await rideExecutionService.verifyPlate(
+      req.params.bookingRequestId,
+      req.user.id,
+      req.body.registrationNumber
+    );
     return success(res, data, 200, 'Plate verified successfully.');
   } catch (err) {
     next(err);

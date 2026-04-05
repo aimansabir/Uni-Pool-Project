@@ -224,6 +224,13 @@ const confirmPaymentReceived = async (paymentId, driverId) => {
     throw createError('Payment can only be confirmed after passenger drop-off or ride completion.', 400);
   }
 
+  if (!payment.paymentMethod) {
+    throw createError(
+      'Payment method must be recorded before the driver can confirm payment.',
+      400
+    );
+  }
+
   const updated = await prisma.ridePayment.update({
     where: { id: paymentId },
     data: {

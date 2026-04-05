@@ -17,6 +17,47 @@ const getTrackUrl = (rideId) => {
   return baseUrl ? `${baseUrl}${trackPath}` : trackPath;
 };
 
+const snapshotBookingStops = (booking) => ({
+  pickupStopName: booking.pickupStop?.stopName || null,
+  dropoffStopName: booking.dropStop?.stopName || null,
+  pickupLat: booking.pickupStop?.lat ?? null,
+  pickupLng: booking.pickupStop?.lng ?? null,
+  dropoffLat: booking.dropStop?.lat ?? null,
+  dropoffLng: booking.dropStop?.lng ?? null,
+});
+
+const buildWaypointCandidatesFromBookings = (ride) => {
+  const points = [];
+
+  for (const br of ride.bookingRequests) {
+    if (br.pickupLat != null && br.pickupLng != null) {
+      points.push({
+        key: `pickup-${br.id}`,
+        kind: 'pickup',
+        bookingRequestId: br.id,
+        passengerId: br.passengerId,
+        stopName: br.pickupStopName || br.pickupStop?.stopName || 'Pickup',
+        lat: br.pickupLat ?? br.pickupStop?.lat ?? null,
+        lng: br.pickupLng ?? br.pickupStop?.lng ?? null,
+      });
+    }
+
+    if (br.dropoffLat != null && br.dropoffLng != null) {
+      points.push({
+        key: `dropoff-${br.id}`,
+        kind: 'dropoff',
+        bookingRequestId: br.id,
+        passengerId: br.passengerId,
+        stopName: br.dropoffStopName || br.dropStop?.stopName || 'Drop-off',
+        lat: br.dropoffLat ?? br.dropStop?.lat ?? null,
+        lng: br.dropoffLng ?? br.dropStop?.lng ?? null,
+      });
+    }
+  }
+
+  return points.filter((p) => p.lat != null && p.lng != null);
+};
+
 /**
  * Build a Google Maps navigation deep link from ordered stops.
  * Format:
@@ -45,6 +86,32 @@ const buildNavigationLink = (stops) => {
   return url;
 };
 
+const getLiveEtaMinutes = async (fromLat, fromLng, toLat, toLng) => {
+  if (
+    !Number.isFinite(fromLat) ||
+    !Number.isFinite(fromLng) ||
+    !Number.isFinite(toLat) ||
+    !Number.isFinite(toLng)
+  ) {
+    return null;
+  }
+
+  const url = new URL(
+    `/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}`,
+    process.env.ROUTE_ENGINE_BASE_URL || 'https://router.project-osrm.org'
+  );
+  url.searchParams.set('overview', 'false');
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const durationSeconds = data?.routes?.[0]?.duration;
+  if (typeof durationSeconds !== 'number') return null;
+
+  return Math.max(0, Math.round(durationSeconds / 60));
+};
+
 // ─── Start Ride ─────────────────────────────────────────────────────
 
 const startRide = async (rideId, driverId) => {
@@ -56,7 +123,9 @@ const startRide = async (rideId, driverId) => {
         include: {
           passenger: {
             select: { id: true, fullName: true, ibaEmail: true }
-          }
+          },
+          pickupStop: true,
+          dropStop: true,
         }
       },
       stops: { orderBy: { sequence: 'asc' } }
@@ -83,17 +152,22 @@ const startRide = async (rideId, driverId) => {
       }
     });
 
-    await tx.bookingRequest.updateMany({
-      where: { rideId, status: 'ACCEPTED' },
-      data: { participantStatus: 'BOOKED' }
-    });
+    for (const br of ride.bookingRequests) {
+      await tx.bookingRequest.update({
+        where: { id: br.id },
+        data: {
+          participantStatus: 'BOOKED',
+          ...snapshotBookingStops(br),
+        }
+      });
+    }
 
     const paymentData = ride.bookingRequests.map((br) => ({
       rideId,
       bookingRequestId: br.id,
       passengerId: br.passengerId,
       driverId,
-      amount: ride.farePerSeat
+      amount: ride.farePerSeat * (br.requestedSeats || 1)
     }));
 
     if (paymentData.length > 0) {
@@ -115,14 +189,18 @@ const startRide = async (rideId, driverId) => {
     return updatedRide;
   });
 
-  const navigationLink = buildNavigationLink(ride.stops);
+  const bookingWaypoints = buildWaypointCandidatesFromBookings(ride);
+  const navigationLink =
+    bookingWaypoints.length > 0
+      ? buildNavigationLink(bookingWaypoints)
+      : buildNavigationLink(ride.stops);
 
   return {
     ride: result,
     navigationLink,
     trackUrl,
     acceptedPassengers: ride.bookingRequests.length,
-    waypoints: ride.stops
+    waypoints: bookingWaypoints.length > 0 ? bookingWaypoints : ride.stops
   };
 };
 
@@ -132,7 +210,14 @@ const getNavigationLink = async (rideId, driverId) => {
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
     include: {
-      stops: { orderBy: { sequence: 'asc' } }
+      stops: { orderBy: { sequence: 'asc' } },
+      bookingRequests: {
+        where: { status: 'ACCEPTED' },
+        include: {
+          pickupStop: true,
+          dropStop: true,
+        }
+      }
     }
   });
 
@@ -141,19 +226,23 @@ const getNavigationLink = async (rideId, driverId) => {
     throw createError('Only the ride owner can access navigation.', 403);
   }
 
-  const navigationLink = buildNavigationLink(ride.stops);
+  const bookingWaypoints = buildWaypointCandidatesFromBookings(ride);
+  const navigationLink =
+    bookingWaypoints.length > 0
+      ? buildNavigationLink(bookingWaypoints)
+      : buildNavigationLink(ride.stops);
 
   return {
     navigationLink,
-    waypoints: ride.stops
+    waypoints: bookingWaypoints.length > 0 ? bookingWaypoints : ride.stops
   };
 };
 
 // ─── Update Live Location ───────────────────────────────────────────
 
 const updateLocation = async (rideId, driverId, lat, lng) => {
-  if (lat == null || lng == null || typeof lat !== 'number' || typeof lng !== 'number') {
-    throw createError('lat and lng are required and must be numbers.', 400);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw createError('lat and lng are required and must be valid numbers.', 400);
   }
 
   const ride = await prisma.ride.findUnique({ where: { id: rideId } });
@@ -195,7 +284,17 @@ const getTrackingData = async (rideId, userId) => {
       stops: { orderBy: { sequence: 'asc' } },
       bookingRequests: {
         where: { status: 'ACCEPTED' },
-        select: { passengerId: true }
+        select: {
+          id: true,
+          passengerId: true,
+          participantStatus: true,
+          pickupLat: true,
+          pickupLng: true,
+          dropoffLat: true,
+          dropoffLng: true,
+          pickupStopName: true,
+          dropoffStopName: true,
+        }
       }
     }
   });
@@ -203,18 +302,44 @@ const getTrackingData = async (rideId, userId) => {
   if (!ride) throw createError('Ride not found.', 404);
 
   const isDriver = ride.driverId === userId;
-  const isAcceptedPassenger = ride.bookingRequests.some((br) => br.passengerId === userId);
+  const viewerBooking = ride.bookingRequests.find((br) => br.passengerId === userId);
+  const isAcceptedPassenger = Boolean(viewerBooking);
 
   if (!isDriver && !isAcceptedPassenger) {
     throw createError('You do not have permission to track this ride.', 403);
+  }
+
+  if (
+    viewerBooking &&
+    (viewerBooking.participantStatus === 'NO_SHOW' || viewerBooking.participantStatus === 'DROPPED_OFF')
+  ) {
+    throw createError('Tracking is not available for this booking status.', 403);
   }
 
   if (ride.status === 'CANCELLED') {
     throw createError('This ride has been cancelled.', 400);
   }
 
-  const estimatedArrivalMinutes =
-    ride.durationMin != null ? Math.max(0, Math.round(ride.durationMin)) : null;
+  let etaTarget = null;
+
+  if (viewerBooking && viewerBooking.pickupLat != null && viewerBooking.pickupLng != null) {
+    etaTarget = {
+      lat: viewerBooking.pickupLat,
+      lng: viewerBooking.pickupLng,
+    };
+  } else if (ride.stops.length > 0) {
+    const nextStop = ride.stops.find((s) => s.lat != null && s.lng != null);
+    if (nextStop) {
+      etaTarget = { lat: nextStop.lat, lng: nextStop.lng };
+    }
+  }
+
+  const estimatedArrivalMinutes = await getLiveEtaMinutes(
+    ride.currentLat,
+    ride.currentLng,
+    etaTarget?.lat,
+    etaTarget?.lng
+  );
 
   return {
     rideId: ride.id,
@@ -233,21 +358,51 @@ const getTrackingData = async (rideId, userId) => {
 
 // ─── Verify Plate ───────────────────────────────────────────────────
 
-const verifyPlate = async (bookingRequestId, passengerId) => {
+const verifyPlate = async (bookingRequestId, passengerId, registrationNumber) => {
   const booking = await prisma.bookingRequest.findUnique({
     where: { id: bookingRequestId },
-    include: { ride: true }
+    include: {
+      ride: {
+        include: {
+          vehicle: {
+            select: {
+              registrationNumber: true
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!booking) throw createError('Booking request not found.', 404);
+
   if (booking.passengerId !== passengerId) {
     throw createError('Only the booking passenger can verify the plate.', 403);
   }
+
   if (booking.status !== 'ACCEPTED') {
     throw createError('Booking must be accepted to verify plate.', 400);
   }
-  if (booking.participantStatus === 'NO_SHOW' || booking.participantStatus === 'DROPPED_OFF') {
+
+  if (
+    booking.participantStatus === 'NO_SHOW' ||
+    booking.participantStatus === 'DROPPED_OFF'
+  ) {
     throw createError('Cannot verify plate for this booking status.', 400);
+  }
+
+  if (!registrationNumber || typeof registrationNumber !== 'string') {
+    throw createError('registrationNumber is required for plate verification.', 400);
+  }
+
+  const submitted = registrationNumber.trim().toUpperCase();
+  const actual = booking.ride.vehicle.registrationNumber.trim().toUpperCase();
+
+  if (submitted !== actual) {
+    throw createError(
+      'The provided registration number does not match the ride vehicle.',
+      400
+    );
   }
 
   const updated = await prisma.bookingRequest.update({
@@ -382,13 +537,35 @@ const markNoShow = async (bookingRequestId, driverId) => {
       }
     });
 
+    await tx.ride.update({
+      where: { id: booking.rideId },
+      data: {
+        seatsAvailable: {
+          increment: booking.requestedSeats || 1
+        }
+      }
+    });
+
+    const existingPayment = await tx.ridePayment.findUnique({
+      where: { bookingRequestId: bookingRequestId }
+    });
+
+    if (existingPayment && existingPayment.status !== 'PAID') {
+      await tx.ridePayment.update({
+        where: { bookingRequestId: bookingRequestId },
+        data: {
+          status: 'WAIVED'
+        }
+      });
+    }
+
     await tx.notification.create({
       data: {
         userId: booking.passengerId,
         rideId: booking.rideId,
         channel: 'IN_APP',
         title: 'Marked as No-Show',
-        message: 'You were marked as a no-show by the driver.'
+        message: 'You were marked as a no-show by the driver. Your seat has been released.'
       }
     });
 
@@ -439,7 +616,12 @@ const markDroppedOff = async (bookingRequestId, driverId) => {
         rideId: booking.rideId,
         channel: 'IN_APP',
         title: 'Payment Due',
-        message: 'Your payment is now due for this ride.'
+        message: 'Your payment is now due for this ride.',
+        payload: {
+          bookingRequestId: booking.id,
+          rideId: booking.rideId,
+          type: 'PAYMENT_DUE'
+        }
       }
     });
 
@@ -485,17 +667,27 @@ const completeRide = async (rideId, driverId) => {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    await tx.bookingRequest.updateMany({
+    const autoDropped = await tx.bookingRequest.findMany({
       where: {
         rideId,
         status: 'ACCEPTED',
         participantStatus: 'PICKED_UP'
-      },
-      data: {
-        participantStatus: 'DROPPED_OFF',
-        droppedOffAt: new Date()
       }
     });
+
+    if (autoDropped.length > 0) {
+      await tx.bookingRequest.updateMany({
+        where: {
+          rideId,
+          status: 'ACCEPTED',
+          participantStatus: 'PICKED_UP'
+        },
+        data: {
+          participantStatus: 'DROPPED_OFF',
+          droppedOffAt: new Date()
+        }
+      });
+    }
 
     const updatedRide = await tx.ride.update({
       where: { id: rideId },
@@ -505,17 +697,70 @@ const completeRide = async (rideId, driverId) => {
       }
     });
 
-    const passengerIds = ride.bookingRequests.map((br) => br.passengerId);
-    const notifications = passengerIds.map((pid) => ({
-      userId: pid,
+    const finalBookings = await tx.bookingRequest.findMany({
+      where: {
+        rideId,
+        status: 'ACCEPTED'
+      },
+      select: {
+        id: true,
+        passengerId: true,
+        participantStatus: true
+      }
+    });
+
+    const droppedOffPassengers = finalBookings.filter(
+      (br) => br.participantStatus === 'DROPPED_OFF'
+    );
+
+    const passengerNotifications = droppedOffPassengers.map((br) => ({
+      userId: br.passengerId,
       rideId,
       channel: 'IN_APP',
       title: 'Ride Completed',
-      message: 'Your ride has been completed. Please rate your experience!'
+      message: 'Your ride has been completed. Please rate your experience!',
+      payload: {
+        type: 'RATE_DRIVER',
+        rideId,
+        bookingRequestId: br.id
+      }
     }));
 
-    if (notifications.length > 0) {
-      await tx.notification.createMany({ data: notifications });
+    const driverNotifications = droppedOffPassengers.map((br) => ({
+      userId: driverId,
+      rideId,
+      channel: 'IN_APP',
+      title: 'Rate Passenger',
+      message: 'Please rate a passenger who completed this ride.',
+      payload: {
+        type: 'RATE_PASSENGER',
+        rideId,
+        bookingRequestId: br.id,
+        passengerId: br.passengerId
+      }
+    }));
+
+    const paymentNotifications = autoDropped.map((br) => ({
+      userId: br.passengerId,
+      rideId,
+      channel: 'IN_APP',
+      title: 'Payment Due',
+      message: 'Your payment is now due for this ride.',
+      payload: {
+        type: 'PAYMENT_DUE',
+        rideId,
+        bookingRequestId: br.id
+      }
+    }));
+
+    const allNotifications = [
+      ...passengerNotifications,
+      ...driverNotifications,
+      ...paymentNotifications
+    ];
+
+    if (allNotifications.length > 0) {
+      await tx.notification.createMany({ data: allNotifications });
     }
 
     return updatedRide;
