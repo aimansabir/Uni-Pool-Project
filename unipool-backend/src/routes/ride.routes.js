@@ -54,7 +54,7 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
     try {
         await rideService.deleteRide(req.params.id, req.user.id);
-        return success(res, null, 200, 'Ride deleted successfully.');
+        return success(res, null, 200, 'Ride cancelled successfully.');
     } catch (err) {
         return error(res, err.message, 400);
     }

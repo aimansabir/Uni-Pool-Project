@@ -420,6 +420,14 @@ const deleteRide = async (rideId, driverId) => {
         throw new Error('Unauthorized.');
     }
 
+    if (ride.status !== 'PUBLISHED') {
+        const err = new Error(
+            'Only published rides can be cancelled. Rides that are in progress, completed, or already cancelled cannot be deleted.'
+        );
+        err.statusCode = 400;
+        throw err;
+    }
+
     const passengerIds = ride.bookingRequests.map(
         (booking) => booking.passengerId
     );
@@ -440,11 +448,13 @@ const deleteRide = async (rideId, driverId) => {
                 title,
                 message,
                 payload: {
+                    type: 'DRIVER_CANCELLED_RIDE',
                     rideId: ride.id,
                     rideType: ride.rideType,
                     startLocation: ride.startLocation,
                     destinationLocation: ride.destinationLocation,
                     severity: ride.rideType === 'INSTANT' ? 'critical' : 'high',
+                    presentation: ride.rideType === 'INSTANT' ? 'FULL_SCREEN' : 'STANDARD_PUSH',
                 },
             })),
         });
@@ -457,13 +467,30 @@ const deleteRide = async (rideId, driverId) => {
                     message:
                         'Your instant ride has been cancelled. Please book an alternative immediately.',
                     severity: 'critical',
+                    presentation: 'FULL_SCREEN',
                 });
             }
         }
     }
 
-    return prisma.ride.delete({
-        where: { id: rideId },
+    return prisma.$transaction(async (tx) => {
+        // Cancel all active booking requests linked to this ride
+        await tx.bookingRequest.updateMany({
+            where: {
+                rideId,
+                status: { in: ['PENDING', 'ACCEPTED'] },
+            },
+            data: {
+                status: 'CANCELLED',
+                cancelledAt: new Date(),
+            },
+        });
+
+        // Mark the ride as cancelled (soft-delete)
+        return tx.ride.update({
+            where: { id: rideId },
+            data: { status: 'CANCELLED' },
+        });
     });
 };
 

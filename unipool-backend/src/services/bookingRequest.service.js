@@ -501,6 +501,11 @@ const respondToBookingRequest = async ({
           ? 'BOOKING_CONFIRMED'
           : 'REQUEST_REJECTED';
 
+    const trackUrl =
+      isInstantRide && status === 'ACCEPTED'
+        ? `/api/ride-execution/rides/${current.rideId}/track`
+        : null;
+
     const passengerNotification = await tx.notification.create({
       data: {
         userId: current.passengerId,
@@ -533,6 +538,7 @@ const respondToBookingRequest = async ({
           requestedSeats: current.requestedSeats,
           rideType: current.ride.rideType,
           passengerNavigation,
+          ...(trackUrl ? { trackUrl } : {}),
         },
       },
     });
@@ -544,6 +550,7 @@ const respondToBookingRequest = async ({
         seatsAvailable: updatedRide.seatsAvailable,
       },
       passengerNavigation,
+      ...(trackUrl ? { trackUrl } : {}),
       passengerNotificationId: passengerNotification.id,
       passengerNotificationType:
         status === 'ACCEPTED'
