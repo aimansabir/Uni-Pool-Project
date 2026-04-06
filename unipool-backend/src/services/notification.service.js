@@ -81,65 +81,75 @@ const dispatchRideNotifications = async (ride) => {
 
     if (ride.rideType === 'SCHEDULED') {
         for (const subscriber of scheduledSubscribers) {
-            const emailNotification = await createNotification({
-                userId: subscriber.userId,
+            const preferredChannel = subscriber.channel || 'EMAIL';
+            const notificationMessage = `${ride.startLocation} → ${ride.destinationLocation} at ${new Date(
+                ride.departureTime
+            ).toLocaleString()}`;
+            const basePayload = {
                 rideId: ride.id,
-                channel: 'EMAIL',
-                title: 'New scheduled ride on your subscribed route',
-                message: `${ride.startLocation} → ${ride.destinationLocation} at ${new Date(
-                    ride.departureTime
-                ).toLocaleString()}`,
-                payload: {
+                routeKey: ride.routeKey,
+                destinationKey: ride.destinationKey,
+                rideType: ride.rideType,
+                departureTime: ride.departureTime,
+                farePerSeat: ride.farePerSeat,
+                priority: 'NORMAL',
+                presentation: 'STANDARD_PUSH',
+            };
+
+            if (preferredChannel === 'EMAIL') {
+                const emailNotification = await createNotification({
+                    userId: subscriber.userId,
                     rideId: ride.id,
-                    routeKey: ride.routeKey,
-                    destinationKey: ride.destinationKey,
-                    rideType: ride.rideType,
-                    departureTime: ride.departureTime,
-                    farePerSeat: ride.farePerSeat,
-                    priority: 'NORMAL',
-                    presentation: 'STANDARD_PUSH',
-                },
-            });
+                    channel: 'EMAIL',
+                    title: 'New scheduled ride on your subscribed route',
+                    message: notificationMessage,
+                    payload: basePayload,
+                });
 
-            await createNotification({
-                userId: subscriber.userId,
-                rideId: ride.id,
-                channel: 'IN_APP',
-                status: 'SENT',
-                title: 'New scheduled ride available',
-                message: `${ride.startLocation} → ${ride.destinationLocation} at ${new Date(
-                    ride.departureTime
-                ).toLocaleString()}`,
-                payload: {
+                try {
+                    const result = await sendEmailIfPossible({
+                        to: subscriber.user.ibaEmail,
+                        subject: 'UniPool: New scheduled ride available',
+                        text: `${ride.startLocation} → ${ride.destinationLocation}\nDeparture: ${new Date(
+                            ride.departureTime
+                        ).toLocaleString()}\nFare per seat: PKR ${ride.farePerSeat}`,
+                    });
+
+                    await prisma.notification.update({
+                        where: { id: emailNotification.id },
+                        data: { status: result.sent ? 'SENT' : 'PENDING' },
+                    });
+                } catch (err) {
+                    await prisma.notification.update({
+                        where: { id: emailNotification.id },
+                        data: { status: 'FAILED' },
+                    });
+                }
+            } else {
+                // IN_APP, IN_APP_TOAST, or SSE — honor the subscriber's channel preference
+                const notification = await createNotification({
+                    userId: subscriber.userId,
                     rideId: ride.id,
-                    routeKey: ride.routeKey,
-                    destinationKey: ride.destinationKey,
-                    rideType: ride.rideType,
-                    departureTime: ride.departureTime,
-                    farePerSeat: ride.farePerSeat,
-                    priority: 'NORMAL',
-                    presentation: 'STANDARD_PUSH',
-                },
-            });
-
-            try {
-                const result = await sendEmailIfPossible({
-                    to: subscriber.user.ibaEmail,
-                    subject: 'UniPool: New scheduled ride available',
-                    text: `${ride.startLocation} → ${ride.destinationLocation}\nDeparture: ${new Date(
-                        ride.departureTime
-                    ).toLocaleString()}\nFare per seat: PKR ${ride.farePerSeat}`,
+                    channel: preferredChannel,
+                    status: 'SENT',
+                    title: 'New scheduled ride available',
+                    message: notificationMessage,
+                    payload: basePayload,
                 });
 
-                await prisma.notification.update({
-                    where: { id: emailNotification.id },
-                    data: { status: result.sent ? 'SENT' : 'PENDING' },
-                });
-            } catch (err) {
-                await prisma.notification.update({
-                    where: { id: emailNotification.id },
-                    data: { status: 'FAILED' },
-                });
+                // For live channels, also push via SSE so the user gets real-time delivery
+                if (preferredChannel === 'IN_APP_TOAST' || preferredChannel === 'SSE') {
+                    emitToUser(subscriber.userId, 'ride-notification', {
+                        id: notification.id,
+                        title: 'New scheduled ride available',
+                        message: notificationMessage,
+                        rideId: ride.id,
+                        routeKey: ride.routeKey,
+                        destinationKey: ride.destinationKey,
+                        departureTime: ride.departureTime,
+                        farePerSeat: ride.farePerSeat,
+                    });
+                }
             }
         }
     }

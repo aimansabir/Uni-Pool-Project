@@ -148,12 +148,6 @@ const createBookingRequest = async ({
     throw err;
   }
 
-  if (!pickupStopId) {
-    const err = new Error('pickupStopId is required.');
-    err.statusCode = 400;
-    throw err;
-  }
-
   const pickupStop = await validateStopBelongsToRide(rideId, pickupStopId, 'Pickup');
   const dropStop = await validateStopBelongsToRide(rideId, dropStopId, 'Drop');
 
@@ -501,6 +495,11 @@ const respondToBookingRequest = async ({
           ? 'BOOKING_CONFIRMED'
           : 'REQUEST_REJECTED';
 
+    const trackUrl =
+      isInstantRide && status === 'ACCEPTED'
+        ? `/api/ride-execution/rides/${current.rideId}/track`
+        : null;
+
     const passengerNotification = await tx.notification.create({
       data: {
         userId: current.passengerId,
@@ -533,6 +532,7 @@ const respondToBookingRequest = async ({
           requestedSeats: current.requestedSeats,
           rideType: current.ride.rideType,
           passengerNavigation,
+          ...(trackUrl ? { trackUrl } : {}),
         },
       },
     });
@@ -544,6 +544,7 @@ const respondToBookingRequest = async ({
         seatsAvailable: updatedRide.seatsAvailable,
       },
       passengerNavigation,
+      ...(trackUrl ? { trackUrl } : {}),
       passengerNotificationId: passengerNotification.id,
       passengerNotificationType:
         status === 'ACCEPTED'
