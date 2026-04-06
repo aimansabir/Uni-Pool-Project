@@ -306,7 +306,7 @@ const updateRide = async (rideId, driverId, data) => {
                 ? Number(data.farePerSeat)
                 : existingRide.farePerSeat,
         genderPreference: nextGenderPreference,
-        status: data.status ?? existingRide.status,
+        status: existingRide.status,
         isUrgent: refreshed ? refreshed.isUrgent : existingRide.isUrgent,
         routeKey: refreshed ? refreshed.routeKey : existingRide.routeKey,
         destinationKey: refreshed
@@ -422,7 +422,7 @@ const deleteRide = async (rideId, driverId) => {
 
     if (ride.status !== 'PUBLISHED') {
         const err = new Error(
-            'Only published rides can be cancelled. Rides that are in progress, completed, or already cancelled cannot be deleted.'
+            'Only published rides can be cancelled. Rides that are in progress, completed, or already cancelled cannot be cancelled.'
         );
         err.statusCode = 400;
         throw err;

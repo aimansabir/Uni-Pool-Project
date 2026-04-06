@@ -148,12 +148,6 @@ const createBookingRequest = async ({
     throw err;
   }
 
-  if (!pickupStopId) {
-    const err = new Error('pickupStopId is required.');
-    err.statusCode = 400;
-    throw err;
-  }
-
   const pickupStop = await validateStopBelongsToRide(rideId, pickupStopId, 'Pickup');
   const dropStop = await validateStopBelongsToRide(rideId, dropStopId, 'Drop');
 
