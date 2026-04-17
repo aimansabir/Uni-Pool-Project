@@ -1,0 +1,101 @@
+.my-rides {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.my-rides__filters {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  padding-bottom: var(--space-2xs);
+  -webkit-overflow-scrolling: touch;
+}
+
+.my-rides__filter {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.my-rides__filter--active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}
+
+.my-rides__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Ride Card */
+.ride-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+.ride-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.ride-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ride-card__route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ride-card__route--end {
+  margin-left: var(--space-2xs);
+}
+
+.ride-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ride-card__dot--start { background: var(--color-accent); }
+.ride-card__dot--end { background: var(--color-danger); }
+
+.ride-card__location {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.ride-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-2xs);
+}
+
+.ride-card__meta-item {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}

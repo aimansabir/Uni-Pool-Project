@@ -1,0 +1,7 @@
+.auth-layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  overflow: hidden;
+}

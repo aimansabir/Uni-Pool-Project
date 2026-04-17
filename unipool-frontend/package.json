@@ -1,0 +1,22 @@
+{
+  "name": "unipool-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.0.4"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "leaflet": "^1.9.4",
+    "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.14.1"
+  }
+}

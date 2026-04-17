@@ -1,0 +1,12 @@
+.app-layout__content {
+  padding: var(--space-md);
+  padding-top: calc(var(--header-height) + var(--space-md));
+  padding-bottom: calc(var(--nav-height) + var(--space-lg));
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-layout__content--no-nav {
+  padding-bottom: var(--space-xl);
+}
