@@ -6,6 +6,8 @@ import Button from '../../components/common/Button/Button';
 import EmptyState from '../../components/common/EmptyState/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
+import hondaCivic from '../../assets/images/honda_civic.png';
+import toyotaCorolla from '../../assets/images/toyota_corolla.png';
 import './VehiclesPage.css';
 
 export default function VehiclesPage() {
@@ -50,8 +52,8 @@ export default function VehiclesPage() {
 
   return (
     <div className="vehicles-page fade-in">
-      <div className="vehicles-page__header">
-        <h2 className="vehicles-page__title">Choose Your Car</h2>
+      <div className="vehicles-page__banner">
+        <h2 className="vehicles-page__banner-title">Choose Your Car</h2>
       </div>
 
       {vehicles.length === 0 ? (
@@ -66,57 +68,36 @@ export default function VehiclesPage() {
           }
         />
       ) : (
-        <>
+        <div className="vehicles-page__content">
           <div className="vehicles-page__list">
-            {vehicles.map((vehicle) => (
-              <div key={vehicle.id} className="vehicle-card">
-                <div className="vehicle-card__image">
-                  {vehicle.imageUrl ? (
-                    <img src={vehicle.imageUrl} alt={`${vehicle.make} ${vehicle.model}`} />
-                  ) : (
-                    <div className="vehicle-card__placeholder">🚗</div>
-                  )}
+            {vehicles.map((vehicle, idx) => (
+              <div key={vehicle.id} className="vehicle-card" onClick={() => navigate('/rides/publish', { state: { vehicleId: vehicle.id } })}>
+                <div className="vehicle-card__image-container">
+                  <img 
+                    src={vehicle.imageUrl || (idx % 2 === 0 ? hondaCivic : toyotaCorolla)} 
+                    alt={`${vehicle.make} ${vehicle.model}`} 
+                    className="vehicle-card__img"
+                  />
                 </div>
-                <div className="vehicle-card__info">
-                  <h4 className="vehicle-card__name">
-                    {vehicle.make} · {vehicle.model}
-                  </h4>
-                  <p className="vehicle-card__meta">
-                    Color: {vehicle.color}
-                    <br />
-                    Reg No: {vehicle.registrationNumber}
-                  </p>
-                </div>
-                <div className="vehicle-card__actions">
-                  <button
-                    className="vehicle-card__action-btn"
-                    onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-                    aria-label="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="vehicle-card__action-btn vehicle-card__action-btn--danger"
-                    onClick={() => setDeleteTarget(vehicle)}
-                    aria-label="Delete"
-                  >
-                    🗑️
-                  </button>
+                <div className="vehicle-card__details">
+                  <div className="vehicle-detail"><span className="label">Make :</span> {vehicle.make}</div>
+                  <div className="vehicle-detail"><span className="label">Model :</span> {vehicle.model}</div>
+                  <div className="vehicle-detail"><span className="label">Color :</span> {vehicle.color}</div>
+                  <div className="vehicle-detail"><span className="label">Reg No :</span> {vehicle.registrationNumber}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="vehicles-page__footer">
-            <Button
-              variant="primary"
-              fullWidth
+          <div className="vehicles-page__action-footer">
+            <button
+              className="add-car-btn"
               onClick={() => navigate('/vehicles/new')}
             >
               Add Car
-            </Button>
+            </button>
           </div>
-        </>
+        </div>
       )}
 
       <ConfirmDialog

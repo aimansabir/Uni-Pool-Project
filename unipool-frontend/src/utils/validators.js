@@ -76,6 +76,7 @@ export function validateLoginForm(data) {
 export function validateVehicleForm(data) {
   const errors = {};
 
+  if (!isRequired(data.ownerFullName)) errors.ownerFullName = 'Owner Full Name is required.';
   if (!isRequired(data.make)) errors.make = 'Car make is required.';
   if (!isRequired(data.model)) errors.model = 'Car model is required.';
   if (!isRequired(data.color)) errors.color = 'Color is required.';

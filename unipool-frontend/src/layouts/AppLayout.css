@@ -1,12 +1,22 @@
 .app-layout__content {
   padding: var(--space-md);
-  padding-top: calc(var(--header-height) + var(--space-md));
-  padding-bottom: calc(var(--nav-height) + var(--space-lg));
+  padding-top: calc(var(--header-height) + 12px); /* Tightened for no status bar */
+  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom) + var(--space-lg));
   height: 100%;
-  overflow-y: auto;
+  overflow-y: auto; /* Restored scrolling */
   overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.app-layout__content::-webkit-scrollbar {
+  display: none; /* Webkit */
 }
 
 .app-layout__content--no-nav {
   padding-bottom: var(--space-xl);
+}
+
+.app-layout__content--no-header {
+  padding-top: var(--space-md);
 }

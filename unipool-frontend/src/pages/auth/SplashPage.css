@@ -16,9 +16,9 @@
 }
 
 .splash-page__logo {
-  width: 220px;
-  height: auto;
-  animation: splashLogoFloat 2s ease-in-out infinite alternate;
+  width: 290px;
+  height: 260px;
+  animation: splashLogoFloat 15s ease-in-out infinite alternate;
 }
 
 .splash-page__tagline {
@@ -31,16 +31,35 @@
 }
 
 @keyframes splashFadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes splashLogoFloat {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-6px); }
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-6px);
+  }
 }
 
 @keyframes splashTagline {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -91,9 +91,10 @@
   --transition-slow:    400ms ease;
 
   /* ── Mobile App Shell (iPhone 14 Pro: 393×852) ────── */
-  --app-max-width:     393px;
-  --app-height:        852px;
-  --nav-height:        60px;
-  --header-height:     56px;
-  --status-bar-height: 0px;
+  --app-max-width:      393px;
+  --app-height:         852px;
+  --nav-height:         68px;
+  --header-height:      56px;
+  --safe-area-top:      48px;
+  --safe-area-bottom:   34px;
 }

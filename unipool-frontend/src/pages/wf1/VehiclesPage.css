@@ -1,99 +1,130 @@
 .vehicles-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  min-height: 100%;
+  background-color: #FFFFFF;
 }
 
-.vehicles-page__header {
-  margin-bottom: var(--space-xs);
+.vehicles-page__banner {
+  background: #EFB24E;
+  margin-top: 24px;
+  margin-left: calc(-1 * var(--space-md));
+  padding: 12px 28px;
+  padding-left: calc(var(--space-md) + 12px);
+  width: max-content;
+  border-top-right-radius: 24px;
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.25);
 }
 
-.vehicles-page__title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  text-align: center;
+.vehicles-page__banner-title {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
+.vehicles-page__content {
+  flex: 1;
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Vehicle List ───────────────────────────────────── */
 .vehicles-page__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 24px;
+  padding-bottom: 100px; /* Space for footer button */
 }
 
+/* ── Vehicle Card (Horizontal) ───────────────────────── */
 .vehicle-card {
+  background: #F3F4F6;
+  border-radius: 24px;
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-}
-.vehicle-card:hover {
-  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  border: 1px solid transparent;
 }
 
-.vehicle-card__image {
-  width: 64px;
-  height: 52px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-bg);
+.vehicle-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
+  border-color: rgba(239, 178, 78, 0.3);
+}
+
+.vehicle-card__image-container {
+  width: 110px;
+  height: 110px;
   flex-shrink: 0;
+  margin: auto 0;
+  padding-left: 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
 }
-.vehicle-card__image img {
+
+.vehicle-card__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-.vehicle-card__placeholder {
-  font-size: 28px;
+  border-radius: 12px;
 }
 
-.vehicle-card__info {
+.vehicle-card__details {
   flex: 1;
-  min-width: 0;
-}
-
-.vehicle-card__name {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin-bottom: 2px;
-}
-
-.vehicle-card__meta {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
-}
-
-.vehicle-card__actions {
+  padding: 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
-}
-
-.vehicle-card__action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 14px;
-  transition: background var(--transition-fast);
-  cursor: pointer;
-}
-.vehicle-card__action-btn:hover {
-  background: var(--color-bg);
+  gap: 6px;
 }
 
-.vehicles-page__footer {
-  margin-top: var(--space-md);
+.vehicle-detail {
+  font-size: 13px;
+  color: #4B5563;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vehicle-detail .label {
+  color: #6B7280;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* ── Action Footer ──────────────────────────────────── */
+.vehicles-page__action-footer {
+  position: sticky;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  padding: 20px 0;
+  background: linear-gradient(transparent, #FFFFFF 40%);
+  margin-top: auto;
+}
+
+.add-car-btn {
+  width: 100%;
+  background: #EFB24E;
+  color: #111827;
+  border: none;
+  border-radius: 20px;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 10px 20px rgba(239, 178, 78, 0.3);
+  transition: all var(--transition-normal);
+}
+
+.add-car-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 5px 10px rgba(239, 178, 78, 0.2);
 }

@@ -11,10 +11,12 @@ export default function AppLayout() {
     location.pathname.startsWith(p)
   );
 
+  const hideHeader = location.pathname === '/rides/publish';
+
   return (
     <div className="app-shell">
-      <Header />
-      <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''}`}>
+      {!hideHeader && <Header />}
+      <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''} ${hideHeader ? 'app-layout__content--no-header' : ''}`}>
         <Outlet />
       </main>
       {!hideNav && <BottomNav />}

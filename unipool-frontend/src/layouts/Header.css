@@ -1,51 +1,62 @@
 .header {
-  position: fixed;
+  position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: var(--app-max-width);
-  height: var(--header-height);
+  height: var(--header-height); /* No safe area offset needed on top anymore */
   background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Dashboard-specific: Gold Gradient from Wireframe */
+.header--dashboard {
+  background: linear-gradient(to bottom, #EFB24E 0%, #F7C653 100%);
+  border-bottom: none;
+  height: calc(var(--header-height) + 10px); /* Slightly taller for icons blend */
+}
+
+/* Premium Glassmorphism for non-dashboard headers */
+.header:not(.header--dashboard) {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+.header__main {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-md);
-  z-index: 100;
-  border-bottom: 1px solid var(--color-border);
+  padding: 10px var(--space-xl) 0;
 }
 
 .header__left,
 .header__right {
   display: flex;
   align-items: center;
-  min-width: 40px;
+  min-width: 44px;
 }
 
 .header__right {
   justify-content: flex-end;
 }
 
-.header__back {
-  width: 36px;
-  height: 36px;
+.header__user-avatar-frame {
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text);
-  transition: background var(--transition-fast);
-}
-.header__back:hover {
-  background: var(--color-bg);
+  border: 2px solid white;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.header__greeting {
-  display: flex;
-  align-items: center;
-}
-.header__greeting-emoji {
-  font-size: 20px;
+.header__user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .header__title {
@@ -57,16 +68,20 @@
 }
 
 .header__icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text);
   transition: background var(--transition-fast);
-  position: relative;
 }
+
+.header__icon-btn--dashboard {
+  color: #111827;
+}
+
 .header__icon-btn:hover {
-  background: var(--color-bg);
+  background: rgba(0,0,0,0.05);
 }
