@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLocation as useGeoLocation } from '../../context/LocationContext';
 import { useToast } from '../../context/ToastContext';
 import { validateLoginForm, hasErrors } from '../../utils/validators';
 import unipoolTop from '../../assets/images/Unipool Top.png';
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const { status: locationStatus } = useGeoLocation();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
@@ -34,7 +36,12 @@ export default function LoginPage() {
     try {
       await login(form);
       showSuccess('Welcome back!');
-      navigate('/dashboard', { replace: true });
+      
+      if (locationStatus === 'granted') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/enable-location', { state: { from: '/dashboard' }, replace: true });
+      }
     } catch (err) {
       showError(err.message);
       if (err.message?.toLowerCase().includes('password')) {
@@ -51,6 +58,15 @@ export default function LoginPage() {
     <div className="auth-page fade-in">
       {/* Logo */}
       <div className="auth-page__top-logo">
+        <button 
+          className="auth-page__back-btn" 
+          onClick={() => navigate('/onboarding')}
+          aria-label="Go back"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
         <img src={unipoolTop} alt="Unipool" className="auth-page__top-logo-img" />
       </div>
 

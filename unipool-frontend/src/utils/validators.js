@@ -46,6 +46,10 @@ export function validateRegisterForm(data) {
     errors.password = 'Password must be at least 6 characters.';
   }
 
+  if (data.password !== data.confirmPassword) {
+    errors.confirmPassword = 'Passwords do not match.';
+  }
+
   if (!isRequired(data.gender)) {
     errors.gender = 'Gender is required.';
   }

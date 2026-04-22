@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import Header from './Header';
+import { GlobalToaster } from '../context/ToastContext';
 import './AppLayout.css';
 
 export default function AppLayout() {
@@ -15,6 +16,7 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
+      <GlobalToaster />
       {!hideHeader && <Header />}
       <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''} ${hideHeader ? 'app-layout__content--no-header' : ''}`}>
         <Outlet />

@@ -73,13 +73,29 @@ export function ToastProvider({ children }) {
 
   return (
     <ToastContext.Provider value={{ showSuccess, showError, showInfo, showRideToast }}>
-      <Toaster
-        position="top-center"
-        containerStyle={{ top: 12 }}
-        toastOptions={{ style: { maxWidth: '380px' } }}
-      />
       {children}
     </ToastContext.Provider>
+  );
+}
+
+export function GlobalToaster() {
+  return (
+    <Toaster
+      position="top-center"
+      containerStyle={{ 
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        right: 20,
+        zIndex: 9999 
+      }}
+      toastOptions={{ 
+        style: { 
+          maxWidth: '100%',
+          margin: 0
+        } 
+      }}
+    />
   );
 }
 

@@ -12,6 +12,7 @@ export default function RegisterPage() {
     ibaEmail: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     studentErp: '',
     gender: '',
   });
@@ -45,8 +46,10 @@ export default function RegisterPage() {
     } catch (err) {
       showError(err.message);
       const msg = err.message?.toLowerCase() || '';
-      if (msg.includes('email') || msg.includes('duplicate')) {
+      if (msg.includes('email')) {
         setErrors({ ibaEmail: err.message });
+      } else if (msg.includes('erp')) {
+        setErrors({ studentErp: err.message });
       }
     } finally {
       setLoading(false);
@@ -57,6 +60,16 @@ export default function RegisterPage() {
     <div className="auth-page fade-in">
       {/* Logo */}
       <div className="auth-page__top-logo auth-page__top-logo--compact">
+        <button 
+          className="auth-page__back-btn" 
+          style={{ top: 'var(--space-lg)' }}
+          onClick={() => navigate('/onboarding')}
+          aria-label="Go back"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
         <img src={unipoolTop} alt="Unipool" className="auth-page__top-logo-img" />
       </div>
 
@@ -156,6 +169,24 @@ export default function RegisterPage() {
               </button>
             </div>
             {errors.password && <span className="auth-input__error">{errors.password}</span>}
+          </div>
+
+          {/* Retype Password */}
+          <div className="auth-input">
+            <div className="auth-input__wrapper">
+              <span className="auth-input__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                placeholder="Retype Password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                className={`auth-input__field ${errors.confirmPassword ? 'auth-input__field--error' : ''}`}
+              />
+            </div>
+            {errors.confirmPassword && <span className="auth-input__error">{errors.confirmPassword}</span>}
           </div>
 
           {/* Student ERP */}

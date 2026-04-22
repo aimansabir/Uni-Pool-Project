@@ -209,4 +209,5 @@ module.exports = {
     dispatchRideNotifications,
     getMyNotifications,
     markNotificationRead,
+    sendEmailIfPossible,
 };

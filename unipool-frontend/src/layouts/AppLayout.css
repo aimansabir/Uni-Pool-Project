@@ -18,5 +18,5 @@
 }
 
 .app-layout__content--no-header {
-  padding-top: var(--space-md);
+  padding-top: 0;
 }

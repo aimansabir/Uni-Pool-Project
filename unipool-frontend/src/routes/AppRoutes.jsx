@@ -10,6 +10,8 @@ import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import VerifyPage from '../pages/auth/VerifyPage';
 import RoleSelectPage from '../pages/auth/RoleSelectPage';
+import EnableLocationPage from '../pages/auth/EnableLocationPage';
+import { GlobalToaster } from '../context/ToastContext';
 
 // WF1 pages
 import DashboardPage from '../pages/wf1/DashboardPage';
@@ -20,6 +22,7 @@ import RideConfirmedPage from '../pages/wf1/RideConfirmedPage';
 import MyRidesPage from '../pages/wf1/MyRidesPage';
 import RideDetailPage from '../pages/wf1/RideDetailPage';
 import NotificationsPage from '../pages/wf1/NotificationsPage';
+import ExploreMapPage from '../pages/wf1/ExploreMapPage';
 
 // Shared pages
 import ProfilePage from '../pages/ProfilePage';
@@ -35,6 +38,7 @@ export default function AppRoutes() {
           path="/"
           element={
             <div className="app-shell">
+              <GlobalToaster />
               <SplashPage />
             </div>
           }
@@ -46,6 +50,7 @@ export default function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify" element={<VerifyPage />} />
+          <Route path="/enable-location" element={<EnableLocationPage />} />
         </Route>
 
         {/* Protected routes */}
@@ -77,8 +82,8 @@ export default function AppRoutes() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/messages" element={<MessagesPage />} />
 
-          {/* Map placeholder — redirect to dashboard */}
-          <Route path="/map" element={<Navigate to="/dashboard" replace />} />
+          {/* Map */}
+          <Route path="/map" element={<ExploreMapPage />} />
           <Route path="/search" element={<Navigate to="/dashboard" replace />} />
         </Route>
 

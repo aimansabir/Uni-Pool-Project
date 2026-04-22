@@ -29,6 +29,30 @@
   object-fit: contain;
 }
 
+.auth-page__back-btn {
+  position: absolute;
+  left: var(--space-lg);
+  top: var(--space-2xl);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: white;
+  color: var(--color-text);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all var(--transition-fast);
+  z-index: 10;
+}
+
+.auth-page__back-btn:hover {
+  background: var(--color-bg);
+  transform: translateX(-2px);
+}
+
 /* ── Body ───────────────────────────────────────────── */
 .auth-page__body {
   flex: 1;

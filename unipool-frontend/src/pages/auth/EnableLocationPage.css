@@ -1,0 +1,123 @@
+.enable-location-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #FDF7ED; /* Cream/Beige background from screenshot */
+  overflow: hidden;
+}
+
+.enable-location-page__top {
+  flex: 1.2;
+  background-color: #D58F2C; /* Darker orange top section */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+}
+
+.enable-location-page__illustration-container {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enable-location-page__circle-bg {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.enable-location-page__circle-dashed {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: rotate 20s linear infinite;
+}
+
+.enable-location-page__illustration {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  /* Lift the illustration slightly out of the bottom curve */
+  transform: translateY(20px);
+}
+
+.enable-location-page__body {
+  flex: 1;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.enable-location-page__title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #D58F2C;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.enable-location-page__subtitle {
+  font-size: 16px;
+  color: #4B5563;
+  line-height: 1.5;
+  margin-bottom: 40px;
+}
+
+.enable-location-page__btn {
+  width: 100%;
+  max-width: 320px;
+  background-color: #EFB24E;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 18px;
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.3);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 24px;
+}
+
+.enable-location-page__btn:active {
+  transform: scale(0.98);
+}
+
+.enable-location-page__skip {
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 16px;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}

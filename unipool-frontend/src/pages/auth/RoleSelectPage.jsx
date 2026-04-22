@@ -7,6 +7,16 @@ export default function RoleSelectPage() {
   return (
     <div className="auth-page role-select fade-in">
       <div className="role-select__header">
+        <button 
+          className="auth-page__back-btn" 
+          style={{ top: 'var(--space-3xl)', background: 'rgba(255,255,255,0.2)', color: 'white' }}
+          onClick={() => navigate('/dashboard')}
+          aria-label="Go back"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
         <h1 className="role-select__title">WHO ARE YOU<br />TODAY?</h1>
       </div>
 
