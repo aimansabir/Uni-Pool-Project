@@ -132,6 +132,19 @@ model User {
   ratingsReceived     RideRating[]  @relation("RatingsReceived")
 }
 
+model PendingUser {
+  id                  String              @id @default(uuid())
+  fullName            String
+  ibaEmail            String              @unique
+  password            String
+  phone               String?
+  studentErp          String?
+  gender              Gender
+  verificationCode    String
+  expiresAt           DateTime
+  createdAt           DateTime            @default(now())
+}
+
 model Vehicle {
   id       String @id @default(uuid())
   driverId String

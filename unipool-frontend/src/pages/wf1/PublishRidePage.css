@@ -1,0 +1,691 @@
+.publish-page {
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  min-height: 100%;
+}
+
+/* ── Integrated Orange Banner ─────────────────────── */
+.publish-page__banner {
+  background: #EFB24E;
+  margin-top: 35px;
+  margin-left: calc(-1 * var(--space-md));
+  padding: 12px 28px;
+  padding-left: calc(var(--space-md) + 12px);
+  width: max-content;
+  border-top-right-radius: 24px;
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.publish-type-btn--instant-active {
+  background: #EFB24E;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.3);
+}
+
+/* ── Redesigned Departure Section ────────────────── */
+.departure-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #F3F4F6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  margin-bottom: 16px;
+}
+
+.departure-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.departure-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* Date Pills */
+.date-pills {
+  display: flex;
+  gap: 24px;
+  position: relative;
+}
+
+.date-pill {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1.5px solid #F3F4F6;
+  background: #F9FAFB;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.date-pill--active {
+  background: #FFFFFF;
+  border-color: #EFB24E;
+  color: #111827;
+  box-shadow: 0 4px 80px rgba(239, 178, 78, 0.1);
+}
+
+.date-pill--custom {
+  overflow: hidden;
+}
+
+.date-pill-hidden-input {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  visibility: hidden;
+  /* Some browsers still allow showPicker on visibility:hidden */
+}
+
+/* Re-enable display for showPicker compatibility */
+.date-pill-hidden-input {
+  visibility: visible;
+}
+
+/* Mode Toggle (Slots vs Exact) */
+.mode-toggle {
+  display: flex;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn--active {
+  background: #FFFFFF;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Slots Grid */
+.slots-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.slot-card {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid #F3F4F6;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.slot-card--active {
+  border-color: #EFB24E;
+  background: rgba(239, 178, 78, 0.05);
+}
+
+.slot-card--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #F9FAFB;
+}
+
+.slot-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.slot-sub {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+/* Exact Time Input */
+.exact-time-input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px solid #F3F4F6;
+  background: #F9FAFB;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  outline: none;
+}
+
+.exact-time-input:focus {
+  border-color: #EFB24E;
+  background: #FFFFFF;
+}
+
+/* Leaving Now Card */
+.leaving-now-status {
+  background: rgba(239, 178, 78, 0.1);
+  border: 1.5px solid #EFB24E;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leaving-now-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.leaving-now-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #D58F2C;
+}
+
+.leaving-now-time {
+  font-size: 12px;
+  color: #B47820;
+}
+
+.leaving-now-edit {
+  font-size: 12px;
+  font-weight: 700;
+  color: #EFB24E;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.publish-page__back {
+  background: #FFFFFF;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.publish-page__back:active {
+  transform: scale(0.95);
+}
+
+.publish-page__banner-title {
+  color: #111827;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+/* ── Form Container ────────────────────────────── */
+.publish-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 36px;
+  padding-bottom: 40px;
+}
+
+/* ── Location Inputs ───────────────────────────── */
+.publish-form__locations {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.publish-input-pill {
+  display: flex;
+  align-items: center;
+  background: #F3F4F6;
+  border-radius: 14px;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.publish-input-icon,
+.publish-target-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-target-icon svg {
+  fill: #EFB24E;
+  stroke: #EFB24E;
+  /* Make ring orange */
+}
+
+.publish-target-icon svg circle:last-child {
+  fill: #FFFFFF;
+  stroke: none;
+  /* Make inner dot white */
+}
+
+.publish-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  color: #111827;
+  font-weight: 500;
+  outline: none;
+}
+
+.publish-input-field::placeholder {
+  color: #9CA3AF;
+}
+
+/* ── Ride Types Toggle ─────────────────────────── */
+.publish-form__ride-types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.publish-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 12px;
+  border-radius: 12px;
+  border: 1.5px solid #EFB24E;
+  background: #FFFFFF;
+  color: #4B5563;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.publish-type-btn--active {
+  background: #FFFFFF;
+  color: #111827;
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.15);
+}
+
+.publish-type-btn--instant {
+  background: #D58F2C;
+  /* darker orange as per wireframe */
+  border: none;
+  color: #FFFFFF;
+}
+
+.publish-type-btn--instant-active {
+  background: #EFB24E;
+  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.3);
+}
+
+/* ── Inline Row Controls ───────────────────────── */
+.publish-form__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  /* Subtle pill shadow */
+  border: 1px solid #F3F4F6;
+}
+
+.publish-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4B5563;
+}
+
+.seat-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* Seats Control Pill */
+.publish-seat-control {
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  border: 2px solid #EFB24E;
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.seat-circle-btn {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4B5563;
+  cursor: pointer;
+  margin: 0 4px;
+}
+
+.seat-chunk {
+  background: #EFB24E;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  margin: 0;
+}
+
+/* Gray Inputs for row */
+.publish-gray-input,
+.publish-gray-select {
+  background: #F3F4F6;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+  text-align: left;
+  outline: none;
+  width: 120px;
+}
+
+.publish-gray-input::placeholder {
+  color: #9CA3AF;
+}
+
+/* ── Smart Fare Styles ─────────────────────────── */
+/* --- Premium Fare Card --- */
+.publish-fare-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #F3F4F6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.publish-fare-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fare-icon {
+  display: flex;
+  align-items: center;
+}
+
+.publish-fare-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #F9FAFB;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #F3F4F6;
+  gap: 6px;
+}
+
+.currency-prefix {
+  font-size: 14px;
+  font-weight: 700;
+  color: #9CA3AF;
+}
+
+.fare-input-field {
+  background: transparent;
+  border: none;
+  width: 65px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  outline: none;
+  text-align: right;
+}
+
+.publish-fare-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #F9FAFB;
+  padding-top: 12px;
+}
+
+.meta-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-suggested {
+  font-size: 11px;
+  font-weight: 700;
+  color: #D58F2C;
+}
+
+.meta-max {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.meta-apply-btn {
+  background: rgba(239, 178, 78, 0.1);
+  color: #EFB24E;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.meta-apply-btn:active {
+  transform: scale(0.95);
+  background: rgba(239, 178, 78, 0.2);
+}
+
+.meta-placeholder {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.publish-suggested-tag--loading {
+  color: #9CA3AF;
+  background: #F3F4F6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.publish-fare-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.publish-fare-apply-btn {
+  background: #EFB24E;
+  color: #111827;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.publish-fare-apply-btn:active {
+  opacity: 0.8;
+}
+
+/* ── Gender Preference Pills ─────────────────────── */
+.publish-gender-pills {
+  display: flex;
+  gap: 4px;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 10px;
+  flex-wrap: wrap;
+  /* Prevent overflow */
+  justify-content: flex-end;
+}
+
+.publish-gender-pill {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.publish-gender-pill--active {
+  background: #EFB24E;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(239, 178, 78, 0.2);
+}
+
+/* ── Publish Button ────────────────────────────── */
+.publish-action-btn {
+  background: #FFFFFF;
+  border: 1.5px solid #EFB24E;
+  color: #D58F2C;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 14px;
+  width: 60%;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.publish-action-btn:active {
+  transform: scale(0.98);
+}
+
+.publish-action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── No Vehicle View ────────────────────────────── */
+.publish-page__no-vehicle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
+  text-align: center;
+}
+
+.publish-page__no-vehicle-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-lg);
+}
+
+.publish-page__no-vehicle-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.publish-page__no-vehicle-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2xl);
+  line-height: 1.5;
+}
+
+.publish-page__add-btn {
+  background: var(--color-primary);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  padding: 14px 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+}
+
+.publish-page__add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}

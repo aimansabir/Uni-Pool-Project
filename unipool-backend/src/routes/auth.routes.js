@@ -34,5 +34,25 @@ router.get('/me', authenticate, async (req, res, next) => {
   }
 });
 
+// POST /api/auth/verify
+router.post('/verify', async (req, res, next) => {
+  try {
+    const data = await authService.verify(req.body);
+    return success(res, data, 200, data.message);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/resend-otp
+router.post('/resend-otp', async (req, res, next) => {
+  try {
+    const data = await authService.resendOtp(req.body);
+    return success(res, data, 200, data.message);
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 module.exports = router;

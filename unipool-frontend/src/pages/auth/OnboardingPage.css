@@ -1,0 +1,148 @@
+.onboarding-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #FFFFFF;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── Top Logo ───────────────────────────────────────── */
+.onboarding-page__logo {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg) var(--space-sm);
+}
+
+.onboarding-page__logo-img {
+  height: 90px;
+  width: 250px;
+  object-fit: contain;
+}
+
+/* ── Carousel ───────────────────────────────────────── */
+.onboarding-page__carousel {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.onboarding-page__track {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.onboarding-page__slide {
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 var(--space-lg);
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+/* ── Illustration ───────────────────────────────────── */
+.onboarding-page__illustration {
+  width: 100%;
+  max-width: 3700px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-page__illustration img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  max-height: 320px;
+}
+
+/* ── Text ───────────────────────────────────────────── */
+.onboarding-page__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-dark);
+  letter-spacing: 0.3px;
+  margin-top: var(--space-sm);
+}
+
+.onboarding-page__desc {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* ── Dot Indicators ─────────────────────────────────── */
+.onboarding-page__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-md) 0;
+}
+
+.onboarding-page__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-border);
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition-normal);
+}
+
+.onboarding-page__dot--active {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--color-primary);
+}
+
+/* ── Action Buttons ─────────────────────────────────── */
+.onboarding-page__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xl) var(--space-2xl);
+}
+
+.onboarding-page__btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.onboarding-page__btn--login {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.onboarding-page__btn--login:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.onboarding-page__btn--signup {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}
+
+.onboarding-page__btn--signup:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}

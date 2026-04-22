@@ -1,0 +1,161 @@
+.ride-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ride-detail__status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ride-detail__label {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+/* Route Card */
+.ride-detail__card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.ride-detail__route {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-md);
+  position: relative;
+}
+
+.ride-detail__route-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.ride-detail__route-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.ride-detail__route-dot--start { background: var(--color-accent); }
+.ride-detail__route-dot--end { background: var(--color-danger); }
+
+.ride-detail__route-line {
+  width: 2px;
+  height: 16px;
+  background: var(--color-border);
+  margin-left: 5px;
+}
+
+.ride-detail__route-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+  display: block;
+}
+
+.ride-detail__route-value {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.ride-detail__info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.ride-detail__info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ride-detail__info-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+}
+
+.ride-detail__info-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.ride-detail__expected {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
+  text-align: right;
+}
+
+/* Sections */
+.ride-detail__section {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.ride-detail__section-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.ride-detail__stops {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ride-detail__stop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.ride-detail__stop-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+}
+
+.ride-detail__vehicle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.ride-detail__vehicle-icon {
+  font-size: 28px;
+}
+
+/* Actions */
+.ride-detail__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+.ride-detail__actions .btn {
+  flex: 1;
+}
