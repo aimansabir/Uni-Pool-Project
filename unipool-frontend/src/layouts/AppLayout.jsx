@@ -8,11 +8,11 @@ export default function AppLayout() {
   const location = useLocation();
 
   // Pages where we hide the bottom nav
-  const hideNav = ['/select-role', '/verify'].some((p) =>
+  const hideNav = ['/verify'].some((p) =>
     location.pathname.startsWith(p)
   );
 
-  const hideHeader = location.pathname === '/rides/publish';
+  const hideHeader = location.pathname === '/rides/publish' || location.pathname === '/dashboard' || location.pathname === '/rides/find' || location.pathname === '/rides/results' || location.pathname.includes('/preview');
 
   return (
     <div className="app-shell">

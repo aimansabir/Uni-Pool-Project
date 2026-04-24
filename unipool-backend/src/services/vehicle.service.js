@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 
-const createVehicle = async (driverId, { make, model, color, registrationNumber, imageUrl }) => {
+const createVehicle = async (driverId, { make, model, color, registrationNumber, imageUrl, ownerFullName, ownerName }) => {
+    const finalOwnerName = ownerFullName || ownerName;
     const existing = await prisma.vehicle.findUnique({
         where: { registrationNumber },
     });
@@ -16,6 +17,7 @@ const createVehicle = async (driverId, { make, model, color, registrationNumber,
                 make,
                 model,
                 color,
+                ownerName: finalOwnerName,
                 registrationNumber,
                 imageUrl,
             },
@@ -66,12 +68,24 @@ const updateVehicle = async (id, driverId, data) => {
         throw new Error('Unauthorized.');
     }
 
+    // If registration number is changing, check for uniqueness
+    if (data.registrationNumber && data.registrationNumber !== vehicle.registrationNumber) {
+        const existing = await prisma.vehicle.findUnique({
+            where: { registrationNumber: data.registrationNumber },
+        });
+        if (existing) {
+            throw new Error('A vehicle with this registration number already exists.');
+        }
+    }
+
     return prisma.vehicle.update({
         where: { id },
         data: {
             make: data.make ?? vehicle.make,
             model: data.model ?? vehicle.model,
             color: data.color ?? vehicle.color,
+            ownerName: data.ownerFullName ?? data.ownerName ?? vehicle.ownerName,
+            registrationNumber: data.registrationNumber ?? vehicle.registrationNumber,
             imageUrl: data.imageUrl ?? vehicle.imageUrl,
         },
     });

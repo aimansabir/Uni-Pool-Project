@@ -2,13 +2,15 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #FDF7ED; /* Cream/Beige background from screenshot */
+  background-color: #FDF7ED;
+  /* Cream/Beige background from screenshot */
   overflow: hidden;
 }
 
 .enable-location-page__top {
-  flex: 1.2;
-  background-color: #D58F2C; /* Darker orange top section */
+  flex: 1;
+  background-color: #D58F2C;
+  /* Darker orange top section */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,40 +21,44 @@
 
 .enable-location-page__illustration-container {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: 320px;
+  height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+
 .enable-location-page__circle-bg {
-  position: absolute;
-  width: 220px;
-  height: 220px;
+  position: relative;
+  width: 260px;
+  height: 290px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   z-index: 1;
 }
 
+
 .enable-location-page__circle-dashed {
   position: absolute;
-  width: 260px;
-  height: 260px;
+  width: 300px;
+  height: 300px;
   border: 2px dashed rgba(255, 255, 255, 0.5);
   border-radius: 50%;
   animation: rotate 20s linear infinite;
 }
 
+
 .enable-location-page__illustration {
-  width: 100%;
-  height: 100%;
+  width: 110%;
+  height: 110%;
   object-fit: contain;
   position: relative;
   z-index: 2;
   /* Lift the illustration slightly out of the bottom curve */
-  transform: translateY(20px);
+  transform: translateY(25px);
 }
+
 
 .enable-location-page__body {
   flex: 1;
@@ -101,21 +107,51 @@
 .enable-location-page__skip {
   background: none;
   border: none;
-  color: #6B7280;
-  font-size: 14px;
+  color: #111827;
+  /* Near black for maximum visibility */
+  font-size: 15px;
   font-weight: 600;
+  text-decoration: underline;
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 12px 24px;
+}
+
+.enable-location-page__actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.enable-location-page__reassurance {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #6B7280;
+  margin-top: 12px;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .fade-in {

@@ -154,6 +154,7 @@ model Vehicle {
   model              String
   year               Int?
   color              String
+  ownerName          String?
   registrationNumber String  @unique
   imageUrl           String?
 

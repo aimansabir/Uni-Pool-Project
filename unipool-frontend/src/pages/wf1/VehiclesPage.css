@@ -1,130 +1,224 @@
 .vehicles-page {
+  background: #FFFFFF;
+  padding: 16px 20px 40px; /* Reduced bottom padding */
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  background-color: #FFFFFF;
 }
 
-.vehicles-page__banner {
-  background: #EFB24E;
-  margin-top: 24px;
-  margin-left: calc(-1 * var(--space-md));
-  padding: 12px 28px;
-  padding-left: calc(var(--space-md) + 12px);
-  width: max-content;
-  border-top-right-radius: 24px;
-  border-bottom-right-radius: 24px;
-  box-shadow: 0 4px 12px rgba(239, 178, 78, 0.25);
+/* ── Section Header ── */
+.vehicles-section-header {
+  margin-bottom: 24px;
+  text-align: center;
 }
 
-.vehicles-page__banner-title {
+.vehicles-section-title {
+  font-size: 22px;
+  font-weight: 800;
   color: #111827;
-  font-size: 18px;
-  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.vehicles-section-subtitle {
+  font-size: 14px;
+  color: #6B7280;
   margin: 0;
-  letter-spacing: -0.2px;
-  white-space: nowrap;
+  font-weight: 500;
 }
 
-.vehicles-page__content {
+/* ── Content Area ── */
+.vehicles-content-area {
   flex: 1;
-  padding: 30px 24px;
   display: flex;
   flex-direction: column;
 }
 
-/* ── Vehicle List ───────────────────────────────────── */
-.vehicles-page__list {
+.vehicles-grid {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-bottom: 100px; /* Space for footer button */
+  gap: 16px;
 }
 
-/* ── Vehicle Card (Horizontal) ───────────────────────── */
-.vehicle-card {
-  background: #F3F4F6;
-  border-radius: 24px;
+/* ── Selection Card ── */
+.vehicle-selection-card {
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
   display: flex;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-  transition: all var(--transition-normal);
+  gap: 16px;
+  border: 2px solid #F3F4F6;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.vehicle-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
-  border-color: rgba(239, 178, 78, 0.3);
+.vehicle-selection-card.selected {
+  border-color: #FFB946;
+  background: #FFFBEB; /* Light peach background */
 }
 
-.vehicle-card__image-container {
-  width: 110px;
-  height: 110px;
-  flex-shrink: 0;
-  margin: auto 0;
-  padding-left: 12px;
+/* ── Card Left: Image ── */
+.selection-card__left {
+  width: 120px;
+}
+
+.car-image-box {
+  width: 120px;
+  height: 120px;
+  background: #F9FAFB;
+  border-radius: 16px;
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.vehicle-card__img {
+.vehicle-selection-card.selected .car-image-box {
+  background: #FEF3C7; /* Warmer for selected */
+}
+
+.brand-logo-pill {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  z-index: 2;
+}
+
+.brand-icon {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.car-selection-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
+  height: auto;
+  object-fit: contain;
+  transform: scale(1.1);
 }
 
-.vehicle-card__details {
+/* ── Card Right: Details ── */
+.selection-card__right {
   flex: 1;
-  padding: 16px 16px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.vehicle-detail {
+.selection-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.car-main-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.selection-check {
+  width: 24px;
+  height: 24px;
+  background: #FFB946;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.selection-chevron {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.car-sub-details {
   font-size: 13px;
-  color: #4B5563;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.vehicle-detail .label {
   color: #6B7280;
   font-weight: 600;
-  margin-right: 4px;
+  margin: 0;
 }
 
-/* ── Action Footer ──────────────────────────────────── */
-.vehicles-page__action-footer {
-  position: sticky;
-  bottom: 20px;
-  left: 0;
-  width: 100%;
-  padding: 20px 0;
-  background: linear-gradient(transparent, #FFFFFF 40%);
+.car-meta-row {
+  margin-top: 4px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #9CA3AF;
+  font-weight: 600;
+}
+
+.selected-pill {
+  margin-top: 8px;
+  background: #FEF3C7;
+  border-radius: 50px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: #D97706;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid rgba(217, 119, 6, 0.1);
+}
+
+/* ── Footer Button ── */
+.vehicles-footer {
   margin-top: auto;
+  padding-top: 32px;
 }
 
-.add-car-btn {
+.add-car-footer-btn {
   width: 100%;
-  background: #EFB24E;
-  color: #111827;
+  background: #FFB946;
+  color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: 18px;
   padding: 18px;
   font-size: 18px;
   font-weight: 800;
-  box-shadow: 0 10px 20px rgba(239, 178, 78, 0.3);
-  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(255, 185, 70, 0.3);
+  transition: all 0.2s;
 }
 
-.add-car-btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 5px 10px rgba(239, 178, 78, 0.2);
+.add-car-footer-btn:active {
+  transform: translateY(2px);
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }

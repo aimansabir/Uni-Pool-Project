@@ -9,7 +9,6 @@ import OnboardingPage from '../pages/auth/OnboardingPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import VerifyPage from '../pages/auth/VerifyPage';
-import RoleSelectPage from '../pages/auth/RoleSelectPage';
 import EnableLocationPage from '../pages/auth/EnableLocationPage';
 import { GlobalToaster } from '../context/ToastContext';
 
@@ -23,6 +22,11 @@ import MyRidesPage from '../pages/wf1/MyRidesPage';
 import RideDetailPage from '../pages/wf1/RideDetailPage';
 import NotificationsPage from '../pages/wf1/NotificationsPage';
 import ExploreMapPage from '../pages/wf1/ExploreMapPage';
+
+// WF2 pages
+import FindRidePage from '../pages/wf2/FindRidePage';
+import RideResultsPage from '../pages/wf2/RideResultsPage';
+import RoutePreviewPage from '../pages/wf2/RoutePreviewPage';
 
 // Shared pages
 import ProfilePage from '../pages/ProfilePage';
@@ -61,7 +65,6 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          <Route path="/select-role" element={<RoleSelectPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
 
           {/* Vehicles */}
@@ -71,6 +74,9 @@ export default function AppRoutes() {
 
           {/* Rides */}
           <Route path="/rides/publish" element={<PublishRidePage />} />
+          <Route path="/rides/find" element={<FindRidePage />} />
+          <Route path="/rides/results" element={<RideResultsPage />} />
+          <Route path="/rides/:id/preview" element={<RoutePreviewPage />} />
           <Route path="/rides" element={<MyRidesPage />} />
           <Route path="/rides/:id" element={<RideDetailPage />} />
           <Route path="/rides/:id/confirmed" element={<RideConfirmedPage />} />

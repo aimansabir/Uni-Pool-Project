@@ -1,253 +1,289 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ridesApi } from '../../api/rides.api';
-import { formatPKR, formatTime, formatDate } from '../../utils/formatters';
-import mapBg from '../../assets/images/pakistan-map.png';
+
+// Assets
+import dashCar from '../../assets/images/dash_car1.png';
+import dashAvatar from '../../assets/images/dash_avatar.png';
 import './DashboardPage.css';
 
-/* ── Simple Pie Chart (SVG) ──────────────────────────── */
-function PieChart({ earned, split, size = 110 }) {
-  const [hoveredSlice, setHoveredSlice] = useState(null); // 'earned' or 'split'
+/* ── REUSABLE COMPONENTS ── */
+
+/**
+ * Donut Chart Component
+ */
+const DonutChart = ({ earned, split, size = 150 }) => {
   const total = earned + split;
-  const earnedAngle = total > 0 ? (earned / total) * 360 : 252; // 70% default
+  const earnedPct = total > 0 ? (earned / total) : 0.7;
 
-  // SVG arc helper
-  const polarToCartesian = (cx, cy, r, angleDeg) => {
-    const rad = ((angleDeg - 90) * Math.PI) / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  };
-  const describeArc = (cx, cy, r, startAngle, endAngle) => {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
-  };
+  const strokeWidth = 28;
+  const radius = (size - strokeWidth) / 2 - 4; // Ensure it stays within bounds
+  const circumference = 2 * Math.PI * radius;
+  const center = size / 2;
 
-  const cx = size / 2, cy = size / 2, r = size / 2 - 5;
+  const earnedOffset = circumference * (1 - earnedPct);
 
   return (
-    <div className="pie-container">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="dash-pie">
-        {/* Earned slice */}
-        <path
-          d={describeArc(cx, cy, r, 0, earnedAngle)}
-          fill="#EFB24E"
-          className={`pie-slice ${hoveredSlice === 'earned' ? 'pie-slice--active' : ''}`}
-          onMouseEnter={() => setHoveredSlice('earned')}
-          onMouseLeave={() => setHoveredSlice(null)}
-          style={{ 
-            transformOrigin: `${cx}px ${cy}px`,
-            cursor: 'pointer'
-          }}
+    <div className="chart-container" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+        {/* Base Track (Secondary Color / Navy) */}
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="transparent"
+          stroke="#1F2937"
+          strokeWidth={strokeWidth}
         />
-        {/* Split slice */}
-        <path
-          d={describeArc(cx, cy, r, earnedAngle, 360)}
-          fill="#1F2937"
-          className={`pie-slice ${hoveredSlice === 'split' ? 'pie-slice--active' : ''}`}
-          onMouseEnter={() => setHoveredSlice('split')}
-          onMouseLeave={() => setHoveredSlice(null)}
-          style={{ 
-            transformOrigin: `${cx}px ${cy}px`,
-            cursor: 'pointer'
-          }}
+        {/* Active Overlay (Primary Color / Yellow) */}
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="transparent"
+          stroke="#FFB946"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={earnedOffset}
+          strokeLinecap="butt"
         />
       </svg>
-      
-      {/* Dynamic Tooltip */}
-      {hoveredSlice && (
-        <div className="pie-tooltip fade-in">
-          <span className="pie-tooltip-label">
-            {hoveredSlice === 'earned' ? 'Fares Earned' : 'Fares Split'}
-          </span>
-          <span className="pie-tooltip-value">
-            {hoveredSlice === 'earned' ? earned : split}%
-          </span>
-        </div>
-      )}
+      <div className="chart-center">
+        <div className="chart-center__label">Total</div>
+        <div className="chart-center__value">Rs 17,900</div>
+      </div>
     </div>
   );
-}
+};
 
-/* ── Mock Activity Data ──────────────────────────────── */
-const MOCK_ACTIVITIES = [
-  { id: 1, role: 'Driver',    date: '25/02/2025', time: '10:00 AM', fare: 1000, type: 'earned' },
-  { id: 2, role: 'Passenger', date: '25/02/2025', time: '10:00 AM', fare: 220,  type: 'split'  },
-  { id: 3, role: 'Driver',    date: '24/02/2025', time: '09:30 AM', fare: 750,  type: 'earned' },
-];
+
+
+/**
+ * Activity Card Component
+ */
+const ActivityCard = ({ role, date, time, from, to, amount, status }) => (
+  <div className="card--activity">
+    <div className="activity__avatar-box">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      </svg>
+    </div>
+
+
+    <div className="activity__main">
+      <div className="activity__info-row">
+        <span className="activity__role">{role}</span>
+        <span className="activity__date-time">{date}  •  {time}</span>
+      </div>
+
+      <div className="activity__route-row">
+        <div className="route-point">
+          <span className="route-dot--green" />
+          {from}
+        </div>
+        <div className="route-connector" />
+        <div className="route-point">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#F43F5E">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+          </svg>
+          {to}
+        </div>
+      </div>
+    </div>
+
+    <div className="activity__right">
+      <span className="activity__amount">+ Rs {amount}</span>
+      <div className="activity__status-pill">{status}</div>
+    </div>
+  </div>
+);
+
+
+/* ── MAIN PAGE COMPONENT ── */
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [recentRides, setRecentRides] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const res = await ridesApi.list();
-        setRecentRides((res.data || []).slice(0, 4));
-      } catch {
-        // Silently fail
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRecent();
-  }, []);
+  // Mock Activity Data based on spec
+  const MOCK_ACTIVITY = {
+    role: 'Driver',
+    date: '25 Feb 2025',
+    time: '10:00 AM',
+    from: 'IBA Main Campus',
+    to: 'DHA Phase 6',
+    amount: 1000,
+    status: 'Completed'
+  };
 
-  const firstName = user?.fullName?.split(' ')[0] || 'Aiman';
-
-  // Mock stats for pie chart
-  const earnedPct = 70;
-  const splitPct = 30;
+  const firstName = user?.fullName?.split(' ')[0] || 'Uroosha';
 
   return (
     <div className="dashboard fade-in">
-      {/* ── Map Background Layer ── */}
-      <div className="dashboard__map-bg">
-        <img src={mapBg} alt="" className="dashboard__map-img" />
-        <div className="dashboard__map-overlay" />
-      </div>
+      {/* 1. Header Section */}
+      <header className="dashboard__header">
+        <div className="dashboard__user">
+          <img src={dashAvatar} alt="Profile" className="dashboard__avatar" />
+          <div className="dashboard__greeting">
+            <span className="dashboard__welcome-text">Welcome back,</span>
+            <span className="dashboard__user-name">{firstName} 👋</span>
+          </div>
+        </div>
+        <button className="dashboard__notification" onClick={() => navigate('/notifications')}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span className="dashboard__notification-dot" />
+        </button>
+      </header>
 
-      {/* ── Welcome Banner (Dark Stripe) ── */}
-      <div className="dashboard__banner">
-        <h2 className="dashboard__welcome-text">Welcome {firstName}</h2>
-      </div>
+      {/* Main Content Area */}
+      <div className="dashboard__content">
 
-      {/* ── Action Deck (Unified Giant Cards) ── */}
-      <div className="dashboard__action-deck">
-        <button
-          className="dashboard__action-giant dashboard__action-giant--offer"
-          onClick={() => navigate('/rides/publish')}
-        >
-          <div className="dashboard__action-giant-icon">
-            <div className="icon-circle">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+        {/* 2. Main Action Cards Row */}
+        <div className="dashboard__main-actions">
+          {/* Offer a Ride Card */}
+          <div className="card--action card--offer" onClick={() => navigate('/vehicles')}>
+            <div className="card__skyline" />
+            <div className="card__icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+              </svg>
+            </div>
+            <h3 className="card__title">Offer a ride</h3>
+            <p className="card__subtitle">Share your journey and earn more</p>
+            <img src={dashCar} alt="Car illustration" className="card__illustration" />
+            <div className="card__cta">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>
             </div>
           </div>
-          <span className="dashboard__action-giant-label">Offer a ride</span>
-        </button>
 
-        <button
-          className="dashboard__action-giant dashboard__action-giant--find"
-          onClick={() => navigate('/select-role')}
-        >
-          <div className="dashboard__action-giant-icon">
-            <div className="icon-circle">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          {/* Find a Ride Card */}
+          <div className="card--action card--find" onClick={() => navigate('/rides/find')}>
+            <div className="card--find__decoration" />
+            <div className="card__icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <h3 className="card__title">Find a ride</h3>
+            <p className="card__subtitle">Find nearby rides and travel together</p>
+            <div className="card__cta">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>
             </div>
           </div>
-          <span className="dashboard__action-giant-label">Find a ride</span>
-        </button>
-      </div>
 
-      {/* ── Quick Links (Pills with Icons) ── */}
-      <div className="dashboard__quick-links">
-        <button className="dashboard__quick-pill" onClick={() => navigate('/rides')}>
-          <div className="icon-circle icon-circle--small">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-              <circle cx="12" cy="10" r="3"/>
+        </div>
+
+        {/* 3. Quick Action Cards Row */}
+        <div className="dashboard__quick-actions">
+          <div className="card--quick" onClick={() => navigate('/rides')}>
+            <div className="card--quick__icon icon--blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <div className="card--quick__content">
+              <span className="card--quick__title">Ride history</span>
+              <span className="card--quick__subtitle">View past rides</span>
+            </div>
+            <svg className="dashboard__secondary-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 'auto', color: '#D1D5DB' }}>
+              <polyline points="9 18 15 12 9 6" />
             </svg>
           </div>
-          Ride history
-        </button>
-        <button className="dashboard__quick-pill" onClick={() => navigate('/rides')}>
-          <div className="icon-circle icon-circle--small">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
+
+
+          <div className="card--quick" onClick={() => navigate('/rides')}>
+            <div className="card--quick__icon icon--green">
+              <svg width="24.5" height="24.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
+            <div className="card--quick__content">
+              <span className="card--quick__title">Active ride</span>
+              <span className="card--quick__subtitle">Check ongoing ride</span>
+            </div>
+            <svg className="dashboard__secondary-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 'auto', color: '#D1D5DB' }}>
+              <polyline points="9 18 15 12 9 6" />
             </svg>
           </div>
-          Active ride
-        </button>
-      </div>
 
-      {/* ── Monthly Stats with Pie Chart ── */}
-      <div className="dashboard__stats-card">
-        <div className="dashboard__stats-content">
-          <h3 className="dashboard__stats-title">Current Month</h3>
-          <div className="dashboard__stat-table">
-            <div className="dashboard__stat-item">
-              <span className="dashboard__stat-indicator dashboard__stat-indicator--earned" />
-              <span className="dashboard__stat-name">Fares Earned</span>
-              <span className="dashboard__stat-percent">{earnedPct}%</span>
-            </div>
-            <div className="dashboard__stat-item">
-              <span className="dashboard__stat-indicator dashboard__stat-indicator--split" />
-              <span className="dashboard__stat-name">Fares Split</span>
-              <span className="dashboard__stat-percent">{splitPct}%</span>
-            </div>
-          </div>
-        </div>
-        <div className="dashboard__stats-visual">
-          <PieChart earned={earnedPct} split={splitPct} size={110} />
-        </div>
-      </div>
-
-      {/* ── Recent Activities (pushed down) ── */}
-      <div className="dashboard__recent">
-        <div className="dashboard__section-header">
-          <h3 className="dashboard__section-title">Recent Activities</h3>
-          <button className="dashboard__see-all" onClick={() => navigate('/rides')}>
-            See All
-          </button>
         </div>
 
-        {loading ? (
-          <div className="dashboard__skeleton">
-            {[1, 2].map((i) => <div key={i} className="dashboard__skeleton-item" />)}
-          </div>
-        ) : recentRides.length === 0 ? (
-          /* Show mock data when no real rides */
-          <div className="dashboard__activity-list">
-            {MOCK_ACTIVITIES.map((act) => (
-              <div key={act.id} className="dashboard__activity-item">
-                <div className={`dashboard__activity-stripe ${act.type === 'earned' ? 'dashboard__activity-stripe--earned' : 'dashboard__activity-stripe--split'}`} />
-                <div className="dashboard__activity-info">
-                  <span className="dashboard__activity-role">{act.role}</span>
-                  <span className="dashboard__activity-date">{act.date}</span>
-                </div>
-                <div className="dashboard__activity-meta">
-                  <span className={`dashboard__activity-fare ${act.type === 'earned' ? 'fare--earned' : 'fare--split'}`}>
-                    {act.type === 'earned' ? '+' : '-'} Rs {act.fare}
-                  </span>
-                  <span className="dashboard__activity-time">{act.time}</span>
-                </div>
+        {/* 4. Monthly Overview Card */}
+        <div className="card--overview">
+          <div className="overview__header">
+            <div className="overview__title-group">
+              <div className="overview__icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 20V10" /><path d="M12 20v-4" /><path d="M6 20v-2" />
+                  <polyline points="3 11 7 7 11 11 21 1" /><polyline points="16 1 21 1 21 6" />
+                </svg>
               </div>
-            ))}
+
+              <h3 className="overview__title">Month Overview</h3>
+            </div>
+            <button className="btn--details">View details</button>
           </div>
-        ) : (
-          <div className="dashboard__activity-list">
-            {recentRides.map((ride) => (
-              <button
-                key={ride.id}
-                className="dashboard__activity-item"
-                onClick={() => navigate(`/rides/${ride.id}`)}
-              >
-                <div className="dashboard__activity-stripe dashboard__activity-stripe--earned" />
-                <div className="dashboard__activity-info">
-                  <span className="dashboard__activity-role">Driver</span>
-                  <span className="dashboard__activity-date">{formatDate(ride.departureTime)}</span>
-                </div>
-                <div className="dashboard__activity-meta">
-                  <span className="dashboard__activity-fare fare--earned">
-                    + {formatPKR(ride.farePerSeat)}
-                  </span>
-                  <span className="dashboard__activity-time">{formatTime(ride.departureTime)}</span>
-                </div>
-              </button>
-            ))}
+
+          <div className="overview__body">
+            {/* Left Stats */}
+            <div className="overview__left">
+              <div className="stat-item">
+                <span className="stat-item__label">
+                  <span className="stat-dot stat-dot--earned" />
+                  Fares Earned
+                </span>
+                <span className="stat-item__value text-success">Rs 12,500</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-item__label">
+                  <span className="stat-dot stat-dot--split" />
+                  Fares Split
+                </span>
+                <span className="stat-item__value">Rs 5,400</span>
+              </div>
+            </div>
+
+            {/* Separator */}
+            <div className="overview__divider" />
+
+            {/* Chart */}
+            <DonutChart earned={12500} split={5400} size={135} />
+
+            {/* Right Percentages */}
+            <div className="overview__right">
+              <div className="pct-item">
+                <span className="pct-value text-gold">70%</span>
+                <span className="pct-label">Earned</span>
+              </div>
+              <div className="pct-item">
+                <span className="pct-value">30%</span>
+                <span className="pct-label">Split</span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+
+        {/* 5. Recent Activities Section */}
+        <div className="dashboard__activities">
+          <div className="dashboard__section-header">
+            <h3 className="section-title">Recent Activities</h3>
+            <button className="btn--see-all" onClick={() => navigate('/rides')}>See all</button>
+          </div>
+          <ActivityCard {...MOCK_ACTIVITY} />
+        </div>
+
       </div>
     </div>
   );
 }
+
