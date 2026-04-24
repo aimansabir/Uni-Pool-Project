@@ -121,17 +121,21 @@ const searchRides = async ({
   rideType,
   onlyUrgent,
 }) => {
+  const { normalizeLocationKey } = require('../utils/routekey');
+  const pickupKey = pickup ? normalizeLocationKey(pickup) : null;
+  const dropoffKey = dropoff ? normalizeLocationKey(dropoff) : null;
+
   const where = {
     status: 'PUBLISHED',
     seatsAvailable: { gt: 0 },
-    ...(rideType ? { rideType } : {}),
+    ...(rideType ? { rideType: rideType.toUpperCase() } : {}),
     ...(onlyUrgent === 'true' || onlyUrgent === true ? { isUrgent: true } : {}),
     AND: [
       pickup
         ? {
           OR: [
             { startLocation: { contains: pickup, mode: 'insensitive' } },
-            { routeKey: { contains: pickup, mode: 'insensitive' } },
+            { routeKey: { startsWith: pickupKey || pickup, mode: 'insensitive' } },
             {
               stops: {
                 some: {
@@ -152,7 +156,8 @@ const searchRides = async ({
                 mode: 'insensitive',
               },
             },
-            { destinationKey: { contains: dropoff, mode: 'insensitive' } },
+            { destinationKey: { contains: dropoffKey || dropoff, mode: 'insensitive' } },
+            { routeKey: { endsWith: dropoffKey || dropoff, mode: 'insensitive' } },
             {
               stops: {
                 some: {
@@ -164,12 +169,14 @@ const searchRides = async ({
           ],
         }
         : {},
-      targetSlot
+      targetSlot && targetSlot !== 'undefined'
         ? {
-          targetSlot: {
-            contains: targetSlot,
-            mode: 'insensitive',
-          },
+          OR: [
+            { targetSlot: { contains: targetSlot, mode: 'insensitive' } },
+            // If the user searches for a slot, also show rides that have NO slot set 
+            // (backward compatibility for rides published before the fix)
+            { targetSlot: null }
+          ]
         }
         : {},
     ],

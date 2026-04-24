@@ -19,11 +19,19 @@ export default function RideResultsPage() {
   // Original filters from previous page
   const originalFilters = location.state?.filters || {};
 
+  // Stabilize originalFilters for useEffect
+  const filterKey = JSON.stringify(originalFilters);
+
   useEffect(() => {
     const fetchRides = async () => {
+      // Don't fetch if we don't have basic locations
+      if (!originalFilters.pickupLocation && !originalFilters.dropoffLocation) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        // Map frontend filter names to backend expected query params if needed
         const params = {
             pickup: originalFilters.pickupLocation,
             dropoff: originalFilters.dropoffLocation,
@@ -33,8 +41,8 @@ export default function RideResultsPage() {
         const res = await ridesApi.searchRides(params);
         setRides(res.data || []);
       } catch (err) {
-        showError('Failed to fetch rides. Showing demo results.');
-        // Fallback to empty if real fetch fails
+        console.error('Fetch error:', err);
+        showError(err.message || 'Failed to fetch rides.');
         setRides([]);
       } finally {
         setLoading(false);
@@ -42,7 +50,7 @@ export default function RideResultsPage() {
     };
 
     fetchRides();
-  }, [originalFilters, showError]);
+  }, [filterKey, showError]);
 
   const handleRideClick = (ride) => {
     navigate(`/rides/${ride.id}/preview`);

@@ -1180,3 +1180,95 @@
 .confirm-date-btn:active:not(:disabled) {
   transform: scale(0.98);
 }
+
+/* ── No Vehicle View ── */
+.publish-page__no-vehicle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  margin-top: 60px;
+}
+
+.publish-page__no-vehicle-icon {
+  margin-bottom: 32px;
+  background: white;
+  width: 120px;
+  height: 120px;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  animation: bounce 2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.publish-page__no-vehicle-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0 0 12px;
+}
+
+.publish-page__no-vehicle-desc {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 32px;
+  max-width: 240px;
+}
+
+.publish-page__add-btn {
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  padding: 16px 40px;
+  border-radius: 18px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(253, 186, 46, 0.3);
+  transition: all 0.2s;
+}
+
+.publish-page__add-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 4px 12px rgba(253, 186, 46, 0.2);
+}
+
+/* Specific Banner Style for No Vehicle View */
+.publish-page__banner {
+  padding: calc(var(--safe-area-top) + 16px) 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.publish-page__back {
+  background: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+
+.publish-page__banner-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0;
+}

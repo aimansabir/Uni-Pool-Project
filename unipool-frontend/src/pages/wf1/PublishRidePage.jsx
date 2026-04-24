@@ -9,7 +9,7 @@ import { validatePublishRideForm, hasErrors } from '../../utils/validators';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import MapPicker from '../../components/common/MapPicker/MapPicker';
 import publishIllustration from '../../assets/images/publish_ride_header_bg.png';
-import { MapPin, Calendar, X, Clock, Users, CheckCircle, Check, ChevronRight, Wallet, Minus, Plus, Zap, Locate } from 'lucide-react';
+import { MapPin, Calendar, X, Clock, Users, CheckCircle, Check, ChevronRight, Wallet, Minus, Plus, Zap, Locate, Car } from 'lucide-react';
 import './PublishRidePage.css';
 
 const SLOTS = [
@@ -300,6 +300,9 @@ export default function PublishRidePage() {
     try {
       const payload = {
         ...form,
+        targetSlot: scheduling.mode === 'slot' 
+          ? SLOTS.find(s => s.id === scheduling.selectedSlot)?.label 
+          : null,
         seatsTotal: Number(form.seatsTotal),
         farePerSeat: Number(form.farePerSeat),
         departureTime: form.rideType === 'INSTANT'
@@ -331,14 +334,16 @@ export default function PublishRidePage() {
           <h2 className="publish-page__banner-title">Publish a Ride</h2>
         </div>
         <div className="publish-page__no-vehicle">
-          <div className="publish-page__no-vehicle-icon">🚙</div>
-          <h3 className="publish-page__no-vehicle-title">No vehicle found</h3>
-          <p className="publish-page__no-vehicle-desc">You need to register a vehicle before publishing a ride.</p>
+          <div className="publish-page__no-vehicle-icon">
+            <Car size={64} strokeWidth={1.5} color="#FBBF24" />
+          </div>
+          <h3 className="publish-page__no-vehicle-title">No vehicles yet</h3>
+          <p className="publish-page__no-vehicle-desc">Add your first vehicle to start offering rides</p>
           <button
             className="publish-page__add-btn"
             onClick={() => navigate('/vehicles/new')}
           >
-            Add Vehicle
+            Add Car
           </button>
         </div>
       </div>

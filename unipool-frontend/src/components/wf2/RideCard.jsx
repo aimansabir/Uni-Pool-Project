@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, User, Star, Users, Zap, Clock } from 'lucide-react';
+import { MapPin, User, Star, Users, Zap, Clock, ChevronRight, Navigation } from 'lucide-react';
 import './RideCard.css';
 
 export default function RideCard({ ride, onAction }) {
@@ -24,86 +24,74 @@ export default function RideCard({ ride, onAction }) {
   };
 
   return (
-    <div className={`ride-card-v2 ${isInstant ? 'instant' : 'scheduled'}`} onClick={() => onAction(ride)}>
-      <div className="card-v2__top">
-        <div className="card-v2__profile">
-          <div className="avatar-frame">
+    <div className={`ride-card-v3 ${isInstant ? 'instant' : 'scheduled'}`} onClick={() => onAction(ride)}>
+      {/* Header: Driver & Fare */}
+      <div className="card-v3__header">
+        <div className="driver-profile">
+          <div className="avatar-wrapper">
             {ride.driver?.imageUrl ? (
-                <img src={ride.driver.imageUrl} alt={ride.driver.fullName} />
+              <img src={ride.driver.imageUrl} alt={ride.driver.fullName} />
             ) : (
-                <User size={24} color="#9CA3AF" />
+              <User size={22} color="#9CA3AF" />
             )}
           </div>
-          <div className="driver-info">
+          <div className="driver-meta">
             <h4 className="driver-name">{ride.driver?.fullName}</h4>
-            <div className="driver-score">
-              <Star size={10} fill="#FDBA2E" color="#FDBA2E" />
-              <span>{ride.driver?.trustScore || '4.8'}</span>
+            <div className="driver-rating">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star 
+                  key={s} 
+                  size={12} 
+                  fill={s <= Math.round((ride.driver?.trustScore || 100) / 20) ? "#FDBA2E" : "none"} 
+                  color="#FDBA2E" 
+                />
+              ))}
+              <span className="rating-num">{((ride.driver?.trustScore || 100) / 20).toFixed(1)}</span>
             </div>
+          </div>
+        </div>
+        <div className="fare-badge">
+          <span className="fare-currency">PKR</span>
+          <span className="fare-amount">{ride.farePerSeat}</span>
+        </div>
+      </div>
+
+      {/* Body: Route & Time */}
+      <div className="card-v3__body">
+        <div className="route-visual">
+          <div className="route-dot start" />
+          <div className="route-line" />
+          <div className="route-dot end" />
+        </div>
+        <div className="route-details">
+          <div className="route-stop">
+            <span className="stop-label">Pickup</span>
+            <span className="stop-name">{ride.startLocation}</span>
+          </div>
+          <div className="route-stop">
+            <span className="stop-label">Drop-off</span>
+            <span className="stop-name">{ride.destinationLocation}</span>
           </div>
         </div>
       </div>
 
-      <div className="card-v2__content">
-        <div className="details-grid">
-          <div className="detail-item">
-            <MapPin size={14} className="detail-icon" />
-            <div className="detail-copy">
-              <span className="label">Route</span>
-              <span className="value">{ride.startLocation} → {ride.destinationLocation}</span>
-            </div>
+      {/* Footer: Meta & Action */}
+      <div className="card-v3__footer">
+        <div className="ride-meta">
+          <div className="meta-item">
+            <Clock size={14} />
+            <span>{isInstant ? 'Now' : formatTime(ride.departureTime)}</span>
           </div>
-          <div className="detail-item">
-            <User size={14} className="detail-icon" />
-            <div className="detail-copy">
-              <span className="label">Gender Preference</span>
-              <span className="value">{ride.genderPreference === 'ANY' ? 'Any Gender' : 'Females Only'}</span>
-            </div>
+          <div className="meta-item">
+            <Users size={14} />
+            <span>{ride.occupancyMix?.text || '1 Driver'}</span>
           </div>
-          {!isInstant && ride.targetSlot && (
-            <div className="detail-item">
-              <Clock size={14} className="detail-icon" />
-              <div className="detail-copy">
-                <span className="label">Target Slot</span>
-                <span className="value">{ride.targetSlot}</span>
-              </div>
-            </div>
-          )}
-          <div className="detail-item">
-            <Users size={14} className="detail-icon" />
-            <div className="detail-copy">
-              <span className="label">Occupants</span>
-              <span className="value">{ride.occupancyMix?.text || '1 Male (Driver)'}</span>
-            </div>
+          <div className="meta-item status-pill">
+            <span>{formatDate(ride.departureTime)}</span>
           </div>
         </div>
-
-        <div className="card-v2__right-status">
-          <div className="fare-tag-sidebar">Fare: {ride.farePerSeat}Rs</div>
-          
-          <div className={`status-box-sidebar ${isInstant ? 'instant' : 'scheduled'}`}>
-            {isInstant ? (
-              <div className="status-value-combined highlight">
-                <Zap size={14} fill="#F59E0B" color="#F59E0B" className="status-icon" />
-                <span className="status-label-small">LEAVING</span>
-                <span className="status-main-text">Now</span>
-              </div>
-            ) : (
-              <div className="status-value-combined scheduled">
-                <Clock size={14} className="status-icon" />
-                <span className="status-label-small">SCHEDULED</span>
-                <span className="status-main-text">{formatTime(ride.departureTime)}</span>
-                <span className="status-day-pill">{formatDate(ride.departureTime)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="card-v2__actions">
-        <button className={`cta-button ${isInstant ? 'primary' : 'secondary'}`} onClick={() => onAction(ride)}>
-          {isInstant && <Zap size={16} fill="white" />}
-          <span>{isInstant ? 'Join Instantly' : 'Request Seat'}</span>
+        <button className="book-btn" onClick={(e) => { e.stopPropagation(); onAction(ride); }}>
+          Request Seat
         </button>
       </div>
     </div>

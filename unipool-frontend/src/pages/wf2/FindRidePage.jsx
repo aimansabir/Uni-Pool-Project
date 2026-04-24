@@ -127,7 +127,10 @@ export default function FindRidePage() {
           ...form, 
           date: finalDate,
           time: finalTime,
-          mode: schedulingMode
+          mode: schedulingMode,
+          targetSlot: schedulingMode === 'slot' 
+            ? SLOTS.find(s => s.id === selectedSlot)?.label 
+            : undefined
         } 
       } 
     });
