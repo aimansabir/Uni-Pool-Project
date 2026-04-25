@@ -26,8 +26,77 @@ function MapEventTracker({ onMoveEnd }) {
   return null;
 }
 
+const toRadians = (deg) => (deg * Math.PI) / 180;
+const haversineMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000;
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+};
+
+const getHelperQuery = (query) => {
+  const q = query.toLowerCase().trim();
+  
+  if (q.includes('iba city')) {
+      return 'Institute of Business Administration City Campus Karachi';
+  }
+  if (q.includes('iba main')) {
+      return 'Institute of Business Administration Main Campus Karachi';
+  }
+  if (/\biba\b/.test(q)) return query.replace(/\biba\b/gi, 'Institute of Business Administration');
+  if (/\bned\b/.test(q)) return query.replace(/\bned\b/gi, 'NED University');
+  if (/\bku\b/.test(q)) return query.replace(/\bku\b/gi, 'University of Karachi');
+  return null;
+};
+
+const fetchNominatim = async (query, viewbox, signal) => {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=10&countrycodes=pk&viewbox=${viewbox}&bounded=0&addressdetails=1`;
+  const res = await fetch(url, {
+    signal,
+    headers: {
+      'User-Agent': 'UniPoolApp/1.0 (LocationSearch; contact@unipool.com)'
+    }
+  });
+  return res.json();
+};
+
+const scoreResult = (result, originalQuery, centerLat, centerLng) => {
+  let score = 0;
+  const q = originalQuery.toLowerCase().trim();
+  const name = result.display_name.toLowerCase();
+  
+  // 1. Text Similarity
+  const idx = name.indexOf(q);
+  if (idx === 0) score += 50;
+  else if (idx > 0) score += 20;
+
+  // 2. Category Boost
+  const typeStr = `${result.type} ${result.class}`.toLowerCase();
+  if (q.includes('university') || q.includes('campus') || q.includes('college')) {
+    if (typeStr.includes('university') || typeStr.includes('college') || typeStr.includes('amenity')) score += 30;
+    if (name.includes('university') || name.includes('campus')) score += 20;
+  }
+  if (q.includes('complex')) {
+    if (name.includes('complex')) score += 30;
+  }
+  if (q.includes('town') || q.includes('phase')) {
+    if (typeStr.includes('residential') || typeStr.includes('suburb')) score += 30;
+  }
+
+  // 3. Local Distance Penalty (1 point per km)
+  const distMeters = haversineMeters(parseFloat(result.lat), parseFloat(result.lon), centerLat, centerLng);
+  score -= (distMeters / 1000);
+
+  // 4. City Relevance
+  if (name.includes('karachi')) score += 15;
+
+  return score;
+};
+
 export default function MapPicker({ onClose, onConfirm, initialLocation }) {
-  // Default to provided initialLocation, or Karachi (Maskan Chowrangi)
   const defaultCenter = initialLocation && initialLocation.lat && initialLocation.lng 
     ? [initialLocation.lat, initialLocation.lng]
     : [24.9317, 67.0988];
@@ -37,18 +106,32 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
   const [flyToCoords, setFlyToCoords] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const abortControllerRef = useRef(null);
+
   const handleMoveEnd = useCallback((center) => {
     setCenterLat(center.lat);
     setCenterLng(center.lng);
-  }, []);
+
+    if (selectedPlace) {
+      const dist = Math.sqrt(Math.pow(center.lat - selectedPlace.lat, 2) + Math.pow(center.lng - selectedPlace.lng, 2));
+      if (dist > 0.001) { 
+        setSelectedPlace(null);
+      }
+    }
+  }, [selectedPlace]);
 
   const handleConfirmClick = async () => {
+    if (selectedPlace) {
+      onConfirm(selectedPlace.address, { lat: selectedPlace.lat, lng: selectedPlace.lng });
+      return;
+    }
+
     setLoading(true);
     const address = await reverseGeocode(centerLat, centerLng);
     setLoading(false);
@@ -57,29 +140,54 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
 
   const handleSearch = useCallback(async (query) => {
     const trimmedQuery = query.trim();
-    if (trimmedQuery.length < 2) {
+    if (trimmedQuery.length < 3) {
       setSearchResults([]);
       setSearching(false);
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setSearching(true);
     try {
-      // Prioritize Pakistan results
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmedQuery)}&format=json&limit=5&countrycodes=pk&addressdetails=1`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'UniPoolApp/1.0 (LocationSearch; contact@unipool.com)'
+      const viewbox = `${centerLng - 0.5},${centerLat + 0.5},${centerLng + 0.5},${centerLat - 0.5}`;
+      
+      const originalPromise = fetchNominatim(trimmedQuery, viewbox, abortController.signal);
+      
+      const helperQuery = getHelperQuery(trimmedQuery);
+      const helperPromise = helperQuery 
+        ? fetchNominatim(helperQuery, viewbox, abortController.signal) 
+        : Promise.resolve([]);
+
+      const [originalResults, helperResults] = await Promise.all([originalPromise, helperPromise]);
+
+      const combined = [...originalResults, ...helperResults];
+      const uniqueMap = new Map();
+      for (const item of combined) {
+        const key = `${item.osm_type}_${item.osm_id}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, item);
         }
-      });
-      const data = await res.json();
-      setSearchResults(data);
+      }
+      const uniqueResults = Array.from(uniqueMap.values());
+
+      uniqueResults.sort((a, b) => scoreResult(b, trimmedQuery, centerLat, centerLng) - scoreResult(a, trimmedQuery, centerLat, centerLng));
+
+      setSearchResults(uniqueResults.slice(0, 5));
     } catch (err) {
-      console.error('Search error:', err);
+      if (err.name !== 'AbortError') {
+        console.error('Search error:', err);
+      }
     } finally {
-      setSearching(false);
+      if (abortControllerRef.current === abortController) {
+        setSearching(false);
+      }
     }
-  }, []);
+  }, [centerLat, centerLng]);
 
   // Debounce search on typing
   useEffect(() => {
@@ -98,10 +206,26 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
 
   const selectSearchResult = (result) => {
     const coords = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+    const displayName = result.display_name.split(',')[0];
+    
     setFlyToCoords(coords);
     setSearchResults([]);
     setShowDropdown(false);
-    setSearchQuery(result.display_name.split(',')[0]); // Clean up display
+    setSearchQuery(displayName); // Clean up display
+    
+    // Lock in the structured place
+    setSelectedPlace({
+      address: result.display_name,
+      lat: coords.lat,
+      lng: coords.lng
+    });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      e.preventDefault();
+      selectSearchResult(searchResults[0]);
+    }
   };
 
   return (
@@ -126,6 +250,8 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
                 type="text"
                 placeholder="Search for a location..."
                 value={searchQuery}
+                autoFocus={true}
+                onKeyDown={handleKeyDown}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowDropdown(true);

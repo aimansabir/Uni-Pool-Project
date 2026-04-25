@@ -35,6 +35,10 @@ export default function RideResultsPage() {
         const params = {
             pickup: originalFilters.pickupLocation,
             dropoff: originalFilters.dropoffLocation,
+            pickupLat: originalFilters.pickupCoords?.lat,
+            pickupLng: originalFilters.pickupCoords?.lng,
+            dropoffLat: originalFilters.dropoffCoords?.lat,
+            dropoffLng: originalFilters.dropoffCoords?.lng,
             targetSlot: originalFilters.targetSlot,
             rideType: originalFilters.mode === 'slot' ? 'SCHEDULED' : originalFilters.mode === 'exact' ? 'SCHEDULED' : undefined
         };
@@ -97,7 +101,12 @@ export default function RideResultsPage() {
                 <RideCard key={ride.id} ride={ride} onAction={handleRideClick} />
               ))
             ) : (
-              <div className="empty-section-msg">No instant rides available right now.</div>
+              <div className="empty-section-msg">
+                <div className="empty-msg-icon">
+                  <Clock size={28} color="#FDBA2E" />
+                </div>
+                <span>No instant rides available right now.</span>
+              </div>
             )}
           </div>
         </section>

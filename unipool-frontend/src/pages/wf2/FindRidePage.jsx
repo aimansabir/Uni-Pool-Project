@@ -124,7 +124,7 @@ export default function FindRidePage() {
     navigate('/rides/results', { 
       state: { 
         filters: { 
-          ...form, 
+          ...form,
           date: finalDate,
           time: finalTime,
           mode: schedulingMode,
@@ -382,7 +382,7 @@ export default function FindRidePage() {
                           <div className="picker-columns">
                             <div className="picker-column">
                               <span className="column-label">Hour</span>
-                              <div className="column-options">
+                              <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
                                   <button 
                                     key={h}
@@ -403,8 +403,8 @@ export default function FindRidePage() {
                             </div>
                             <div className="picker-column">
                               <span className="column-label">Min</span>
-                              <div className="column-options">
-                                {['00', '15', '30', '45'].map(m => (
+                              <div className="column-options scroll-wheel">
+                                {Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')).map(m => (
                                   <button 
                                     key={m}
                                     className={`option-btn ${exactTime && exactTime.split(':')[1] === m ? 'selected' : ''}`}
@@ -421,7 +421,7 @@ export default function FindRidePage() {
                             </div>
                             <div className="picker-column">
                               <span className="column-label">Period</span>
-                              <div className="column-options">
+                              <div className="column-options scroll-wheel">
                                 {['AM', 'PM'].map(p => {
                                   const hh = exactTime ? parseInt(exactTime.split(':')[0]) : 8;
                                   const isPM = hh >= 12;
@@ -489,7 +489,9 @@ export default function FindRidePage() {
           {/* Additional Details */}
           <div className="details-section">
             <div className="section-header">
-              <Edit3 size={16} className="section-icon" />
+              <div className="details-icon-box">
+                <Edit3 size={16} strokeWidth={2.5} />
+              </div>
               <span className="section-label">Additional Details <small>(Optional)</small></span>
             </div>
             <textarea

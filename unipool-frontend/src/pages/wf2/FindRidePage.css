@@ -594,8 +594,16 @@
   gap: 8px;
 }
 
-.section-icon {
+.details-icon-box {
+  width: 28px;
+  height: 28px;
+  background: #FFF9ED;
   color: #FDBA2E;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .gender-pills {

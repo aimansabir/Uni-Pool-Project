@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-
 import L from 'leaflet';
 import { ChevronLeft, MapPin, Clock, Wallet, Users, Star, Navigation } from 'lucide-react';
 import { ridesApi } from '../../api/rides.api';
+import { bookingRequestsApi } from '../../api/bookingRequests.api';
 import { useToast } from '../../context/ToastContext';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import 'leaflet/dist/leaflet.css';
@@ -51,7 +52,11 @@ function MapBounds({ positions }) {
     useEffect(() => {
         if (positions && positions.length > 0) {
             const bounds = L.latLngBounds(positions);
-            map.fitBounds(bounds, { padding: [50, 50] });
+            // Shift the route to the top half of the screen to avoid the bottom sheet
+            map.fitBounds(bounds, { 
+                paddingTopLeft: [50, 80],
+                paddingBottomRight: [50, 350] 
+            });
         }
     }, [positions, map]);
     return null;
@@ -60,7 +65,7 @@ function MapBounds({ positions }) {
 export default function RoutePreviewPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { showError } = useToast();
+    const { showSuccess, showError } = useToast();
     const [ride, setRide] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -93,6 +98,36 @@ export default function RoutePreviewPage() {
             minute: '2-digit',
             hour12: true
         });
+    };
+
+    const handleOpenGoogleMaps = () => {
+        if (!ride) return;
+        const origin = ride.startLocation;
+        const destination = ride.destinationLocation;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+        window.open(url, '_blank');
+    };
+
+    const getShortAddress = (address) => {
+        if (!address) return '';
+        const parts = address.split(',');
+        return parts[0].trim();
+    };
+
+    const handleRequestSeat = async () => {
+        try {
+            setLoading(true);
+            await bookingRequestsApi.create({
+                rideId: id,
+                requestedSeats: 1, // Default to 1 for now
+            });
+            showSuccess('Seat requested successfully!');
+            navigate('/pooling'); // Or wherever appropriate
+        } catch (err) {
+            showError(err.response?.data?.message || 'Failed to request seat');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -137,9 +172,16 @@ export default function RoutePreviewPage() {
             </div>
 
             <div className="preview-bottom-sheet slide-up">
+                <button className="gmaps-shortcut-btn" onClick={handleOpenGoogleMaps} title="Open in Google Maps">
+                    <Navigation size={18} fill="#fff" color="#fff" />
+                    <span>Navigate</span>
+                </button>
+                
                 <div className="preview-route-indicator">
                     <MapPin size={18} color="#F59E0B" />
-                    <span className="route-text">{ride.startLocation} → {ride.destinationLocation}</span>
+                    <span className="route-text">
+                        {getShortAddress(ride.startLocation)} → {getShortAddress(ride.destinationLocation)}
+                    </span>
                 </div>
 
                 <div className="preview-driver-card">
@@ -156,8 +198,10 @@ export default function RoutePreviewPage() {
                         <div className="driver-meta">
                             <h3 className="driver-name">{ride.driver?.fullName} (Driver)</h3>
                             <div className="driver-rating">
-                                <Star size={16} fill="#F59E0B" color="#F59E0B" />
-                                <span className="rating-val">4.9 • 100 ratings</span>
+                                <Star size={16} fill="#FDBA2E" color="#FDBA2E" />
+                                <span className="rating-val">
+                                    {(ride.driver?.avgRating || 5.0).toFixed(1)} • {ride.driver?.totalRatings || 0} ratings
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -177,20 +221,34 @@ export default function RoutePreviewPage() {
                             <span className="detail-label">Fare</span>
                             <span className="detail-value">Rs {ride.farePerSeat} / seat</span>
                         </div>
-                        <div className="preview-detail-item">
+                        <div className="preview-detail-item car-mix">
                             <div className="detail-icon-box">
                                 <Users size={18} />
                             </div>
                             <span className="detail-label">Car Mix</span>
-                            <span className="detail-value">{ride.occupancyMix?.text || '1 Male (Driver)'}</span>
+                            <div className="detail-value-group">
+                                <div className="detail-value-line">
+                                    <span className="val-label">Driver:</span>
+                                    <span className="val-text">
+                                        {(ride.driver?.gender || 'Male').charAt(0).toUpperCase() + (ride.driver?.gender || 'Male').slice(1).toLowerCase()}
+                                    </span>
+                                </div>
+                                <div className="detail-value-line">
+                                    <span className="val-label">Passengers:</span>
+                                    <span className="val-text">
+                                        {ride.occupancyMix?.malePassengerCount || 0} M, {ride.occupancyMix?.femalePassengerCount || 0} F
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <button 
                         className="preview-request-btn"
-                        onClick={() => console.log('Requesting seat for ride:', ride.id)}
+                        onClick={handleRequestSeat}
+                        disabled={loading}
                     >
-                        Request Seat
+                        {loading ? 'Processing...' : 'Request Seat'}
                     </button>
                 </div>
             </div>

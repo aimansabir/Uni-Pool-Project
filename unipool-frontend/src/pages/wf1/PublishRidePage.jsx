@@ -623,7 +623,7 @@ export default function PublishRidePage() {
                           <div className="picker-columns">
                             <div className="picker-column">
                               <span className="column-label">Hour</span>
-                              <div className="column-options">
+                              <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
                                   <button 
                                     key={h}
@@ -644,8 +644,8 @@ export default function PublishRidePage() {
                             </div>
                             <div className="picker-column">
                               <span className="column-label">Min</span>
-                              <div className="column-options">
-                                {['00', '15', '30', '45'].map(m => (
+                              <div className="column-options scroll-wheel">
+                                {Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')).map(m => (
                                   <button 
                                     key={m}
                                     className={`option-btn ${scheduling.exactTime && scheduling.exactTime.split(':')[1] === m ? 'selected' : ''}`}
@@ -662,7 +662,7 @@ export default function PublishRidePage() {
                             </div>
                             <div className="picker-column">
                               <span className="column-label">Period</span>
-                              <div className="column-options">
+                              <div className="column-options scroll-wheel">
                                 {['AM', 'PM'].map(p => {
                                   const hh = scheduling.exactTime ? parseInt(scheduling.exactTime.split(':')[0]) : 8;
                                   const isPM = hh >= 12;

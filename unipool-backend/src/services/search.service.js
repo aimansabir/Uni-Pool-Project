@@ -89,13 +89,29 @@ const buildOrderedStops = (ride) => {
   ];
 };
 
+const getPrimaryName = (location = '') => {
+  return String(location).split(',')[0].trim();
+};
+
 const findStopPosition = (orderedStops, term) => {
   if (!term) return null;
 
   const q = normalize(term);
-  return orderedStops.findIndex((stop) =>
-    normalize(stop.stopName).includes(q)
+  const primaryQ = normalize(getPrimaryName(term));
+
+  // Try exact match or contains first
+  let idx = orderedStops.findIndex((stop) =>
+    normalize(stop.stopName).includes(q) || q.includes(normalize(stop.stopName))
   );
+
+  // If no match, try primary name match
+  if (idx === -1 && primaryQ) {
+    idx = orderedStops.findIndex((stop) =>
+      normalize(stop.stopName).includes(primaryQ) || primaryQ.includes(normalize(stop.stopName))
+    );
+  }
+
+  return idx;
 };
 
 const matchesRouteDirection = (ride, pickup, dropoff) => {
@@ -104,6 +120,7 @@ const matchesRouteDirection = (ride, pickup, dropoff) => {
   const pickupPos = pickup ? findStopPosition(orderedStops, pickup) : null;
   const dropPos = dropoff ? findStopPosition(orderedStops, dropoff) : null;
 
+  // If we searched for it, we must find it
   if (pickup && pickupPos === -1) return false;
   if (dropoff && dropPos === -1) return false;
 
@@ -117,13 +134,22 @@ const matchesRouteDirection = (ride, pickup, dropoff) => {
 const searchRides = async ({
   pickup,
   dropoff,
+  pickupLat,
+  pickupLng,
+  dropoffLat,
+  dropoffLng,
   targetSlot,
   rideType,
   onlyUrgent,
 }) => {
   const { normalizeLocationKey } = require('../utils/routekey');
+  const { haversineMeters, minDistanceToRouteMeters } = require('../utils/geo');
   const pickupKey = pickup ? normalizeLocationKey(pickup) : null;
   const dropoffKey = dropoff ? normalizeLocationKey(dropoff) : null;
+
+  // Fuzzy matching parts
+  const primaryPickup = pickup ? getPrimaryName(pickup) : null;
+  const primaryDropoff = dropoff ? getPrimaryName(dropoff) : null;
 
   const where = {
     status: 'PUBLISHED',
@@ -131,28 +157,38 @@ const searchRides = async ({
     ...(rideType ? { rideType: rideType.toUpperCase() } : {}),
     ...(onlyUrgent === 'true' || onlyUrgent === true ? { isUrgent: true } : {}),
     AND: [
-      pickup
+      pickup && !pickupLat // If no coordinates, strictly enforce text match in DB
         ? {
           OR: [
             { startLocation: { contains: pickup, mode: 'insensitive' } },
+            { startLocation: { contains: primaryPickup, mode: 'insensitive' } },
             { routeKey: { startsWith: pickupKey || pickup, mode: 'insensitive' } },
             {
               stops: {
                 some: {
                   isConfirmed: true,
-                  stopName: { contains: pickup, mode: 'insensitive' },
+                  OR: [
+                    { stopName: { contains: pickup, mode: 'insensitive' } },
+                    { stopName: { contains: primaryPickup, mode: 'insensitive' } }
+                  ]
                 },
               },
             },
           ],
         }
         : {},
-      dropoff
+      dropoff && !dropoffLat // If no coordinates, strictly enforce text match in DB
         ? {
           OR: [
             {
               destinationLocation: {
                 contains: dropoff,
+                mode: 'insensitive',
+              },
+            },
+            {
+              destinationLocation: {
+                contains: primaryDropoff,
                 mode: 'insensitive',
               },
             },
@@ -162,7 +198,10 @@ const searchRides = async ({
               stops: {
                 some: {
                   isConfirmed: true,
-                  stopName: { contains: dropoff, mode: 'insensitive' },
+                  OR: [
+                    { stopName: { contains: dropoff, mode: 'insensitive' } },
+                    { stopName: { contains: primaryDropoff, mode: 'insensitive' } }
+                  ]
                 },
               },
             },
@@ -173,14 +212,14 @@ const searchRides = async ({
         ? {
           OR: [
             { targetSlot: { contains: targetSlot, mode: 'insensitive' } },
-            // If the user searches for a slot, also show rides that have NO slot set 
-            // (backward compatibility for rides published before the fix)
+            // Backward compatibility
             { targetSlot: null }
           ]
         }
         : {},
     ],
   };
+
 
   const rides = await prisma.ride.findMany({
     where,
@@ -226,9 +265,51 @@ const searchRides = async ({
     ],
   });
 
-  const filteredRides = rides.filter((ride) =>
-    matchesRouteDirection(ride, pickup, dropoff)
-  );
+  const filteredRides = rides.filter((ride) => {
+    // 1. Fallback text string matching
+    const stringMatch = matchesRouteDirection(ride, pickup, dropoff);
+
+    // 2. If no coords provided at all, we must rely entirely on string matching
+    if (!pickupLat && !dropoffLat) {
+      return stringMatch;
+    }
+
+    // 3. Coordinate Threshold / Radius Logic (500 meters)
+    const SEARCH_RADIUS_M = 500;
+    let pickupMatch = true;
+    let dropoffMatch = true;
+
+    // A. Check Pickup Radius
+    if (pickupLat && pickupLng) {
+      if (ride.routeGeometry && Array.isArray(ride.routeGeometry.coordinates) && ride.routeGeometry.coordinates.length > 0) {
+        const startCoord = ride.routeGeometry.coordinates[0];
+        const distToStart = haversineMeters(startCoord[1], startCoord[0], Number(pickupLat), Number(pickupLng));
+        
+        // Match strictly near the start location for now
+        pickupMatch = (distToStart <= SEARCH_RADIUS_M);
+      } else {
+        // Fallback to string match if ride has no geometry (legacy ride)
+        pickupMatch = matchesRouteDirection(ride, pickup, null);
+      }
+    }
+
+    // B. Check Dropoff Radius
+    if (dropoffLat && dropoffLng) {
+      if (ride.routeGeometry && Array.isArray(ride.routeGeometry.coordinates) && ride.routeGeometry.coordinates.length > 0) {
+        const coords = ride.routeGeometry.coordinates;
+        const endCoord = coords[coords.length - 1];
+        const distToEnd = haversineMeters(endCoord[1], endCoord[0], Number(dropoffLat), Number(dropoffLng));
+        
+        // Match strictly near the dropoff location
+        dropoffMatch = (distToEnd <= SEARCH_RADIUS_M);
+      } else {
+        dropoffMatch = matchesRouteDirection(ride, null, dropoff);
+      }
+    }
+
+    // A ride is valid if it passes coordinate radius constraints OR text constraints
+    return (pickupMatch && dropoffMatch) || stringMatch;
+  });
 
   return filteredRides.map(mapRideCard);
 };
