@@ -1,6 +1,7 @@
 .vehicles-page {
   background: #FFFFFF;
-  padding: 16px 20px 40px; /* Reduced bottom padding */
+  padding: 16px 20px 40px;
+  /* Reduced bottom padding */
   display: flex;
   flex-direction: column;
 }
@@ -54,7 +55,8 @@
 
 .vehicle-selection-card.selected {
   border-color: #FFB946;
-  background: #FFFBEB; /* Light peach background */
+  background: #FFFBEB;
+  /* Light peach background */
 }
 
 /* ── Card Left: Image ── */
@@ -75,7 +77,8 @@
 }
 
 .vehicle-selection-card.selected .car-image-box {
-  background: #FEF3C7; /* Warmer for selected */
+  background: #FEF3C7;
+  /* Warmer for selected */
 }
 
 .brand-logo-pill {
@@ -89,7 +92,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   z-index: 2;
 }
 
@@ -118,14 +121,42 @@
 .selection-card__header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  padding-right: 24px;
 }
 
 .car-main-title {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   color: #111827;
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.selection-edit-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.selection-edit-btn:hover {
+  background: #F3F4F6;
+  border-color: #D1D5DB;
 }
 
 .selection-check {
@@ -137,7 +168,8 @@
   align-items: center;
   justify-content: center;
   color: white;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 .selection-chevron {
@@ -148,7 +180,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 .car-sub-details {
@@ -219,6 +252,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

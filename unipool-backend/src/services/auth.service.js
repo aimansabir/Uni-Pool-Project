@@ -164,6 +164,9 @@ const getMe = async (userId) => {
       isVerified: true,
       genderVerified: true,
       isDriver: true,
+      phone: true,
+      studentErp: true,
+      avatarUrl: true,
     }
   });
 
@@ -282,4 +285,51 @@ const resendOtp = async ({ ibaEmail }) => {
   return { message: 'New verification code sent.' };
 };
 
-module.exports = { register, login, getMe, verify, resendOtp };
+const updateProfile = async (userId, data) => {
+  const { fullName, phone, studentErp, gender, avatarUrl } = data;
+
+  const updateData = {};
+  if (fullName !== undefined) updateData.fullName = fullName;
+  if (phone !== undefined) updateData.phone = phone;
+  if (gender !== undefined) updateData.gender = gender;
+  if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+
+  // Handle studentErp carefully due to unique constraint
+  if (studentErp !== undefined) {
+    if (studentErp === '' || studentErp === null) {
+      updateData.studentErp = null; // Store as NULL to avoid empty string unique constraint
+    } else {
+      // Check for uniqueness
+      const existing = await prisma.user.findUnique({ where: { studentErp } });
+      if (existing && existing.id !== userId) {
+        const err = new Error('This Student ERP is already in use.');
+        err.statusCode = 409;
+        throw err;
+      }
+      updateData.studentErp = studentErp;
+    }
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: {
+      id: true,
+      fullName: true,
+      ibaEmail: true,
+      gender: true,
+      role: true,
+      trustScore: true,
+      isVerified: true,
+      genderVerified: true,
+      isDriver: true,
+      phone: true,
+      studentErp: true,
+      avatarUrl: true,
+    }
+  });
+
+  return updated;
+};
+
+module.exports = { register, login, getMe, verify, resendOtp, updateProfile };

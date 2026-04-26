@@ -22,11 +22,17 @@ import MyRidesPage from '../pages/wf1/MyRidesPage';
 import RideDetailPage from '../pages/wf1/RideDetailPage';
 import NotificationsPage from '../pages/wf1/NotificationsPage';
 import ExploreMapPage from '../pages/wf1/ExploreMapPage';
+import FinancialsPage from '../pages/FinancialsPage';
 
 // WF2 pages
 import FindRidePage from '../pages/wf2/FindRidePage';
 import RideResultsPage from '../pages/wf2/RideResultsPage';
 import RoutePreviewPage from '../pages/wf2/RoutePreviewPage';
+import MyBookingsPage from '../pages/wf2/MyBookingsPage';
+import BookingConfirmedPage from '../pages/wf2/BookingConfirmedPage';
+import RideCancelledPage from '../pages/wf2/RideCancelledPage';
+import IncomingRequestsPage from '../pages/wf2/IncomingRequestsPage';
+import PoolingPage from '../pages/PoolingPage';
 
 // WF3 pages
 import ActiveRidePage from '../pages/wf3/ActiveRidePage';
@@ -41,6 +47,7 @@ import RatingPage from '../pages/wf3/RatingPage';
 // Shared pages
 import ProfilePage from '../pages/ProfilePage';
 import MessagesPage from '../pages/MessagesPage';
+import ChatPage from '../pages/ChatPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 export default function AppRoutes() {
@@ -87,6 +94,8 @@ export default function AppRoutes() {
           <Route path="/rides/find" element={<FindRidePage />} />
           <Route path="/rides/results" element={<RideResultsPage />} />
           <Route path="/rides/:id/preview" element={<RoutePreviewPage />} />
+          <Route path="/rides/requests" element={<IncomingRequestsPage />} />
+          <Route path="/rides/:id/requests" element={<IncomingRequestsPage />} />
           <Route path="/rides" element={<MyRidesPage />} />
           <Route path="/rides/:id" element={<RideDetailPage />} />
           <Route path="/rides/:id/confirmed" element={<RideConfirmedPage />} />
@@ -102,13 +111,23 @@ export default function AppRoutes() {
           <Route path="/payments/:id" element={<PaymentPage />} />
           <Route path="/rides/:id/payment-rating" element={<PassengerPaymentRatingPage />} />
           <Route path="/ratings/:id" element={<RatingPage />} />
+          <Route path="/financials" element={<FinancialsPage />} />
+
+          {/* Pooling (unified driver + passenger) */}
+          <Route path="/pooling" element={<PoolingPage />} />
+
+          {/* WF2 Booking routes */}
+          <Route path="/bookings" element={<MyBookingsPage />} />
+          <Route path="/bookings/:id/confirmed" element={<BookingConfirmedPage />} />
+          <Route path="/bookings/:id/cancelled" element={<RideCancelledPage />} />
 
           {/* Notifications */}
           <Route path="/notifications" element={<NotificationsPage />} />
 
-          {/* Profile & Messages */}
+          {/* Profile & Messages & Chat */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/chat/:id" element={<ChatPage />} />
 
           {/* Map */}
           <Route path="/map" element={<ExploreMapPage />} />

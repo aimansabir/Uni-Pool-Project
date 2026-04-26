@@ -13,6 +13,7 @@ const routeSubscriptionRoutes = require('./routes/routeSubscription.routes');
 // Workflow 2 routes
 const searchRoutes = require('./routes/search.routes');
 const bookingRequestRoutes = require('./routes/bookingRequest.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Workflow 3 routes
 const rideExecutionRoutes = require('./routes/rideExecution.routes');
@@ -41,6 +42,7 @@ app.use('/api/route-subscriptions', routeSubscriptionRoutes);
 // Mount routes — Workflow 2
 app.use('/api/search', searchRoutes);
 app.use('/api/booking-requests', bookingRequestRoutes);
+app.use('/api/conversations', chatRoutes);
 
 // Mount routes — Workflow 3
 app.use('/api/ride-execution', rideExecutionRoutes);

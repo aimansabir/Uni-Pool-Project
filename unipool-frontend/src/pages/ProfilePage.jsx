@@ -1,26 +1,152 @@
+import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { authApi } from '../api/auth.api';
+import { useToast } from '../context/ToastContext';
 import Badge from '../components/common/Badge/Badge';
 import Button from '../components/common/Button/Button';
 import { useNavigate } from 'react-router-dom';
-import './SharedPages.css';
+import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut } from 'lucide-react';
+import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: user?.fullName || '',
+    phone: user?.phone || '',
+    studentErp: user?.studentErp || '',
+    gender: user?.gender || 'male',
+    avatarUrl: user?.avatarUrl || ''
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+
+    if (name === 'fullName') {
+      formattedValue = value.replace(/[0-9]/g, '');
+      formattedValue = formattedValue.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+    }
+
+    if (name === 'studentErp') {
+      formattedValue = value.replace(/\D/g, '').slice(0, 5);
+    }
+
+    if (name === 'phone') {
+      formattedValue = value.replace(/[^\d+]/g, '');
+      if (formattedValue.startsWith('+92')) {
+        formattedValue = formattedValue.slice(0, 13);
+      } else if (formattedValue.startsWith('0')) {
+        formattedValue = formattedValue.slice(0, 11);
+      } else {
+        formattedValue = formattedValue.slice(0, 11);
+      }
+    }
+
+    setFormData({ ...formData, [name]: formattedValue });
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const res = await authApi.updateProfile(formData);
+      updateUser(res.data);
+      showSuccess('Profile updated successfully');
+      setIsEditing(false);
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showError('Image size should be less than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      setFormData(prev => ({ ...prev, avatarUrl: base64String }));
+      if (!isEditing) {
+        saveAvatarOnly(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveAvatarOnly = async (base64) => {
+    try {
+      const res = await authApi.updateProfile({ ...formData, avatarUrl: base64 });
+      updateUser(res.data);
+      showSuccess('Profile picture updated');
+    } catch {
+      showError('Failed to update profile picture');
+    }
+  };
+
   return (
     <div className="profile-page fade-in">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        style={{ display: 'none' }} 
+      />
+
       <div className="profile-page__header">
-        <div className="profile-page__avatar">
-          {user?.fullName?.[0]?.toUpperCase() || '?'}
+        <button 
+          className="btn-edit-toggle" 
+          onClick={() => setIsEditing(!isEditing)}
+          aria-label={isEditing ? "Cancel" : "Edit Profile"}
+        >
+          {isEditing ? <X size={20} /> : <Edit2 size={20} />}
+        </button>
+
+        <div className="avatar-container">
+          <div className="profile-page__avatar">
+            {formData.avatarUrl ? (
+              <img src={formData.avatarUrl} alt="Avatar" onError={(e) => e.target.style.display='none'} />
+            ) : (
+              <span>{formData.fullName?.[0]?.toUpperCase() || '?'}</span>
+            )}
+          </div>
+          <button className="avatar-edit-badge" onClick={() => fileInputRef.current?.click()}>
+            <Camera size={20} />
+          </button>
         </div>
-        <h2 className="profile-page__name">{user?.fullName || 'User'}</h2>
+
+        {isEditing ? (
+          <input 
+            className="profile-name-input"
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleInputChange}
+            placeholder="Full Name"
+            autoFocus
+          />
+        ) : (
+          <h2 className="profile-page__name">{user?.fullName || 'User'}</h2>
+        )}
+        
         <p className="profile-page__email">{user?.ibaEmail}</p>
+        
         <div className="profile-page__badges">
           {user?.isVerified && <Badge variant="accent">Verified</Badge>}
           {user?.genderVerified && <Badge variant="primary">Gender Verified</Badge>}
@@ -30,37 +156,101 @@ export default function ProfilePage() {
       <div className="profile-page__card">
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Gender</span>
-          <span className="profile-page__info-value">{user?.gender || '—'}</span>
+          {isEditing ? (
+            <div className="gender-segmented-control">
+              <button 
+                type="button"
+                className={`gender-segment ${formData.gender === 'male' ? 'active' : ''}`}
+                onClick={() => handleInputChange({ target: { name: 'gender', value: 'male' } })}
+              >
+                ♂ Male
+              </button>
+              <button 
+                type="button"
+                className={`gender-segment ${formData.gender === 'female' ? 'active' : ''}`}
+                onClick={() => handleInputChange({ target: { name: 'gender', value: 'female' } })}
+              >
+                ♀ Female
+              </button>
+            </div>
+          ) : (
+            <span className="profile-page__info-value" style={{ textTransform: 'capitalize' }}>
+              {user?.gender || '—'}
+            </span>
+          )}
         </div>
+
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Student ERP</span>
-          <span className="profile-page__info-value">{user?.studentErp || '—'}</span>
+          {isEditing ? (
+            <input 
+              className="profile-edit-input"
+              name="studentErp"
+              value={formData.studentErp}
+              onChange={handleInputChange}
+              placeholder="e.g. 21990"
+            />
+          ) : (
+            <span className="profile-page__info-value">{user?.studentErp || '—'}</span>
+          )}
         </div>
+
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Phone</span>
-          <span className="profile-page__info-value">{user?.phone || '—'}</span>
+          {isEditing ? (
+            <input 
+              className="profile-edit-input"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              placeholder="03xx-xxxxxxx"
+            />
+          ) : (
+            <span className="profile-page__info-value">{user?.phone || '—'}</span>
+          )}
         </div>
+
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Trust Score</span>
           <span className="profile-page__info-value font-bold text-primary">
-            ⭐ {user?.trustScore?.toFixed(1) || '5.0'}
+            ⭐ {user?.trustScore?.toFixed(1) || '100.0'}
           </span>
         </div>
+
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Role</span>
-          <span className="profile-page__info-value">{user?.role || 'student'}</span>
+          <span className="profile-page__info-value" style={{ textTransform: 'capitalize' }}>
+            {user?.role || 'student'}
+          </span>
         </div>
+
+        {isEditing && (
+          <div style={{ marginTop: '20px', paddingBottom: '10px' }}>
+            <Button 
+              variant="primary" 
+              fullWidth 
+              onClick={handleSave} 
+              loading={loading}
+              style={{ borderRadius: '14px', height: '50px' }}
+            >
+              <Check size={18} style={{ marginRight: '8px' }} /> Save Changes
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="profile-page__actions">
-        <Button variant="outline" fullWidth onClick={() => navigate('/vehicles')}>
-          🚗 My Vehicles
-        </Button>
-        <Button variant="outline" fullWidth onClick={() => navigate('/rides')}>
-          📋 My Rides
-        </Button>
-        <Button variant="danger" fullWidth onClick={handleLogout}>
-          Logout
+        <div className="profile-btn-group">
+          <Button variant="outline" fullWidth onClick={() => navigate('/vehicles')}>
+            <Car size={18} style={{ marginRight: '8px' }} /> My Vehicles
+          </Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/rides')}>
+            <ClipboardList size={18} style={{ marginRight: '8px' }} /> My Rides
+          </Button>
+        </div>
+        
+        <Button variant="danger" fullWidth onClick={handleLogout} style={{ marginTop: '12px' }}>
+          <LogOut size={18} style={{ marginRight: '8px' }} /> Logout Account
         </Button>
       </div>
     </div>

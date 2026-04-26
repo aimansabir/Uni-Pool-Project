@@ -7,14 +7,14 @@ import { useToast } from '../../context/ToastContext';
 import { formatDateTime, formatPKR, timeAgo } from '../../utils/formatters';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
-import { 
-  ChevronLeft, 
-  MapPin, 
-  Users, 
-  Star, 
-  MessageSquare, 
-  Check, 
-  X, 
+import {
+  ChevronLeft,
+  MapPin,
+  Users,
+  Star,
+  MessageSquare,
+  Check,
+  X,
   TrendingUp,
   Clock,
   Wallet,
@@ -33,6 +33,14 @@ const STATUS_MAP = {
   CANCELLED: { variant: 'danger', label: 'Cancelled' },
 };
 
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+const cleanLocation = (addr) => {
+  if (!addr) return 'Unknown';
+  const trimmed = addr.trim();
+  if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+  return trimmed;
+};
+
 export default function RideDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,7 +53,7 @@ export default function RideDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [requestLoadingId, setRequestLoadingId] = useState(null);
-  
+
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [showConfirmReject, setShowConfirmReject] = useState(null);
 
@@ -99,7 +107,7 @@ export default function RideDetailPage() {
     try {
       await rideExecutionApi.startRide(id);
       showSuccess('Ride started! Drive safely.');
-      navigate(`/rides/${id}/live`); 
+      navigate(`/rides/${id}/live`);
     } catch (err) {
       showError(err.response?.data?.message || 'Failed to start ride');
     } finally {
@@ -127,10 +135,10 @@ export default function RideDetailPage() {
   if (ride.userRole === 'PASSENGER') {
     const myBooking = ride.bookingRequests?.find(b => b.passengerId === user?.id);
     return (
-      <PassengerRideDetailsView 
-        ride={ride} 
-        myBooking={myBooking} 
-        onCancelSuccess={() => navigate('/rides')} 
+      <PassengerRideDetailsView
+        ride={ride}
+        myBooking={myBooking}
+        onCancelSuccess={() => navigate('/rides')}
       />
     );
   }
@@ -138,7 +146,7 @@ export default function RideDetailPage() {
   const badge = STATUS_MAP[ride.status] || STATUS_MAP.PUBLISHED;
   const totalSeats = ride.seatsTotal || 0;
   const earnings = ride.farePerSeat * acceptedRequests.length;
-  
+
   const extractTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -151,10 +159,10 @@ export default function RideDetailPage() {
       <div className="d-passenger-card">
         <div className="d-passenger-header">
           <div className="d-passenger-info-row">
-            <img 
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`} 
-              alt="Avatar" 
-              className="d-passenger-avatar" 
+            <img
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
+              alt="Avatar"
+              className="d-passenger-avatar"
             />
             <div className="d-passenger-details">
               <div className="d-passenger-name-row">
@@ -185,18 +193,18 @@ export default function RideDetailPage() {
           </div>
           {isConfirmed && <div className="d-confirmed-badge">Confirmed</div>}
         </div>
-        
+
         {!isConfirmed && (
           <div className="d-action-buttons">
-            <button 
-              className="d-btn-accept" 
+            <button
+              className="d-btn-accept"
               onClick={() => handleRespond(req.id, 'ACCEPTED')}
               disabled={requestLoadingId === req.id}
             >
               Accept
             </button>
-            <button 
-              className="d-btn-reject" 
+            <button
+              className="d-btn-reject"
               onClick={() => setShowConfirmReject(req.id)}
               disabled={requestLoadingId === req.id}
             >
@@ -204,7 +212,7 @@ export default function RideDetailPage() {
             </button>
           </div>
         )}
-        
+
         <div className="d-passenger-footer">
           <button className="d-footer-link" onClick={() => showSuccess('Messaging coming soon!')}>
             <MessageSquare size={14} /> Message
@@ -221,7 +229,7 @@ export default function RideDetailPage() {
   return (
     <div className="d-ride-page fade-in">
       <div className="d-ride-container">
-        
+
         {/* Header */}
         <header className="d-header">
           <button className="d-back-btn" onClick={() => navigate('/rides')}>
@@ -291,9 +299,9 @@ export default function RideDetailPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="d-divider" />
-          
+
           <div className="d-grid-item" style={{ paddingLeft: '8px' }}>
             <Users size={18} className="d-grid-icon" />
             <div>
@@ -329,14 +337,14 @@ export default function RideDetailPage() {
         <div className="d-footer-actions">
           {ride.status === 'PUBLISHED' ? (
             <>
-              <button 
+              <button
                 className="d-btn-main primary"
                 onClick={handleStartRide}
                 disabled={actionLoading}
               >
                 <Car size={20} /> Start Ride
               </button>
-              <button 
+              <button
                 className="d-btn-main danger-outline"
                 onClick={() => setShowConfirmCancel(true)}
                 disabled={actionLoading}
@@ -345,7 +353,7 @@ export default function RideDetailPage() {
               </button>
             </>
           ) : ride.status === 'IN_PROGRESS' ? (
-            <button 
+            <button
               className="d-btn-main primary"
               onClick={() => navigate(`/rides/${id}/live`)}
             >

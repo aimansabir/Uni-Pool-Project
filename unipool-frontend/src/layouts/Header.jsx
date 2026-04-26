@@ -8,12 +8,14 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const mainTabs = ['/dashboard', '/pooling', '/messages', '/profile', '/map'];
   const isDashboard = location.pathname === '/dashboard';
-  const showBack = location.pathname !== '/dashboard';
+  const showBack = !mainTabs.includes(location.pathname);
 
   const getTitle = () => {
     const path = location.pathname;
     if (path === '/dashboard') return '';
+    if (path === '/pooling') return 'Pooling';
     if (path === '/vehicles') return 'My Vehicles';
     if (path === '/vehicles/new') return 'Add Vehicle';
     if (path.includes('/vehicles/') && path.includes('/edit')) return 'Edit Vehicle';
@@ -25,6 +27,7 @@ export default function Header() {
     if (path === '/messages') return 'Messages';
     if (path === '/profile') return 'Profile';
     if (path === '/search') return 'Find a Ride';
+    if (path === '/map') return 'Explore Map';
     return '';
   };
 
@@ -44,7 +47,7 @@ export default function Header() {
           {isDashboard && (
             <div className="header__user-avatar-frame">
               <img 
-                src={userAvatar} 
+                src={user?.avatarUrl || userAvatar} 
                 alt="Profile" 
                 className="header__user-avatar-img" 
               />

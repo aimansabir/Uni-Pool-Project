@@ -55,4 +55,14 @@ router.post('/resend-otp', async (req, res, next) => {
 });
 
 
+// PATCH /api/auth/profile
+router.patch('/profile', authenticate, async (req, res, next) => {
+  try {
+    const data = await authService.updateProfile(req.user.id, req.body);
+    return success(res, data, 200, 'Profile updated successfully.');
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

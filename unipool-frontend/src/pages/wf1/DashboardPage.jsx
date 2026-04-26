@@ -15,14 +15,14 @@ import './DashboardPage.css';
  */
 const DonutChart = ({ earned, split, size = 150 }) => {
   const total = earned + split;
-  const earnedPct = total > 0 ? (earned / total) : 0.7;
+  const earnedPct = total > 0 ? (earned / total) : 0; // Fixed zero total NaN issue
 
   const strokeWidth = 28;
   const radius = (size - strokeWidth) / 2 - 4; // Ensure it stays within bounds
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  const earnedOffset = circumference * (1 - earnedPct);
+  const earnedOffset = total === 0 ? circumference : circumference * (1 - earnedPct); // Empty state grey circle if 0
 
   return (
     <div className="chart-container" style={{ width: size, height: size }}>
@@ -51,7 +51,7 @@ const DonutChart = ({ earned, split, size = 150 }) => {
       </svg>
       <div className="chart-center">
         <div className="chart-center__label">Total</div>
-        <div className="chart-center__value">Rs 17,900</div>
+        <div className="chart-center__value">Rs {total.toLocaleString()}</div>
       </div>
     </div>
   );
@@ -59,45 +59,70 @@ const DonutChart = ({ earned, split, size = 150 }) => {
 
 
 
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+
+const getShortAddress = (address) => {
+  if (!address) return 'Unknown';
+  const trimmed = address.trim();
+  if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+  return trimmed.split(',')[0].trim();
+};
+
 /**
  * Activity Card Component
  */
-const ActivityCard = ({ role, date, time, from, to, amount, status }) => (
-  <div className="card--activity">
-    <div className="activity__avatar-box">
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-      </svg>
-    </div>
+const ActivityCard = ({ role, date, time, from, to, amount, status }) => {
+  const getStatusClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'activity__status-pill--completed';
+      case 'published': return 'activity__status-pill--published';
+      case 'pending': return 'activity__status-pill--pending';
+      case 'cancelled': return 'activity__status-pill--cancelled';
+      case 'rejected': return 'activity__status-pill--cancelled';
+      default: return 'activity__status-pill--default';
+    }
+  };
 
+  const isPassenger = role === 'Passenger';
+  const amountPrefix = isPassenger ? '-' : '+';
+  const amountClass = isPassenger ? 'activity__amount--expense' : '';
 
-    <div className="activity__main">
-      <div className="activity__info-row">
-        <span className="activity__role">{role}</span>
-        <span className="activity__date-time">{date}  •  {time}</span>
+  return (
+    <div className="card--activity">
+      <div className={`activity__avatar-box ${isPassenger ? 'activity__avatar-box--passenger' : ''}`}>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+        </svg>
       </div>
 
-      <div className="activity__route-row">
-        <div className="route-point">
-          <span className="route-dot--green" />
-          {from}
+      <div className="activity__main">
+        <div className="activity__info-row">
+          <span className="activity__role">{role}</span>
+          <span className="activity__date-time">{date}  •  {time}</span>
         </div>
-        <div className="route-connector" />
-        <div className="route-point">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#F43F5E">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-          </svg>
-          {to}
+
+        <div className="activity__route-row">
+          <div className="route-point">
+            <span className="route-dot--green" />
+            <span className="route-address-trunc" title={from}>{getShortAddress(from)}</span>
+          </div>
+          <div className="route-connector" />
+          <div className="route-point">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#F43F5E">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+            </svg>
+            <span className="route-address-trunc" title={to}>{getShortAddress(to)}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div className="activity__right">
-      <span className="activity__amount">+ Rs {amount}</span>
-      <div className="activity__status-pill">{status}</div>
+      <div className="activity__right">
+        <span className={`activity__amount ${amountClass}`}>{amountPrefix} Rs {amount}</span>
+        <div className={`activity__status-pill ${getStatusClass(status)}`}>{status}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 /* ── MAIN PAGE COMPONENT ── */
@@ -105,27 +130,38 @@ const ActivityCard = ({ role, date, time, from, to, amount, status }) => (
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({ earned: 0, split: 0, total: 0, recentActivities: [] });
 
-  // Mock Activity Data based on spec
-  const MOCK_ACTIVITY = {
-    role: 'Driver',
-    date: '25 Feb 2025',
-    time: '10:00 AM',
-    from: 'IBA Main Campus',
-    to: 'DHA Phase 6',
-    amount: 1000,
-    status: 'Completed'
-  };
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const res = await ridesApi.getDashboardStats();
+        setStats(res.data || { earned: 0, split: 0, total: 0, recentActivities: [] });
+      } catch (err) {
+        console.error("Failed to load dashboard stats:", err);
+        setError("Could not load dashboard statistics.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const firstName = user?.fullName?.split(' ')[0] || 'Uroosha';
+  const firstName = user?.fullName?.split(' ')[0] || 'User';
 
   return (
     <div className="dashboard fade-in">
       {/* 1. Header Section */}
       <header className="dashboard__header">
         <div className="dashboard__user">
-          <img src={dashAvatar} alt="Profile" className="dashboard__avatar" />
+          <img 
+            src={user?.avatarUrl || dashAvatar} 
+            alt="Profile" 
+            className="dashboard__avatar" 
+          />
           <div className="dashboard__greeting">
             <span className="dashboard__welcome-text">Welcome back,</span>
             <span className="dashboard__user-name">{firstName} 👋</span>
@@ -230,7 +266,7 @@ export default function DashboardPage() {
 
               <h3 className="overview__title">Month Overview</h3>
             </div>
-            <button className="btn--details">View details</button>
+            <button className="btn--details" onClick={() => navigate('/financials')}>View details</button>
           </div>
 
           <div className="overview__body">
@@ -241,14 +277,14 @@ export default function DashboardPage() {
                   <span className="stat-dot stat-dot--earned" />
                   Fares Earned
                 </span>
-                <span className="stat-item__value text-success">Rs 12,500</span>
+                <span className="stat-item__value text-success">Rs {stats.earned.toLocaleString()}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-item__label">
                   <span className="stat-dot stat-dot--split" />
                   Fares Split
                 </span>
-                <span className="stat-item__value">Rs 5,400</span>
+                <span className="stat-item__value">Rs {stats.split.toLocaleString()}</span>
               </div>
             </div>
 
@@ -256,16 +292,20 @@ export default function DashboardPage() {
             <div className="overview__divider" />
 
             {/* Chart */}
-            <DonutChart earned={12500} split={5400} size={135} />
+            <DonutChart earned={stats.earned} split={stats.split} size={135} />
 
             {/* Right Percentages */}
             <div className="overview__right">
               <div className="pct-item">
-                <span className="pct-value text-gold">70%</span>
+                <span className="pct-value text-gold">
+                  {stats.total > 0 ? Math.round((stats.earned / stats.total) * 100) : 0}%
+                </span>
                 <span className="pct-label">Earned</span>
               </div>
               <div className="pct-item">
-                <span className="pct-value">30%</span>
+                <span className="pct-value">
+                  {stats.total > 0 ? Math.round((stats.split / stats.total) * 100) : 0}%
+                </span>
                 <span className="pct-label">Split</span>
               </div>
             </div>
@@ -279,7 +319,20 @@ export default function DashboardPage() {
             <h3 className="section-title">Recent Activities</h3>
             <button className="btn--see-all" onClick={() => navigate('/rides')}>See all</button>
           </div>
-          <ActivityCard {...MOCK_ACTIVITY} />
+          
+          {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6B7280' }}>Loading activities...</div>
+          ) : error ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#EF4444' }}>{error}</div>
+          ) : stats.recentActivities.length > 0 ? (
+            stats.recentActivities.map((activity, index) => (
+              <ActivityCard key={activity.id || index} {...activity} />
+            ))
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6B7280', background: 'white', borderRadius: '16px' }}>
+              No recent activities to show.
+            </div>
+          )}
         </div>
 
       </div>

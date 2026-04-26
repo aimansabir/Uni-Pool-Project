@@ -6,4 +6,5 @@ export const authApi = {
   verify: (data) => client.post('/api/auth/verify', data),
   resendOtp: (data) => client.post('/api/auth/resend-otp', data),
   getMe: () => client.get('/api/auth/me'),
+  updateProfile: (data) => client.patch('/api/auth/profile', data),
 };

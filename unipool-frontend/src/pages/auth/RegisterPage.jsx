@@ -24,9 +24,36 @@ export default function RegisterPage() {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    let formattedValue = value;
+
+    if (name === 'fullName') {
+      // Remove numbers and capitalize first letter of each word
+      formattedValue = value.replace(/[0-9]/g, '');
+      formattedValue = formattedValue.replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+    }
+
+    if (name === 'studentErp') {
+      // Numbers only, max 5 digits
+      formattedValue = value.replace(/\D/g, '').slice(0, 5);
+    }
+
+    if (name === 'phone') {
+      // Allow only + and numbers
+      formattedValue = value.replace(/[^\d+]/g, '');
+      if (formattedValue.startsWith('+92')) {
+        formattedValue = formattedValue.slice(0, 13);
+      } else if (formattedValue.startsWith('0')) {
+        formattedValue = formattedValue.slice(0, 11);
+      } else {
+        // Fallback for other starts (e.g. 3...)
+        formattedValue = formattedValue.slice(0, 11);
+      }
+    }
+
+    setForm({ ...form, [name]: formattedValue });
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 

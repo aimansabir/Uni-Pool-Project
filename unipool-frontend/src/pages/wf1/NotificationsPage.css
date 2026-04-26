@@ -83,3 +83,15 @@
   flex-shrink: 0;
   margin-top: 6px;
 }
+
+/* Urgent notifications (instant ride / cancellation) */
+.notif-item--urgent {
+  border-left: 3px solid #EF4444;
+  background: #FFF5F5;
+  animation: urgentPulse 2s ease-in-out infinite;
+}
+.notif-item--urgent .notif-item__title { color: #DC2626; }
+@keyframes urgentPulse {
+  0%, 100% { background: #FFF5F5; }
+  50%       { background: #FEE2E2; }
+}

@@ -1,0 +1,304 @@
+.financials-page {
+  background-color: #fafafa;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* Header */
+.financials-header {
+  background-color: #f5dbc4;
+  padding: 54px 19px 25px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.financials-back-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.financials-back-btn:active {
+  transform: scale(0.95);
+  background-color: #F9FAFB;
+}
+
+.financials-header__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.financials-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.financials-subtitle {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 2px 0 0;
+}
+
+.financials-content {
+  padding: 24px 20px;
+}
+
+/* Balance Section */
+.balance-section {
+  background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+  border-radius: 28px;
+  padding: 28px;
+  color: #ffffff;
+  margin-bottom: 24px;
+  box-shadow: 0 12px 24px rgba(31, 41, 55, 0.15);
+}
+
+.balance-label {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.balance-value {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.balance-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Financial Grid */
+.financial-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.financial-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 20px;
+  border: 1px solid #F3F4F6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.financial-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.financial-card__icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.financial-card__icon-box--earned {
+  background-color: #ECFDF5;
+  color: #10B981;
+}
+
+.financial-card__icon-box--spent {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.financial-card__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.financial-card__amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Transactions Section */
+.transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.transactions-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.transactions-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  background: #ffffff;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #E5E7EB;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transaction-item {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #F3F4F6;
+}
+
+.transaction-item__icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.transaction-item__icon-box--earned {
+  background-color: #DCFCE7;
+  color: #059669;
+}
+
+.transaction-item__icon-box--split {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.transaction-item__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.transaction-item__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.transaction-item__route {
+  font-size: 11px;
+  color: #6B7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-item__date {
+  font-size: 10px;
+  color: #9CA3AF;
+  margin-top: 4px;
+}
+
+.transaction-item__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.transaction-item__amount {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.transaction-item__amount--earned {
+  color: #10B981;
+}
+
+.transaction-item__amount--split {
+  color: #D97706;
+}
+
+.transaction-item__status {
+  font-size: 9px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: capitalize;
+}
+
+/* States */
+.financials-loading {
+  padding: 40px;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+.financials-empty {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 60px 40px;
+  text-align: center;
+  border: 2px dashed #E5E7EB;
+}
+
+.financials-empty__icon {
+  width: 80px;
+  height: 80px;
+  background-color: #F9FAFB;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D1D5DB;
+  margin: 0 auto 20px;
+}
+
+.financials-empty__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.financials-empty__subtitle {
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.6;
+}
