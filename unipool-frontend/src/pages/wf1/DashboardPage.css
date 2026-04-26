@@ -624,10 +624,17 @@
   align-items: center;
   justify-content: center;
   color: #10B981;
+  flex-shrink: 0;
+}
+
+.activity__avatar-box--passenger {
+  background-color: #EFF6FF;
+  color: #3B82F6;
 }
 
 .activity__main {
   flex: 1;
+  min-width: 0;
 }
 
 .activity__info-row {
@@ -651,8 +658,10 @@
 .activity__route-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   font-size: 9px;
+  min-width: 0;
+  width: 100%;
 }
 
 .route-point {
@@ -664,6 +673,13 @@
   font-weight: 600;
   color: #4B5563;
   white-space: nowrap;
+  max-width: 42%;
+}
+
+.route-address-trunc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-dot--green {
@@ -671,45 +687,64 @@
   height: 6px;
   background-color: #10B981;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .route-connector {
-  width: 30px;
-  height: 0.5px;
-  border-bottom: 2px dashed #E5E7EB;
-  margin-top: 2px;
+  width: 12px;
+  height: 0;
+  border-bottom: 1px dashed #D1D5DB;
+  margin: 0 2px;
+  flex-shrink: 0;
 }
 
 .activity__right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .activity__amount {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: #10B981;
-  margin-right: 6px;
-  margin-top: -30px;
+}
+
+.activity__amount--expense {
+  color: #3B82F6;
 }
 
 .activity__status-pill {
   font-size: 8px;
   font-weight: 700;
-  color: #059669;
-  background-color: #DCFCE7;
   padding: 3px 11px;
   border-radius: var(--radius-full);
 }
 
+.activity__status-pill--completed {
+  color: #059669;
+  background-color: #DCFCE7;
+}
 
-.activity__status {
-  background-color: #ECFDF5;
-  color: var(--color-success);
-  font-size: 8px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+.activity__status-pill--published {
+  color: #D97706;
+  background-color: #FEF3C7;
+}
+
+.activity__status-pill--pending {
+  color: #B45309;
+  background-color: #FEF3C7;
+}
+
+.activity__status-pill--cancelled {
+  color: #E11D48;
+  background-color: #FFE4E6;
+}
+
+.activity__status-pill--default {
+  color: #4B5563;
+  background-color: #F3F4F6;
 }

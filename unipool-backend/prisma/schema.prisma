@@ -206,6 +206,7 @@ model Ride {
   stops           RideStop[]
   notifications   Notification[]
   bookingRequests BookingRequest[]
+  conversations   Conversation[]
 
   // WF3 additive relations
   payments RidePayment[]
@@ -398,4 +399,40 @@ model RideRating {
   @@index([bookingRequestId])
   @@index([raterId])
   @@index([rateeId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Chat / Messaging (WF2 in-app chat between driver and passenger)
+// ─────────────────────────────────────────────────────────────
+
+model Conversation {
+  id               String  @id @default(uuid())
+  rideId           String
+  ride             Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  bookingRequestId String? @unique
+  driverId         String
+  passengerId      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@unique([rideId, passengerId])
+  @@index([driverId])
+  @@index([passengerId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  body           String
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }

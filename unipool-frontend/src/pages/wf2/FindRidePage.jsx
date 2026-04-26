@@ -18,6 +18,24 @@ const SLOTS = [
   { id: '8', label: '7:00 PM – 8:15 PM', start: '19:00' },
 ];
 
+const COORDS_ONLY_REGEX =
+  /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+
+const cleanAddressLabel = (value, fallback = 'Current Location') => {
+  if (!value) return fallback;
+
+  const str = String(value).trim();
+  if (!str || COORDS_ONLY_REGEX.test(str)) return fallback;
+
+  const parts = str
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return parts.length ? parts.join(', ') : fallback;
+};
+
 export default function FindRidePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +58,7 @@ export default function FindRidePage() {
     if (prevFilters.date === 'today' || prevFilters.date === 'tomorrow') return prevFilters.date;
     return 'custom';
   });
-  
+
   const [customDate, setCustomDate] = useState(() => {
     if (prevFilters?.date && prevFilters.date !== 'today' && prevFilters.date !== 'tomorrow') {
       return prevFilters.date;
@@ -48,7 +66,7 @@ export default function FindRidePage() {
     return '';
   });
 
-  const [schedulingMode, setSchedulingMode] = useState(prevFilters?.mode || 'slot'); 
+  const [schedulingMode, setSchedulingMode] = useState(prevFilters?.mode || 'slot');
   const [selectedSlot, setSelectedSlot] = useState(() => {
     if (prevFilters?.mode === 'slot' && prevFilters.time) {
       return SLOTS.find(s => s.start === prevFilters.time)?.id || null;
@@ -65,8 +83,14 @@ export default function FindRidePage() {
 
   useEffect(() => {
     if (locationStatus === 'granted' && latitude && longitude && !form.pickupLocation) {
-      reverseGeocode(latitude, longitude).then(address => {
-        setForm(f => ({ ...f, pickupLocation: address, pickupCoords: { lat: latitude, lng: longitude } }));
+      reverseGeocode(latitude, longitude).then((rawAddress) => {
+        const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+
+        setForm((f) => ({
+          ...f,
+          pickupLocation: cleanAddress,
+          pickupCoords: { lat: latitude, lng: longitude },
+        }));
       });
     }
   }, [locationStatus, latitude, longitude]);
@@ -74,25 +98,37 @@ export default function FindRidePage() {
   const handleGetLocation = useCallback(async (fieldName) => {
     try {
       const loc = await requestLocation();
-      const address = await reverseGeocode(loc.latitude, loc.longitude);
-      setForm(prev => ({
+      const rawAddress = await reverseGeocode(loc.latitude, loc.longitude);
+      const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+
+      setForm((prev) => ({
         ...prev,
-        [fieldName]: address,
-        [`${fieldName.replace('Location', '')}Coords`]: { lat: loc.latitude, lng: loc.longitude }
+        [fieldName]: cleanAddress,
+        [`${fieldName.replace('Location', '')}Coords`]: {
+          lat: loc.latitude,
+          lng: loc.longitude,
+        },
       }));
-      setErrors(prev => ({ ...prev, [fieldName]: false }));
+
+      setErrors((prev) => ({ ...prev, [fieldName]: false }));
     } catch (err) {
       console.error('Failed to get location:', err);
     }
   }, [requestLocation]);
 
   const handleMapConfirm = (address, coords) => {
-    setForm(prev => ({
+    const cleanAddress = cleanAddressLabel(
+      address,
+      activeMapInput === 'pickupLocation' ? 'Current Location' : 'Pinned Location'
+    );
+
+    setForm((prev) => ({
       ...prev,
-      [activeMapInput]: address,
-      [`${activeMapInput.replace('Location', '')}Coords`]: coords
+      [activeMapInput]: cleanAddress,
+      [`${activeMapInput.replace('Location', '')}Coords`]: coords,
     }));
-    setErrors(prev => ({ ...prev, [activeMapInput]: false })); // Clear error
+
+    setErrors((prev) => ({ ...prev, [activeMapInput]: false }));
     setActiveMapInput(null);
   };
 
@@ -101,7 +137,7 @@ export default function FindRidePage() {
     if (!form.pickupLocation) newErrors.pickupLocation = 'Please select a pickup location';
     if (!form.dropoffLocation) newErrors.dropoffLocation = 'Please select a drop-off location';
     if (!selectedDate) newErrors.selectedDate = 'Please select a date';
-    
+
     if (selectedDate) {
       if (schedulingMode === 'slot' && !selectedSlot) {
         newErrors.selectedSlot = 'Please select a class slot';
@@ -117,22 +153,22 @@ export default function FindRidePage() {
     }
 
     const finalDate = selectedDate === 'custom' ? customDate : selectedDate;
-    const finalTime = schedulingMode === 'slot' 
-      ? SLOTS.find(s => s.id === selectedSlot)?.start 
+    const finalTime = schedulingMode === 'slot'
+      ? SLOTS.find(s => s.id === selectedSlot)?.start
       : exactTime;
 
-    navigate('/rides/results', { 
-      state: { 
-        filters: { 
+    navigate('/rides/results', {
+      state: {
+        filters: {
           ...form,
           date: finalDate,
           time: finalTime,
           mode: schedulingMode,
-          targetSlot: schedulingMode === 'slot' 
-            ? SLOTS.find(s => s.id === selectedSlot)?.label 
+          targetSlot: schedulingMode === 'slot'
+            ? SLOTS.find(s => s.id === selectedSlot)?.label
             : undefined
-        } 
-      } 
+        }
+      }
     });
   };
 
@@ -204,8 +240,8 @@ export default function FindRidePage() {
                   {form.pickupLocation || 'Select pickup location'}
                 </span>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="location-card__target-btn"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -230,8 +266,8 @@ export default function FindRidePage() {
                   {form.dropoffLocation || 'Select drop-off location'}
                 </span>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="location-card__target-btn"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -358,7 +394,7 @@ export default function FindRidePage() {
                 ) : (
                   <>
                     <div className={`custom-time-picker-container fade-in ${errors.exactTime ? 'has-error' : ''}`}>
-                      <div 
+                      <div
                         className={`time-display-card ${isTimePickerOpen ? 'active' : ''} ${errors.exactTime ? 'error' : ''}`}
                         onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
                       >
@@ -384,7 +420,7 @@ export default function FindRidePage() {
                               <span className="column-label">Hour</span>
                               <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
-                                  <button 
+                                  <button
                                     key={h}
                                     className={`option-btn ${exactTime && parseInt(exactTime.split(':')[0]) % 12 === h % 12 ? 'selected' : ''}`}
                                     onClick={() => {
@@ -405,7 +441,7 @@ export default function FindRidePage() {
                               <span className="column-label">Min</span>
                               <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')).map(m => (
-                                  <button 
+                                  <button
                                     key={m}
                                     className={`option-btn ${exactTime && exactTime.split(':')[1] === m ? 'selected' : ''}`}
                                     onClick={() => {
@@ -427,7 +463,7 @@ export default function FindRidePage() {
                                   const isPM = hh >= 12;
                                   const isActive = (p === 'PM' && isPM) || (p === 'AM' && !isPM);
                                   return (
-                                    <button 
+                                    <button
                                       key={p}
                                       className={`option-btn ${isActive ? 'selected' : ''}`}
                                       onClick={() => {
@@ -446,7 +482,7 @@ export default function FindRidePage() {
                               </div>
                             </div>
                           </div>
-                          <button 
+                          <button
                             className="picker-done-btn"
                             onClick={() => setIsTimePickerOpen(false)}
                           >
@@ -465,7 +501,9 @@ export default function FindRidePage() {
           {/* Gender Preference Pills */}
           <div className="gender-section">
             <div className="section-header">
-              <Users size={16} className="section-icon" />
+              <div className="details-icon-box">
+                <Users size={14} strokeWidth={2.5} />
+              </div>
               <span className="section-label">Gender Preference</span>
             </div>
             <div className="gender-pills">
@@ -548,7 +586,7 @@ export default function FindRidePage() {
                   const dateStr = formatFullDate(date);
                   const isSelected = customDate === dateStr;
                   const today = new Date();
-                  today.setHours(0,0,0,0);
+                  today.setHours(0, 0, 0, 0);
                   const isPast = date < today;
                   const isToday = date.getTime() === today.getTime();
 
@@ -582,8 +620,8 @@ export default function FindRidePage() {
                   <span className="preview-placeholder">No date selected</span>
                 )}
               </div>
-              <button 
-                className="confirm-date-btn" 
+              <button
+                className="confirm-date-btn"
                 onClick={() => setIsDatePickerOpen(false)}
                 disabled={!customDate}
               >
@@ -597,7 +635,20 @@ export default function FindRidePage() {
       {/* Map Picker Modal */}
       {activeMapInput && (
         <MapPicker
-          initialLocation={{ lat: latitude, lng: longitude }}
+          initialLocation={{
+            lat:
+              activeMapInput === 'pickupLocation'
+                ? form.pickupCoords?.lat ?? latitude
+                : form.dropoffCoords?.lat ?? latitude,
+            lng:
+              activeMapInput === 'pickupLocation'
+                ? form.pickupCoords?.lng ?? longitude
+                : form.dropoffCoords?.lng ?? longitude,
+            address:
+              activeMapInput === 'pickupLocation'
+                ? form.pickupLocation
+                : form.dropoffLocation,
+          }}
           onClose={() => setActiveMapInput(null)}
           onConfirm={handleMapConfirm}
         />

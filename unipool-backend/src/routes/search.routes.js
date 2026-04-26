@@ -9,6 +9,10 @@ router.get('/rides', authenticate, async (req, res, next) => {
     const rides = await searchService.searchRides({
       pickup: req.query.pickup,
       dropoff: req.query.dropoff,
+      pickupLat: req.query.pickupLat,
+      pickupLng: req.query.pickupLng,
+      dropoffLat: req.query.dropoffLat,
+      dropoffLng: req.query.dropoffLng,
       targetSlot: req.query.targetSlot,
       rideType: req.query.rideType,
       onlyUrgent: req.query.onlyUrgent,

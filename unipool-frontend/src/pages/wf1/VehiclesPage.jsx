@@ -118,19 +118,20 @@ export default function VehiclesPage() {
                   <div className="selection-card__right">
                     <div className="selection-card__header">
                       <h3 className="car-main-title">{vehicle.make} {vehicle.model}</h3>
-                      {isSelected ? (
-                        <div className="selection-check active">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                      <div className="header-actions">
+                        {isSelected && (
+                          <div className="selection-check active">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                            </svg>
+                          </div>
+                        )}
+                        <div className="selection-edit-btn" onClick={(e) => handleEditClick(e, vId)}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                           </svg>
                         </div>
-                      ) : (
-                        <div className="selection-chevron" onClick={(e) => handleEditClick(e, vId)}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
-                        </div>
-                      )}
+                      </div>
                     </div>
                     
                     <p className="car-sub-details">{vehicle.color} • {vehicle.registrationNumber}</p>

@@ -100,7 +100,8 @@
 
 .find-card {
   background: white;
-  border-radius: 32px; /* All around */
+  border-radius: 32px;
+  /* All around */
   padding: 24px 20px;
   width: 100%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -125,7 +126,8 @@
   bottom: 35px;
   width: 2px;
   border-left: 2.5px dotted #D1D5DB;
-  z-index: 1; /* Lowest */
+  z-index: 1;
+  /* Lowest */
 }
 
 .location-card {
@@ -138,7 +140,8 @@
   border: 1px solid #F3F4F6;
   cursor: pointer;
   position: relative;
-  z-index: 5; /* Higher than line */
+  z-index: 5;
+  /* Higher than line */
   transition: transform 0.2s;
 }
 
@@ -162,7 +165,8 @@
   color: #1F2937;
   position: relative;
   z-index: 10;
-  padding: 2px; /* Subtle offset for better visual centering of Navigation/MapPin */
+  padding: 2px;
+  /* Subtle offset for better visual centering of Navigation/MapPin */
 }
 
 .icon-circle.pickup {
@@ -301,7 +305,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .date-tab.active {
@@ -438,8 +442,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .slot-item__time {
@@ -485,7 +496,7 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
 .time-display-card.active {
@@ -513,7 +524,7 @@
   margin-top: 10px;
   padding: 16px;
   border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   border: 1px solid #F3F4F6;
 }
 
@@ -595,15 +606,21 @@
 }
 
 .details-icon-box {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   background: #FFF9ED;
   color: #FDBA2E;
-  border-radius: 50%;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.details-icon-box svg {
+  width: 14px;
+  height: 14px;
+  stroke: #FDBA2E;
 }
 
 .gender-pills {
@@ -673,7 +690,7 @@
 .date-picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   display: flex;
   align-items: flex-end;

@@ -108,21 +108,27 @@ export default function RoutePreviewPage() {
         window.open(url, '_blank');
     };
 
+    const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+
     const getShortAddress = (address) => {
-        if (!address) return '';
-        const parts = address.split(',');
-        return parts[0].trim();
+        if (!address) return 'Unknown';
+        const trimmed = address.trim();
+        if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+        return trimmed.split(',')[0].trim();
     };
 
     const handleRequestSeat = async () => {
         try {
             setLoading(true);
-            await bookingRequestsApi.create({
+            const res = await bookingRequestsApi.create({
                 rideId: id,
-                requestedSeats: 1, // Default to 1 for now
+                requestedSeats: 1,
             });
-            showSuccess('Seat requested successfully!');
-            navigate('/pooling'); // Or wherever appropriate
+            showSuccess(ride?.rideType === 'INSTANT' ? 'Instant ride joined! ⚡' : 'Seat requested!');
+            // Navigate to the booking confirmation screen
+            navigate(`/bookings/${res.data.id}/confirmed`, {
+                state: { booking: res.data, ride }
+            });
         } catch (err) {
             showError(err.response?.data?.message || 'Failed to request seat');
         } finally {
@@ -160,10 +166,10 @@ export default function RoutePreviewPage() {
                                 lineJoin="round"
                             />
                             <Marker position={startPoint} icon={startIcon}>
-                                <Popup>Pickup: {ride.startLocation}</Popup>
+                                <Popup>Pickup: {getShortAddress(ride.startLocation)}</Popup>
                             </Marker>
                             <Marker position={endPoint} icon={endIcon}>
-                                <Popup>Drop-off: {ride.destinationLocation}</Popup>
+                                <Popup>Drop-off: {getShortAddress(ride.destinationLocation)}</Popup>
                             </Marker>
                             <MapBounds positions={polylinePositions} />
                         </>
@@ -248,7 +254,7 @@ export default function RoutePreviewPage() {
                         onClick={handleRequestSeat}
                         disabled={loading}
                     >
-                        {loading ? 'Processing...' : 'Request Seat'}
+                        {loading ? 'Processing...' : ride?.rideType === 'INSTANT' ? 'Join Ride Instantly ⚡' : 'Request Seat'}
                     </button>
                 </div>
             </div>

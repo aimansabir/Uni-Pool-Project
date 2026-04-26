@@ -16,6 +16,14 @@ const STATUS_MAP = {
   CANCELLED: { variant: 'danger', label: 'Cancelled' },
 };
 
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+const cleanLocation = (addr) => {
+  if (!addr) return 'Unknown';
+  const trimmed = addr.trim();
+  if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+  return trimmed;
+};
+
 export default function RideDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -74,7 +82,7 @@ export default function RideDetailPage() {
             <span className="ride-detail__route-dot ride-detail__route-dot--start" />
             <div>
               <span className="ride-detail__route-label">Start Location</span>
-              <span className="ride-detail__route-value">{ride.startLocation}</span>
+              <span className="ride-detail__route-value">{cleanLocation(ride.startLocation)}</span>
             </div>
           </div>
           <div className="ride-detail__route-line" />
@@ -82,7 +90,7 @@ export default function RideDetailPage() {
             <span className="ride-detail__route-dot ride-detail__route-dot--end" />
             <div>
               <span className="ride-detail__route-label">Target Location</span>
-              <span className="ride-detail__route-value">{ride.destinationLocation}</span>
+              <span className="ride-detail__route-value">{cleanLocation(ride.destinationLocation)}</span>
             </div>
           </div>
         </div>

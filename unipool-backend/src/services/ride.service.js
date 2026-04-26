@@ -494,10 +494,128 @@ const deleteRide = async (rideId, driverId) => {
     });
 };
 
+const getDashboardStats = async (userId) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // 1. Primary Source: RidePayments
+    const earnedPayments = await prisma.ridePayment.aggregate({
+        where: {
+            driverId: userId,
+            status: 'PAID',
+            paidAt: { gte: startOfMonth, lte: endOfMonth }
+        },
+        _sum: { amount: true }
+    });
+
+    const splitPayments = await prisma.ridePayment.aggregate({
+        where: {
+            passengerId: userId,
+            status: 'PAID',
+            paidAt: { gte: startOfMonth, lte: endOfMonth }
+        },
+        _sum: { amount: true }
+    });
+
+    let earned = earnedPayments._sum.amount || 0;
+    let split = splitPayments._sum.amount || 0;
+
+    // 2. Fallback Source: BookingRequests & Rides (if payments are 0)
+    if (earned === 0) {
+        const driverBookings = await prisma.bookingRequest.findMany({
+            where: {
+                ride: { driverId: userId, status: 'COMPLETED', completedAt: { gte: startOfMonth, lte: endOfMonth } },
+                status: 'ACCEPTED',
+                participantStatus: { not: 'NO_SHOW' }
+            },
+            include: { ride: true }
+        });
+        earned = driverBookings.reduce((sum, b) => sum + (b.requestedSeats * b.ride.farePerSeat), 0);
+    }
+
+    if (split === 0) {
+        const passengerBookings = await prisma.bookingRequest.findMany({
+            where: {
+                passengerId: userId,
+                status: 'ACCEPTED',
+                participantStatus: { not: 'NO_SHOW' },
+                ride: { status: 'COMPLETED', completedAt: { gte: startOfMonth, lte: endOfMonth } }
+            },
+            include: { ride: true }
+        });
+        split = passengerBookings.reduce((sum, b) => sum + (b.requestedSeats * b.ride.farePerSeat), 0);
+    }
+
+    // 3. Recent Activities (Include ALL activities: published, pending, completed, cancelled)
+    const recentDriverRides = await prisma.ride.findMany({
+        where: { driverId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+        include: { stops: true }
+    });
+
+    const recentPassengerBookings = await prisma.bookingRequest.findMany({
+        where: { passengerId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+        include: { ride: { include: { stops: true } } }
+    });
+
+    const formatDate = (date) => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formatTime = (date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    let activities = [
+        ...recentDriverRides.map(r => {
+            const firstStop = r.stops?.[0]?.stopName || r.startLocation;
+            const lastStop = r.stops?.[r.stops.length - 1]?.stopName || r.destinationLocation;
+            return {
+                id: r.id,
+                role: 'Driver',
+                date: r.completedAt ? formatDate(new Date(r.completedAt)) : formatDate(new Date(r.updatedAt)),
+                time: r.completedAt ? formatTime(new Date(r.completedAt)) : formatTime(new Date(r.updatedAt)),
+                rawDate: r.completedAt || r.updatedAt,
+                from: firstStop,
+                to: lastStop,
+                amount: r.farePerSeat, // Base fare, actual could be higher depending on seats
+                status: r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase()
+            };
+        }),
+        ...recentPassengerBookings.map(b => {
+            const r = b.ride;
+            return {
+                id: b.id,
+                role: 'Passenger',
+                date: r.completedAt ? formatDate(new Date(r.completedAt)) : formatDate(new Date(r.updatedAt)),
+                time: r.completedAt ? formatTime(new Date(r.completedAt)) : formatTime(new Date(r.updatedAt)),
+                rawDate: r.completedAt || r.updatedAt,
+                from: b.pickupStopName || r.startLocation,
+                to: b.dropoffStopName || r.destinationLocation,
+                amount: b.requestedSeats * r.farePerSeat,
+                status: b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()
+            };
+        })
+    ];
+
+    activities.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+    activities = activities.slice(0, 3).map(a => {
+        const { rawDate, ...rest } = a;
+        return rest;
+    });
+
+    return {
+        earned,
+        split,
+        total: earned + split,
+        recentActivities: activities
+    };
+};
+
 module.exports = {
     createRide,
     getMyRides,
     getRideById,
     updateRide,
     deleteRide,
+    getDashboardStats,
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, User, Star, Users, Zap, Clock, ChevronRight, Navigation, Map, ArrowRight } from 'lucide-react';
+import { MapPin, User, Star, Users, Zap, Clock, Navigation, Map, ArrowRight } from 'lucide-react';
 import './RideCard.css';
 
 export default function RideCard({ ride, onAction }) {
@@ -23,120 +23,95 @@ export default function RideCard({ ride, onAction }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+
   const getShortAddress = (address) => {
-    if (!address) return '';
-    return address.split(',')[0].trim();
+    if (!address) return 'Unknown';
+    const trimmed = address.trim();
+    if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+    return trimmed.split(',')[0].trim();
   };
 
   return (
-    <div className={`ride-card-v3 ${isInstant ? 'instant' : 'scheduled'}`}>
+    <div className={`ride-card-v4 ${isInstant ? 'instant' : 'scheduled'}`} onClick={() => onAction(ride)}>
       {isInstant && (
-        <div className="card-v3__instant-badge">
-          <Zap size={14} fill="#F59E0B" color="#F59E0B" />
-          <span>Live Feed: Leaving Now</span>
+        <div className="v4-badge">
+          <Zap size={12} fill="#fff" color="#fff" />
+          <span>URGENT: LEAVING NOW</span>
         </div>
       )}
-      {/* Header: Driver & Fare */}
-      <div className="card-v3__header">
-        <div className="driver-profile">
-          <div className="avatar-wrapper">
-            {ride.driver?.imageUrl ? (
-              <img src={ride.driver.imageUrl} alt={ride.driver.fullName} />
-            ) : (
-              <User size={28} color="#9CA3AF" />
-            )}
+
+      {/* Main Row: Avatar + Info + Price */}
+      <div className="v4-header">
+        <div className="v4-driver">
+          <div className="v4-avatar">
+            {ride.driver?.fullName?.[0]?.toUpperCase() || <User size={20} />}
           </div>
-          <div className="driver-meta">
-            <h4 className="driver-name">{ride.driver?.fullName || 'Driver Name'}</h4>
-            <div className="driver-rating">
-              <div className="stars">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={10}
-                    fill={s <= Math.round((ride.driver?.trustScore || 100) / 20) ? "#FDBA2E" : "none"}
-                    color="#FDBA2E"
-                  />
-                ))}
-              </div>
-              <span className="rating-num">{((ride.driver?.trustScore || 100) / 20).toFixed(1)}</span>
+          <div className="v4-driver-info">
+            <h4 className="v4-name">{ride.driver?.fullName || 'Driver'}</h4>
+            <div className="v4-rating">
+              <Star size={12} fill="#F59E0B" color="#F59E0B" />
+              <span>{((ride.driver?.trustScore || 100) / 20).toFixed(1)}</span>
             </div>
           </div>
         </div>
-        <div className="header-right">
-          <div className="fare-badge">
-            <span className="fare-currency">PKR</span>
-            <span className="fare-amount">{ride.farePerSeat}</span>
-          </div>
+        <div className="v4-price">
+          <span className="v4-currency">Rs.</span>
+          <span className="v4-amount">{ride.farePerSeat}</span>
         </div>
       </div>
 
-      {/* Body: Route Timeline */}
-      <div className="card-v3__body">
-        <div className="route-visual">
-          <div className="route-dot start">
-            <div className="dot-inner" />
+      {/* Route Section */}
+      <div className="v4-route">
+        <div className="v4-timeline">
+          <div className="v4-dot start" />
+          <div className="v4-line" />
+          <div className="v4-dot end" />
+        </div>
+        <div className="v4-locations">
+          <div className="v4-loc-item">
+            <span className="v4-loc-label">PICKUP</span>
+            <span className="v4-loc-name">{getShortAddress(ride.startLocation)}</span>
           </div>
-          <div className="route-line-dashed" />
-          <div className="route-dot end">
-            <div className="dot-inner" />
+          <div className="v4-loc-item">
+            <span className="v4-loc-label">DROP-OFF</span>
+            <span className="v4-loc-name">{getShortAddress(ride.destinationLocation)}</span>
           </div>
         </div>
-        <div className="route-details">
-          <div className="route-stop">
-            <div className="badge-wrapper">
-              <span className="stop-badge pickup">PICKUP</span>
-            </div>
-            <span className="stop-name">{getShortAddress(ride.startLocation)}</span>
-          </div>
-          <div className="route-stop">
-            <div className="badge-wrapper">
-              <span className="stop-badge dropoff">DROP-OFF</span>
-            </div>
-            <span className="stop-name">{getShortAddress(ride.destinationLocation)}</span>
-          </div>
-        </div>
-        <div className="route-action">
-          <button className="body-route-btn" onClick={(e) => { e.stopPropagation(); onAction(ride); }}>
-            <Map size={25} />
-          </button>
-        </div>
+        <button className="v4-map-btn" onClick={(e) => { e.stopPropagation(); onAction(ride); }}>
+          <Map size={20} />
+        </button>
       </div>
 
-      {/* Footer: Row-based with dividers */}
-      <div className="card-v3__footer-row">
-        {/* Time Section */}
-        <div className="footer-section time">
-          <div className="section-icon">
+      {/* Footer: Time + Safety Mix + Action */}
+      <div className="v4-footer">
+        <div className="v4-meta">
+          <div className="v4-meta-item time">
             <Clock size={14} />
+            <span>{formatTime(ride.departureTime)} • {formatDate(ride.departureTime)}</span>
           </div>
-          <div className="section-content">
-            <span className="time-val">{formatTime(ride.departureTime)}</span>
-            <span className="date-val">{formatDate(ride.departureTime)}</span>
-          </div>
-        </div>
-
-        <div className="section-divider" />
-
-        {/* Mix Section */}
-        <div className="footer-section mix">
-          <div className="section-icon">
+          
+          <div className="v4-meta-item mix">
             <Users size={14} />
-          </div>
-          <div className="section-content">
-            <div className="mix-line">Driver: {ride.occupancyMix?.maleDriverCount > 0 ? 'Male' : 'Female'}</div>
-            <div className="mix-line">Passengers: {ride.occupancyMix?.malePassengerCount || 0}M, {ride.occupancyMix?.femalePassengerCount || 0}F</div>
+            <div className="v4-mix-breakdown">
+              <span className={`v4-mix-driver ${ride.occupancyMix?.maleDriverCount > 0 ? 'm' : 'f'}`}>
+                Driver ({ride.occupancyMix?.maleDriverCount > 0 ? 'M' : 'F'})
+              </span>
+              <span className="v4-mix-passengers">
+                {ride.occupancyMix?.malePassengerCount > 0 || ride.occupancyMix?.femalePassengerCount > 0 ? (
+                  <>• {ride.occupancyMix?.malePassengerCount || 0}M, {ride.occupancyMix?.femalePassengerCount || 0}F</>
+                ) : (
+                  '• Solo'
+                )}
+              </span>
+            </div>
           </div>
         </div>
-
-        <div className="section-divider" />
-
-        {/* Actions Section */}
-        <div className="footer-section actions">
-          <button className="mini-action-btn request" onClick={(e) => { e.stopPropagation(); onAction(ride); }}>
-            <span>Request<br />Seat</span>
-          </button>
-        </div>
+        
+        <button className="v4-action-btn" onClick={(e) => { e.stopPropagation(); onAction(ride); }}>
+          {isInstant ? 'Join' : 'Request'}
+          <ArrowRight size={14} />
+        </button>
       </div>
     </div>
   );

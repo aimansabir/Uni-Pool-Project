@@ -9,6 +9,14 @@ export default function RideConfirmedPage() {
   const navigate = useNavigate();
   const ride = state?.ride;
 
+  const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+  const cleanLocation = (addr) => {
+    if (!addr) return 'Unknown';
+    const trimmed = addr.trim();
+    if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+    return trimmed.split(',')[0].trim();
+  };
+
   return (
     <div className="ride-confirmed fade-in">
       <div className="ride-confirmed__illustration">
@@ -36,7 +44,7 @@ export default function RideConfirmedPage() {
           <div className="ride-confirmed__detail-row">
             <span className="ride-confirmed__detail-label">Route</span>
             <span className="ride-confirmed__detail-value">
-              {ride.startLocation} → {ride.destinationLocation}
+              {cleanLocation(ride.startLocation)} → {cleanLocation(ride.destinationLocation)}
             </span>
           </div>
           <div className="ride-confirmed__detail-row">

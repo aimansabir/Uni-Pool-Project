@@ -9,4 +9,5 @@ export const ridesApi = {
   getPreview: (id) => client.get(`/api/search/rides/${id}/preview`),
   update: (id, data) => client.put(`/api/rides/${id}`, data),
   delete: (id) => client.delete(`/api/rides/${id}`),
+  getDashboardStats: () => client.get('/api/rides/dashboard/stats'),
 };

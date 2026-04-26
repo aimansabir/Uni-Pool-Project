@@ -9,6 +9,8 @@ import Button from '../../components/common/Button/Button';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import './MyRidesPage.css';
 
+import { Coins, Sofa, Calendar, Clock, MapPin, Zap } from 'lucide-react';
+
 const STATUS_BADGE = {
   PUBLISHED: { variant: 'primary', label: 'Published' },
   IN_PROGRESS: { variant: 'warning', label: 'In Progress' },
@@ -16,7 +18,15 @@ const STATUS_BADGE = {
   CANCELLED: { variant: 'danger', label: 'Cancelled' },
 };
 
-export default function MyRidesPage() {
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+const cleanLocation = (addr) => {
+  if (!addr) return 'Unknown';
+  const trimmed = addr.trim();
+  if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+  return trimmed.split(',')[0].trim();
+};
+
+export default function MyRidesPage({ embedded = false }) {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
@@ -45,6 +55,19 @@ export default function MyRidesPage() {
 
   return (
     <div className="my-rides fade-in">
+      {/* Incoming Requests quick-link (only when embedded or standalone) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 0 0' }}>
+        <button
+          onClick={() => navigate('/rides/requests')}
+          style={{
+            background: '#FEF3C7', color: '#92400E', border: 'none',
+            borderRadius: '999px', padding: '6px 14px',
+            fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer'
+          }}
+        >
+          📬 Incoming Requests
+        </button>
+      </div>
       {/* Filter Tabs */}
       <div className="my-rides__filters">
         {['ALL', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED'].map((f) => (
@@ -73,41 +96,70 @@ export default function MyRidesPage() {
         <div className="my-rides__list">
           {filtered.map((ride) => {
             const badge = STATUS_BADGE[ride.status] || STATUS_BADGE.PUBLISHED;
+            const departureDate = new Date(ride.departureTime);
+            
             return (
-              <button
+              <div
                 key={ride.id}
                 className="ride-card"
                 onClick={() => navigate(`/rides/${ride.id}`)}
               >
-                <div className="ride-card__header">
-                  <div className="ride-card__route">
-                    <span className="ride-card__dot ride-card__dot--start" />
-                    <span className="ride-card__location">{ride.startLocation}</span>
+                <div className="ride-card__top">
+                  <div className="ride-card__locations">
+                    <div className="location-item location-item--start">
+                      <div className="indicator__dot indicator__dot--start" />
+                      <span className="location-text location-text--start">{cleanLocation(ride.startLocation)}</span>
+                    </div>
+                    <div className="location-item location-item--end">
+                      <MapPin size={14} color="#F43F5E" strokeWidth={3} className="location-icon" />
+                      <span className="location-text location-text--end">{cleanLocation(ride.destinationLocation)}</span>
+                    </div>
                   </div>
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
+
+                  <div className={`status-pill status-pill--${ride.status.toLowerCase()}`}>
+                    {badge.label}
+                  </div>
                 </div>
 
-                <div className="ride-card__route ride-card__route--end">
-                  <span className="ride-card__dot ride-card__dot--end" />
-                  <span className="ride-card__location">{ride.destinationLocation}</span>
-                </div>
+                <div className="ride-card__divider" />
 
-                <div className="ride-card__meta">
-                  <span className="ride-card__meta-item">
-                    🕐 {formatDateTime(ride.departureTime)}
-                  </span>
-                  <span className="ride-card__meta-item">
-                    💰 {formatPKR(ride.farePerSeat)}/seat
-                  </span>
-                  <span className="ride-card__meta-item">
-                    💺 {ride.seatsAvailable}/{ride.seatsTotal} seats
-                  </span>
+                <div className="ride-card__info-row">
+                  <div className="info-block">
+                    <div className="info-block__icon">
+                      <Calendar size={14} strokeWidth={2.5} />
+                    </div>
+                    <div className="info-block__content">
+                      <span className="info-value">{departureDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      <span className="info-label">{departureDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}</span>
+                    </div>
+                  </div>
+
+                  <div className="info-block info-block--price">
+                    <div className="info-block__icon">
+                      <Coins size={14} strokeWidth={2.5} />
+                    </div>
+                    <div className="info-block__content">
+                      <span className="info-value">Rs. {ride.farePerSeat}/seat</span>
+                    </div>
+                  </div>
+
+                  <div className="info-block">
+                    <div className="info-block__icon">
+                      <Sofa size={14} strokeWidth={2.5} />
+                    </div>
+                    <div className="info-block__content">
+                      <span className="info-value">{ride.seatsTotal - ride.seatsAvailable}/{ride.seatsTotal} seats</span>
+                    </div>
+                  </div>
                 </div>
 
                 {ride.isUrgent && (
-                  <Badge variant="urgent" size="sm">⚡ INSTANT</Badge>
+                  <div className="ride-card__instant-bar">
+                    <Zap size={13} fill="#FBBF24" color="#FBBF24" strokeWidth={2.5} />
+                    <span className="instant-text">INSTANT RIDE</span>
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

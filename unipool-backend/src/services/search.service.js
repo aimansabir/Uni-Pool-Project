@@ -78,14 +78,36 @@ const mapRideCard = (ride) => {
 const normalize = (value = '') => String(value).trim().toLowerCase();
 
 const buildOrderedStops = (ride) => {
-  const confirmedStops = ride.stops
+  const confirmedStops = (ride.stops || [])
     .filter((stop) => stop.isConfirmed !== false)
     .sort((a, b) => a.sequence - b.sequence);
 
+  // Extract start/end coords from routeGeometry if available
+  let startLat = null, startLng = null, endLat = null, endLng = null;
+  if (ride.routeGeometry && typeof ride.routeGeometry === 'object') {
+    const coords = ride.routeGeometry.coordinates;
+    if (Array.isArray(coords) && coords.length > 0) {
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+      startLng = start[0]; startLat = start[1];
+      endLng = end[0]; endLat = end[1];
+    }
+  }
+
   return [
-    { stopName: ride.startLocation, sequence: -1 },
+    { 
+      stopName: ride.startLocation, 
+      lat: startLat, 
+      lng: startLng, 
+      sequence: -1 
+    },
     ...confirmedStops,
-    { stopName: ride.destinationLocation, sequence: Number.MAX_SAFE_INTEGER },
+    { 
+      stopName: ride.destinationLocation, 
+      lat: endLat, 
+      lng: endLng, 
+      sequence: Number.MAX_SAFE_INTEGER 
+    },
   ];
 };
 
@@ -99,17 +121,12 @@ const findStopPosition = (orderedStops, term) => {
   const q = normalize(term);
   const primaryQ = normalize(getPrimaryName(term));
 
-  // Try exact match or contains first
-  let idx = orderedStops.findIndex((stop) =>
-    normalize(stop.stopName).includes(q) || q.includes(normalize(stop.stopName))
-  );
-
-  // If no match, try primary name match
-  if (idx === -1 && primaryQ) {
-    idx = orderedStops.findIndex((stop) =>
-      normalize(stop.stopName).includes(primaryQ) || primaryQ.includes(normalize(stop.stopName))
-    );
-  }
+  // Try exact match, contains, or reversed contains
+  let idx = orderedStops.findIndex((stop) => {
+    const sName = normalize(stop.stopName);
+    return sName.includes(q) || q.includes(sName) || 
+           (primaryQ && (sName.includes(primaryQ) || primaryQ.includes(sName)));
+  });
 
   return idx;
 };
@@ -266,48 +283,58 @@ const searchRides = async ({
   });
 
   const filteredRides = rides.filter((ride) => {
-    // 1. Fallback text string matching
+    // 1. String Matching (Robust fallback for exact names)
     const stringMatch = matchesRouteDirection(ride, pickup, dropoff);
 
-    // 2. If no coords provided at all, we must rely entirely on string matching
+    // 2. If no coords provided, rely entirely on strings
     if (!pickupLat && !dropoffLat) {
       return stringMatch;
     }
 
-    // 3. Coordinate Threshold / Radius Logic (500 meters)
-    const SEARCH_RADIUS_M = 500;
-    let pickupMatch = true;
-    let dropoffMatch = true;
+    // 3. Intelligent Coordinate Matching (1.5km radius + Stop Checking)
+    const SEARCH_RADIUS_M = 1500; // Expanded to 1.5km for better urban matching
+    let pickupMatch = !pickupLat;
+    let dropoffMatch = !dropoffLat;
 
-    // A. Check Pickup Radius
+    const orderedStops = buildOrderedStops(ride);
+
+    // A. Check Pickup (Near any stop in the ride)
     if (pickupLat && pickupLng) {
-      if (ride.routeGeometry && Array.isArray(ride.routeGeometry.coordinates) && ride.routeGeometry.coordinates.length > 0) {
-        const startCoord = ride.routeGeometry.coordinates[0];
-        const distToStart = haversineMeters(startCoord[1], startCoord[0], Number(pickupLat), Number(pickupLng));
-        
-        // Match strictly near the start location for now
-        pickupMatch = (distToStart <= SEARCH_RADIUS_M);
-      } else {
-        // Fallback to string match if ride has no geometry (legacy ride)
-        pickupMatch = matchesRouteDirection(ride, pickup, null);
+      // Check if pickup is near the start or any stop
+      const isNearAnyStop = orderedStops.some(stop => {
+        if (!stop.lat || !stop.lng) return false;
+        return haversineMeters(stop.lat, stop.lng, Number(pickupLat), Number(pickupLng)) <= SEARCH_RADIUS_M;
+      });
+
+      // Also check against route geometry if available
+      let isNearRoute = false;
+      if (ride.routeGeometry?.coordinates?.length > 0) {
+        const start = ride.routeGeometry.coordinates[0];
+        isNearRoute = haversineMeters(start[1], start[0], Number(pickupLat), Number(pickupLng)) <= SEARCH_RADIUS_M;
       }
+
+      pickupMatch = isNearAnyStop || isNearRoute;
     }
 
-    // B. Check Dropoff Radius
+    // B. Check Dropoff (Near any stop that comes AFTER the pickup)
     if (dropoffLat && dropoffLng) {
-      if (ride.routeGeometry && Array.isArray(ride.routeGeometry.coordinates) && ride.routeGeometry.coordinates.length > 0) {
+      const isNearAnyStop = orderedStops.some(stop => {
+        if (!stop.lat || !stop.lng) return false;
+        return haversineMeters(stop.lat, stop.lng, Number(dropoffLat), Number(dropoffLng)) <= SEARCH_RADIUS_M;
+      });
+
+      let isNearRouteEnd = false;
+      if (ride.routeGeometry?.coordinates?.length > 0) {
         const coords = ride.routeGeometry.coordinates;
-        const endCoord = coords[coords.length - 1];
-        const distToEnd = haversineMeters(endCoord[1], endCoord[0], Number(dropoffLat), Number(dropoffLng));
-        
-        // Match strictly near the dropoff location
-        dropoffMatch = (distToEnd <= SEARCH_RADIUS_M);
-      } else {
-        dropoffMatch = matchesRouteDirection(ride, null, dropoff);
+        const end = coords[coords.length - 1];
+        isNearRouteEnd = haversineMeters(end[1], end[0], Number(dropoffLat), Number(dropoffLng)) <= SEARCH_RADIUS_M;
       }
+
+      dropoffMatch = isNearAnyStop || isNearRouteEnd;
     }
 
-    // A ride is valid if it passes coordinate radius constraints OR text constraints
+    // Pass if (Coords match AND direction is right) OR (Text matches perfectly)
+    // This ensures that if the user picks the exact same landmark name, it shows up!
     return (pickupMatch && dropoffMatch) || stringMatch;
   });
 
