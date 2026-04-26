@@ -274,8 +274,8 @@ const searchRides = async ({
       return stringMatch;
     }
 
-    // 3. Coordinate Threshold / Radius Logic (500 meters)
-    const SEARCH_RADIUS_M = 500;
+    // 3. Coordinate Threshold / Radius Logic (1000 meters / 1km)
+    const SEARCH_RADIUS_M = 1000;
     let pickupMatch = true;
     let dropoffMatch = true;
 

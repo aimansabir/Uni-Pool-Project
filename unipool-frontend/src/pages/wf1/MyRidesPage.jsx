@@ -77,14 +77,29 @@ export default function MyRidesPage() {
               <button
                 key={ride.id}
                 className="ride-card"
-                onClick={() => navigate(`/rides/${ride.id}`)}
+                onClick={() => {
+                  if (ride.status === 'IN_PROGRESS') {
+                    if (ride.userRole === 'DRIVER') {
+                      navigate(`/rides/${ride.id}/live`);
+                    } else {
+                      navigate(`/rides/${ride.id}/track`);
+                    }
+                  } else {
+                    navigate(`/rides/${ride.id}`);
+                  }
+                }}
               >
                 <div className="ride-card__header">
                   <div className="ride-card__route">
                     <span className="ride-card__dot ride-card__dot--start" />
                     <span className="ride-card__location">{ride.startLocation}</span>
                   </div>
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {ride.userRole === 'PASSENGER' && (
+                      <Badge variant="info" size="sm">Passenger</Badge>
+                    )}
+                    <Badge variant={badge.variant}>{badge.label}</Badge>
+                  </div>
                 </div>
 
                 <div className="ride-card__route ride-card__route--end">

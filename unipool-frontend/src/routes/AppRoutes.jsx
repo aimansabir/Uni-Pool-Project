@@ -28,6 +28,16 @@ import FindRidePage from '../pages/wf2/FindRidePage';
 import RideResultsPage from '../pages/wf2/RideResultsPage';
 import RoutePreviewPage from '../pages/wf2/RoutePreviewPage';
 
+// WF3 pages
+import ActiveRidePage from '../pages/wf3/ActiveRidePage';
+import DriverLiveRidePage from '../pages/wf3/DriverLiveRidePage';
+import DriverRateMembersPage from '../pages/wf3/DriverRateMembersPage';
+import PassengerTrackRidePage from '../pages/wf3/PassengerTrackRidePage';
+import PassengerPaymentRatingPage from '../pages/wf3/PassengerPaymentRatingPage';
+import PaymentPage from '../pages/wf3/PaymentPage';
+
+import RatingPage from '../pages/wf3/RatingPage';
+
 // Shared pages
 import ProfilePage from '../pages/ProfilePage';
 import MessagesPage from '../pages/MessagesPage';
@@ -80,6 +90,18 @@ export default function AppRoutes() {
           <Route path="/rides" element={<MyRidesPage />} />
           <Route path="/rides/:id" element={<RideDetailPage />} />
           <Route path="/rides/:id/confirmed" element={<RideConfirmedPage />} />
+          <Route path="/rides/:id/manage" element={<RideDetailPage />} />
+          <Route path="/rides/:id/live" element={<DriverLiveRidePage />} />
+          <Route path="/rides/:id/rate-members" element={<DriverRateMembersPage />} />
+          <Route path="/rides/:id/track" element={<PassengerTrackRidePage />} />
+
+
+          {/* WF3 Ride Execution */}
+          <Route path="/active-ride" element={<ActiveRidePage />} />
+
+          <Route path="/payments/:id" element={<PaymentPage />} />
+          <Route path="/rides/:id/payment-rating" element={<PassengerPaymentRatingPage />} />
+          <Route path="/ratings/:id" element={<RatingPage />} />
 
           {/* Notifications */}
           <Route path="/notifications" element={<NotificationsPage />} />

@@ -166,10 +166,6 @@ const submitPassengerToDriverRating = async (
     throw createError('Ride not found.', 404);
   }
 
-  if (ride.status !== 'COMPLETED') {
-    throw createError('Ratings can only be submitted after ride is completed.', 400);
-  }
-
   const booking = await prisma.bookingRequest.findUnique({
     where: { id: bookingRequestId },
     select: {
@@ -185,6 +181,10 @@ const submitPassengerToDriverRating = async (
     throw createError('Booking request not found.', 404);
   }
 
+  if (ride.status !== 'COMPLETED' && booking.participantStatus !== 'DROPPED_OFF') {
+    throw createError('Ratings can only be submitted after passenger is dropped off or ride is completed.', 400);
+  }
+
   if (booking.passengerId !== passengerId) {
     throw createError('This booking does not belong to you.', 403);
   }
@@ -197,7 +197,7 @@ const submitPassengerToDriverRating = async (
     throw createError('Booking must be accepted to rate.', 400);
   }
 
-  if (booking.participantStatus !== 'DROPPED_OFF') {
+  if (booking.participantStatus !== 'DROPPED_OFF' && ride.status !== 'COMPLETED') {
     throw createError('Only passengers who completed the ride can rate the driver.', 400);
   }
 
@@ -258,14 +258,6 @@ const submitDriverToPassengerRating = async (
     throw createError('Ride not found.', 404);
   }
 
-  if (ride.status !== 'COMPLETED') {
-    throw createError('Ratings can only be submitted after ride is completed.', 400);
-  }
-
-  if (ride.driverId !== driverId) {
-    throw createError('Only the ride driver can rate passengers.', 403);
-  }
-
   const booking = await prisma.bookingRequest.findUnique({
     where: { id: bookingRequestId },
     select: {
@@ -281,6 +273,14 @@ const submitDriverToPassengerRating = async (
     throw createError('Booking request not found.', 404);
   }
 
+  if (ride.status !== 'COMPLETED' && booking.participantStatus !== 'DROPPED_OFF') {
+    throw createError('Ratings can only be submitted after passenger is dropped off or ride is completed.', 400);
+  }
+
+  if (ride.driverId !== driverId) {
+    throw createError('Only the ride driver can rate passengers.', 403);
+  }
+
   if (booking.rideId !== rideId) {
     throw createError('This booking does not belong to this ride.', 400);
   }
@@ -289,7 +289,7 @@ const submitDriverToPassengerRating = async (
     throw createError('Booking must be accepted to rate.', 400);
   }
 
-  if (booking.participantStatus !== 'DROPPED_OFF') {
+  if (booking.participantStatus !== 'DROPPED_OFF' && ride.status !== 'COMPLETED') {
     throw createError('Driver can only rate passengers who completed the ride.', 400);
   }
 

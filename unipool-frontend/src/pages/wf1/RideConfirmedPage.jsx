@@ -62,6 +62,9 @@ export default function RideConfirmedPage() {
         <Button variant="outline" onClick={() => navigate('/dashboard')}>
           🏠 Back to home
         </Button>
+        <Button variant="accent" onClick={() => navigate('/active-ride', { state: { rideId: id || ride?.id } })}>
+          🗺️ Ride live tracking
+        </Button>
         <Button variant="primary" onClick={() => navigate(`/rides/${id || ride?.id}`)}>
           📋 View Details
         </Button>

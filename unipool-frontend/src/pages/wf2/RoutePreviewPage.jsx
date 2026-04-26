@@ -122,7 +122,7 @@ export default function RoutePreviewPage() {
                 requestedSeats: 1, // Default to 1 for now
             });
             showSuccess('Seat requested successfully!');
-            navigate('/pooling'); // Or wherever appropriate
+            navigate('/dashboard'); // Or wherever appropriate
         } catch (err) {
             showError(err.response?.data?.message || 'Failed to request seat');
         } finally {

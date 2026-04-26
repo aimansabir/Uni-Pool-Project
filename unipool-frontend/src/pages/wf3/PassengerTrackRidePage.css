@@ -1,0 +1,458 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Passenger Track Ride Page – Premium Mobile Design
+   Full-screen map + bottom sheet (mirrors RoutePreviewPage layout)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pax-track-page {
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f3f4f6;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Map fills behind everything ─────────────────────────────────── */
+
+.ptr-map-section {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.ptr-leaflet-map {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1;
+}
+
+.ptr-map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #9ca3af;
+  background: linear-gradient(180deg, #f9fafb 0%, #e5e7eb 100%);
+}
+
+/* ── Floating back button ────────────────────────────────────────── */
+
+.ptr-floating-header {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.ptr-back-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  color: #1f2937;
+  transition: all 0.2s;
+}
+.ptr-back-btn:active {
+  transform: scale(0.92);
+}
+
+/* ── Bottom sheet ────────────────────────────────────────────────── */
+
+.ptr-bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 28px 28px 0 0;
+  padding: 16px 20px 28px;
+  z-index: 1000;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 55vh;
+  overflow-y: auto;
+  animation: ptrSlideUp 0.4s ease-out;
+}
+
+.ptr-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  margin: 0 auto 2px;
+  flex-shrink: 0;
+}
+
+/* ── Driver card row ─────────────────────────────────────────────── */
+
+.ptr-driver-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ptr-driver-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2.5px solid #FDBA2E;
+  flex-shrink: 0;
+  background: #f3f4f6;
+}
+
+.ptr-driver-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.ptr-driver-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 2px;
+}
+
+.ptr-driver-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.ptr-driver-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* ── Vehicle badge ───────────────────────────────────────────────── */
+
+.ptr-vehicle-badge {
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 8px 14px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ptr-vehicle-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 2px;
+}
+
+.ptr-vehicle-plate {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6366f1;
+}
+
+/* ── Arrival info ────────────────────────────────────────────────── */
+
+.ptr-arrival-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ptr-arrival-label {
+  font-size: 0.82rem;
+  color: #10b981;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ptr-arrival-time {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* ── Your address ────────────────────────────────────────────────── */
+
+.ptr-address-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ptr-address-label {
+  font-size: 0.78rem;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.ptr-address-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+}
+
+.ptr-message-fab {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #FFFBEB;
+  border: 1.5px solid #FEF3C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  color: #f59e0b;
+}
+.ptr-message-fab:active {
+  transform: scale(0.92);
+}
+
+/* ── Action buttons ──────────────────────────────────────────────── */
+
+.ptr-verify-btn {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ptr-verify-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+.ptr-verify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ptr-verified-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 14px;
+}
+
+.ptr-continue-btn {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: 16px;
+  background: #FBBF24;
+  color: #111827;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.3);
+  transition: all 0.2s;
+}
+.ptr-continue-btn:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* ── Cancelled state ─────────────────────────────────────────────── */
+
+.ptr-cancelled-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 32px 0;
+}
+
+.ptr-cancelled-view h3 {
+  font-size: 1.2rem;
+  color: #1f2937;
+  margin: 0;
+}
+
+.ptr-cancelled-view p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 12px;
+}
+
+/* ── Validation ──────────────────────────────────────────────────── */
+
+.ptr-validation-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70%;
+  padding: 40px 24px;
+}
+
+.ptr-validation-card {
+  background: #fff;
+  padding: 36px 28px;
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.ptr-validation-card h2 {
+  margin: 18px 0 8px;
+  font-size: 1.4rem;
+  color: #1f2937;
+}
+.ptr-validation-card p {
+  color: #6b7280;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────── */
+
+.ptr-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0 -4px;
+}
+
+/* ── Animations ──────────────────────────────────────────────────── */
+
+.fade-in {
+  animation: ptrFadeIn 0.35s ease-out;
+}
+@keyframes ptrFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ptrSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── Drop-off popup overlay ──────────────────────────────────────── */
+
+.ptr-popup-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+  animation: ptrFadeIn 0.3s ease-out;
+}
+
+.ptr-popup-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 24px 24px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: ptrPopIn 0.35s ease-out;
+}
+
+.ptr-popup-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ptr-popup-card h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 10px;
+}
+
+.ptr-popup-card p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.ptr-popup-btn {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.ptr-popup-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.ptr-popup-dismiss {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 16px;
+  transition: color 0.15s;
+}
+
+.ptr-popup-dismiss:active {
+  color: #6b7280;
+}
+
+@keyframes ptrPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}

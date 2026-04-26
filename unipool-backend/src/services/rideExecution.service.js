@@ -284,17 +284,11 @@ const getTrackingData = async (rideId, userId) => {
       stops: { orderBy: { sequence: 'asc' } },
       bookingRequests: {
         where: { status: 'ACCEPTED' },
-        select: {
-          id: true,
-          passengerId: true,
-          participantStatus: true,
-          pickupLat: true,
-          pickupLng: true,
-          dropoffLat: true,
-          dropoffLng: true,
-          pickupStopName: true,
-          dropoffStopName: true,
-        }
+        include: {
+          passenger: {
+            select: { id: true, fullName: true, gender: true }
+          },
+        },
       }
     }
   });
@@ -311,7 +305,7 @@ const getTrackingData = async (rideId, userId) => {
 
   if (
     viewerBooking &&
-    (viewerBooking.participantStatus === 'NO_SHOW' || viewerBooking.participantStatus === 'DROPPED_OFF')
+    viewerBooking.participantStatus === 'NO_SHOW'
   ) {
     throw createError('Tracking is not available for this booking status.', 403);
   }
@@ -344,6 +338,7 @@ const getTrackingData = async (rideId, userId) => {
   return {
     rideId: ride.id,
     status: ride.status,
+    driverId: ride.driverId,
     driver: ride.driver,
     vehicle: ride.vehicle,
     currentLat: ride.currentLat,
@@ -352,7 +347,22 @@ const getTrackingData = async (rideId, userId) => {
     estimatedArrivalMinutes,
     stops: ride.stops,
     startedAt: ride.startedAt,
-    departureTime: ride.departureTime
+    departureTime: ride.departureTime,
+    startLocation: ride.startLocation,
+    destinationLocation: ride.destinationLocation,
+    bookingRequests: ride.bookingRequests.map(br => ({
+      id: br.id,
+      passengerId: br.passengerId,
+      participantStatus: br.participantStatus,
+      plateVerified: br.plateVerified,
+      pickupLat: br.pickupLat,
+      pickupLng: br.pickupLng,
+      dropoffLat: br.dropoffLat,
+      dropoffLng: br.dropoffLng,
+      pickupStopName: br.pickupStopName,
+      dropoffStopName: br.dropoffStopName,
+      passenger: br.passenger,
+    })),
   };
 };
 

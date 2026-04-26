@@ -47,7 +47,7 @@ export default function PublishRidePage() {
     destinationLocation: '',
     startCoords: null,
     destinationCoords: null,
-    rideType: '', 
+    rideType: '',
     departureTime: '',
     seatsTotal: 2,
     farePerSeat: '',
@@ -55,15 +55,39 @@ export default function PublishRidePage() {
     confirmedStops: [],
   });
 
+  const COORDS_ONLY_REGEX =
+    /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+
+  const cleanAddressLabel = (value, fallback = 'Current Location') => {
+    if (!value) return fallback;
+
+    const str = String(value).trim();
+    if (!str || COORDS_ONLY_REGEX.test(str)) return fallback;
+
+    const parts = str
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return parts.length ? parts.join(', ') : fallback;
+  };
+
   const handleGetLocation = useCallback(async (fieldName = 'startLocation') => {
     try {
       const loc = await requestLocation();
-      const address = await reverseGeocode(loc.latitude, loc.longitude);
-      setForm(f => ({ 
-        ...f, 
-        [fieldName]: address,
-        [`${fieldName === 'startLocation' ? 'start' : 'destination'}Coords`]: { lat: loc.latitude, lng: loc.longitude }
+      const rawAddress = await reverseGeocode(loc.latitude, loc.longitude);
+      const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+
+      setForm((f) => ({
+        ...f,
+        [fieldName]: cleanAddress,
+        [`${fieldName === 'startLocation' ? 'start' : 'destination'}Coords`]: {
+          lat: loc.latitude,
+          lng: loc.longitude,
+        },
       }));
+
       showSuccess('Current location updated');
     } catch (err) {
       showError('Failed to get current location');
@@ -75,8 +99,14 @@ export default function PublishRidePage() {
       navigate('/enable-location', { state: { from: '/rides/publish' } });
     } else if (locationStatus === 'granted' && latitude && longitude && !form.startLocation) {
       // Auto-set start location on load if granted
-      reverseGeocode(latitude, longitude).then(address => {
-        setForm(f => ({ ...f, startLocation: address }));
+      reverseGeocode(latitude, longitude).then((rawAddress) => {
+        const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+
+        setForm((f) => ({
+          ...f,
+          startLocation: cleanAddress,
+          startCoords: { lat: latitude, lng: longitude },
+        }));
       });
     }
   }, [locationStatus, latitude, longitude, navigate]);
@@ -90,14 +120,14 @@ export default function PublishRidePage() {
   });
 
   const [errors, setErrors] = useState({});
-  const [suggestedFare, setSuggestedFare] = useState(0); 
-  const [fareCap, setFareCap] = useState(0); 
+  const [suggestedFare, setSuggestedFare] = useState(0);
+  const [fareCap, setFareCap] = useState(0);
   const [fetchingFare, setFetchingFare] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // Helper to map our new UI to the existing scheduling state
   const selectedDate = scheduling.dateType === 'custom' ? scheduling.customDate : scheduling.dateType;
-  
+
   const setSelectedDate = (val) => {
     if (val === 'today' || val === 'tomorrow') {
       setScheduling(s => ({ ...s, dateType: val, customDate: '' }));
@@ -111,26 +141,26 @@ export default function PublishRidePage() {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    
+
     // First day of current month
     const firstDay = new Date(year, month, 1);
     // Last day of current month
     const lastDay = new Date(year, month + 1, 0);
-    
+
     const days = [];
-    
+
     // Add padding for start of month (e.g. if month starts on Wed)
     const startDay = firstDay.getDay(); // 0 is Sunday
     const padding = startDay === 0 ? 6 : startDay - 1; // Adjust to start with Monday
     for (let i = 0; i < padding; i++) {
       days.push(null);
     }
-    
+
     // Add actual days
     for (let d = 1; d <= lastDay.getDate(); d++) {
       days.push(new Date(year, month, d));
     }
-    
+
     // Add next month days to fill 14-day requirement or just show full month
     // User wants a "Real Calendar Layout", so showing the full month is better.
     return days;
@@ -158,8 +188,8 @@ export default function PublishRidePage() {
   const handleCustomDateSelect = (dateStr) => {
     const selected = new Date(dateStr);
     const today = new Date();
-    today.setHours(0,0,0,0);
-    
+    today.setHours(0, 0, 0, 0);
+
     if (selected < today) return; // Prevent past dates
     setSelectedDate(dateStr);
   };
@@ -184,7 +214,7 @@ export default function PublishRidePage() {
           const intelligenceData = res.data;
           const fare = intelligenceData?.fareSuggestion?.suggestedFarePerSeat || 0;
           const cap = intelligenceData?.fareSuggestion?.fareCap || 0;
-          
+
           setSuggestedFare(fare);
           setFareCap(cap);
 
@@ -196,7 +226,7 @@ export default function PublishRidePage() {
         } finally {
           setFetchingFare(false);
         }
-      }, 1000); 
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
@@ -244,12 +274,12 @@ export default function PublishRidePage() {
     const baseDate = new Date();
     if (selectedDate === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
     else if (selectedDate !== 'today' && selectedDate !== 'tomorrow') {
-        const [y, mm, dd] = selectedDate.split('-');
-        baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
+      const [y, mm, dd] = selectedDate.split('-');
+      baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
     }
     const [h, m] = val.split(':');
     baseDate.setHours(parseInt(h), parseInt(m), 0);
-    
+
     setForm(f => ({ ...f, departureTime: baseDate.toISOString() }));
   };
 
@@ -277,7 +307,7 @@ export default function PublishRidePage() {
     if (!form.startLocation) validationErrors.startLocation = 'Please select a starting location';
     if (!form.destinationLocation) validationErrors.destinationLocation = 'Please select a drop-off location';
     if (!form.vehicleId) validationErrors.vehicleId = 'Please select a vehicle first';
-    
+
     if (form.rideType === 'SCHEDULED') {
       if (!scheduling.dateType) validationErrors.dateType = 'Please select a date';
       if (scheduling.mode === 'slot' && !scheduling.selectedSlot) {
@@ -300,8 +330,8 @@ export default function PublishRidePage() {
     try {
       const payload = {
         ...form,
-        targetSlot: scheduling.mode === 'slot' 
-          ? SLOTS.find(s => s.id === scheduling.selectedSlot)?.label 
+        targetSlot: scheduling.mode === 'slot'
+          ? SLOTS.find(s => s.id === scheduling.selectedSlot)?.label
           : null,
         seatsTotal: Number(form.seatsTotal),
         farePerSeat: Number(form.farePerSeat),
@@ -387,8 +417,8 @@ export default function PublishRidePage() {
                 {form.startLocation || 'Select starting location'}
               </span>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="location-card__target-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -413,8 +443,8 @@ export default function PublishRidePage() {
                 {form.destinationLocation || 'Select drop-off location'}
               </span>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="location-card__target-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -510,8 +540,8 @@ export default function PublishRidePage() {
               >
                 <Calendar size={16} />
                 <span>
-                  {scheduling.dateType === 'custom' && scheduling.customDate 
-                    ? new Date(scheduling.customDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+                  {scheduling.dateType === 'custom' && scheduling.customDate
+                    ? new Date(scheduling.customDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     : 'Pick Date'}
                 </span>
               </button>
@@ -565,8 +595,8 @@ export default function PublishRidePage() {
                               const baseDate = new Date();
                               if (scheduling.dateType === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
                               else if (scheduling.dateType === 'custom' && scheduling.customDate) {
-                                  const [y, mm, dd] = scheduling.customDate.split('-');
-                                  baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
+                                const [y, mm, dd] = scheduling.customDate.split('-');
+                                baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
                               }
                               baseDate.setHours(parseInt(h), parseInt(m), 0);
                               setForm(f => ({ ...f, departureTime: baseDate.toISOString() }));
@@ -599,7 +629,7 @@ export default function PublishRidePage() {
                 ) : (
                   <>
                     <div className={`custom-time-picker-container fade-in ${errors.exactTime ? 'has-error' : ''}`}>
-                      <div 
+                      <div
                         className={`time-display-card ${isTimePickerOpen ? 'active' : ''} ${errors.exactTime ? 'error' : ''}`}
                         onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
                       >
@@ -625,7 +655,7 @@ export default function PublishRidePage() {
                               <span className="column-label">Hour</span>
                               <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
-                                  <button 
+                                  <button
                                     key={h}
                                     className={`option-btn ${scheduling.exactTime && parseInt(scheduling.exactTime.split(':')[0]) % 12 === h % 12 ? 'selected' : ''}`}
                                     onClick={() => {
@@ -646,7 +676,7 @@ export default function PublishRidePage() {
                               <span className="column-label">Min</span>
                               <div className="column-options scroll-wheel">
                                 {Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')).map(m => (
-                                  <button 
+                                  <button
                                     key={m}
                                     className={`option-btn ${scheduling.exactTime && scheduling.exactTime.split(':')[1] === m ? 'selected' : ''}`}
                                     onClick={() => {
@@ -668,7 +698,7 @@ export default function PublishRidePage() {
                                   const isPM = hh >= 12;
                                   const isActive = (p === 'PM' && isPM) || (p === 'AM' && !isPM);
                                   return (
-                                    <button 
+                                    <button
                                       key={p}
                                       className={`option-btn ${isActive ? 'selected' : ''}`}
                                       onClick={() => {
@@ -687,7 +717,7 @@ export default function PublishRidePage() {
                               </div>
                             </div>
                           </div>
-                          <button 
+                          <button
                             className="picker-done-btn"
                             type="button"
                             onClick={() => setIsTimePickerOpen(false)}
@@ -713,7 +743,7 @@ export default function PublishRidePage() {
               </div>
               <span className="detail-card__label">Seats</span>
             </div>
-            
+
             <div className="stepper-container">
               <button type="button" className="stepper-btn" onClick={() => handleSeatsChange(-1)}>
                 <Minus size={18} strokeWidth={3} />
@@ -723,7 +753,7 @@ export default function PublishRidePage() {
                 <Plus size={18} strokeWidth={3} />
               </button>
             </div>
-            
+
             <span className="detail-card__helper">Available seats for passengers</span>
           </div>
 
@@ -736,48 +766,48 @@ export default function PublishRidePage() {
             </div>
 
             <div className="fare-input-wrapper">
-                <div className="fare-hero-field">
-                  <span className="fare-currency">Rs</span>
-                  <input
-                    type="number"
-                    name="farePerSeat"
-                    className="fare-main-input"
-                    value={form.farePerSeat}
-                    onChange={handleChange}
-                    placeholder="0"
-                  />
-                </div>
+              <div className="fare-hero-field">
+                <span className="fare-currency">Rs</span>
+                <input
+                  type="number"
+                  name="farePerSeat"
+                  className="fare-main-input"
+                  value={form.farePerSeat}
+                  onChange={handleChange}
+                  placeholder="0"
+                />
+              </div>
 
-                <div className="fare-intelligence-v2">
-                  {fetchingFare ? (
-                    <span className="intelligence-loading pulse">Calculating...</span>
-                  ) : form.startLocation && form.destinationLocation && form.startLocation === form.destinationLocation ? (
-                    <span className="intelligence-hint error-hint">Start and end locations must be different</span>
-                  ) : suggestedFare > 0 ? (
-                    <>
-                      <div className="suggestion-row">
-                        <div className="suggestion-details">
-                          <span className="suggestion-text">Suggested Rs {suggestedFare}</span>
-                          {fareCap > 0 && (
-                            <span className="max-cap-text">Max allowed Rs {fareCap}</span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          className="apply-pill-btn"
-                          onClick={() => {
-                            setForm(f => ({ ...f, farePerSeat: suggestedFare.toString() }));
-                            setErrors(prev => ({ ...prev, farePerSeat: false }));
-                          }}
-                        >
-                          Apply
-                        </button>
+              <div className="fare-intelligence-v2">
+                {fetchingFare ? (
+                  <span className="intelligence-loading pulse">Calculating...</span>
+                ) : form.startLocation && form.destinationLocation && form.startLocation === form.destinationLocation ? (
+                  <span className="intelligence-hint error-hint">Start and end locations must be different</span>
+                ) : suggestedFare > 0 ? (
+                  <>
+                    <div className="suggestion-row">
+                      <div className="suggestion-details">
+                        <span className="suggestion-text">Suggested Rs {suggestedFare}</span>
+                        {fareCap > 0 && (
+                          <span className="max-cap-text">Max allowed Rs {fareCap}</span>
+                        )}
                       </div>
-                    </>
-                  ) : (
-                    <span className="intelligence-hint">Enter locations for suggestions</span>
-                  )}
-                </div>
+                      <button
+                        type="button"
+                        className="apply-pill-btn"
+                        onClick={() => {
+                          setForm(f => ({ ...f, farePerSeat: suggestedFare.toString() }));
+                          setErrors(prev => ({ ...prev, farePerSeat: false }));
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <span className="intelligence-hint">Enter locations for suggestions</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -810,15 +840,34 @@ export default function PublishRidePage() {
 
       {activeMapInput && (
         <MapPicker
-          initialLocation={{ lat: latitude, lng: longitude }}
+          initialLocation={{
+            lat:
+              activeMapInput === 'startLocation'
+                ? form.startCoords?.lat ?? latitude
+                : form.destinationCoords?.lat ?? latitude,
+            lng:
+              activeMapInput === 'startLocation'
+                ? form.startCoords?.lng ?? longitude
+                : form.destinationCoords?.lng ?? longitude,
+            address:
+              activeMapInput === 'startLocation'
+                ? form.startLocation
+                : form.destinationLocation,
+          }}
           onClose={() => setActiveMapInput(null)}
           onConfirm={(address, coords) => {
-            setForm((f) => ({ 
-              ...f, 
-              [activeMapInput]: address,
-              [`${activeMapInput === 'startLocation' ? 'start' : 'destination'}Coords`]: coords
+            const cleanAddress = cleanAddressLabel(
+              address,
+              activeMapInput === 'startLocation' ? 'Current Location' : 'Pinned Location'
+            );
+
+            setForm((f) => ({
+              ...f,
+              [activeMapInput]: cleanAddress,
+              [`${activeMapInput === 'startLocation' ? 'start' : 'destination'}Coords`]: coords,
             }));
-            setErrors(prev => ({ ...prev, [activeMapInput]: false }));
+
+            setErrors((prev) => ({ ...prev, [activeMapInput]: false }));
             setActiveMapInput(null);
           }}
         />
@@ -844,19 +893,19 @@ export default function PublishRidePage() {
               <div className="calendar-month-header">
                 {getMonthName()}
               </div>
-              
+
               <div className="calendar-weekdays">
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => <span key={d}>{d}</span>)}
               </div>
-              
+
               <div className="calendar-grid">
                 {getCalendarDays().map((date, idx) => {
                   if (!date) return <div key={`empty-${idx}`} className="calendar-day empty" />;
-                  
+
                   const dateStr = formatFullDate(date);
                   const isSelected = selectedDate === dateStr;
                   const today = new Date();
-                  today.setHours(0,0,0,0);
+                  today.setHours(0, 0, 0, 0);
                   const isPast = date < today;
                   const isToday = date.getTime() === today.getTime();
 
@@ -874,7 +923,7 @@ export default function PublishRidePage() {
                 })}
               </div>
             </div>
-            
+
             <div className="date-picker-footer">
               <div className="selected-date-preview">
                 {selectedDate && !['today', 'tomorrow'].includes(selectedDate) ? (
@@ -888,8 +937,8 @@ export default function PublishRidePage() {
                   <span className="preview-placeholder">No date selected</span>
                 )}
               </div>
-              <button 
-                className="confirm-date-btn" 
+              <button
+                className="confirm-date-btn"
                 onClick={() => setIsDatePickerOpen(false)}
                 disabled={!selectedDate || ['today', 'tomorrow'].includes(selectedDate)}
               >

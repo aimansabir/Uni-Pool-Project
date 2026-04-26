@@ -169,26 +169,72 @@ const createRide = async (driverId, data) => {
     return ride;
 };
 
-const getMyRides = async (driverId) => {
-    return prisma.ride.findMany({
-        where: { driverId },
+const getMyRides = async (userId) => {
+    // Return rides where user is the driver OR has an accepted booking as passenger
+    const rides = await prisma.ride.findMany({
+        where: {
+            OR: [
+                { driverId: userId },
+                {
+                    bookingRequests: {
+                        some: {
+                            passengerId: userId,
+                            status: 'ACCEPTED',
+                        },
+                    },
+                },
+            ],
+        },
         include: {
             vehicle: true,
             stops: {
                 orderBy: { sequence: 'asc' },
             },
+            bookingRequests: {
+                where: { status: 'ACCEPTED' },
+                select: {
+                    id: true,
+                    passengerId: true,
+                    participantStatus: true,
+                },
+            },
         },
         orderBy: { createdAt: 'desc' },
     });
+
+    // Add a role flag so frontend knows if user is driver or passenger
+    return rides.map(ride => ({
+        ...ride,
+        userRole: ride.driverId === userId ? 'DRIVER' : 'PASSENGER',
+    }));
 };
 
-const getRideById = async (rideId, driverId) => {
+
+const getRideById = async (rideId, userId) => {
     const ride = await prisma.ride.findUnique({
         where: { id: rideId },
         include: {
+            driver: {
+                select: { id: true, fullName: true, trustScore: true, phone: true }
+            },
             vehicle: true,
             stops: {
                 orderBy: { sequence: 'asc' },
+            },
+            bookingRequests: {
+                where: {
+                    OR: [
+                        { status: 'ACCEPTED' },
+                        { passengerId: userId }
+                    ]
+                },
+                select: {
+                    id: true,
+                    passengerId: true,
+                    participantStatus: true,
+                    requestedSeats: true,
+                    status: true,
+                },
             },
         },
     });
@@ -197,12 +243,19 @@ const getRideById = async (rideId, driverId) => {
         throw new Error('Ride not found.');
     }
 
-    if (ride.driverId !== driverId) {
+    const isDriver = ride.driverId === userId;
+    const isPassenger = ride.bookingRequests.some(br => br.passengerId === userId);
+
+    if (!isDriver && !isPassenger) {
         throw new Error('Unauthorized.');
     }
 
-    return ride;
+    return {
+        ...ride,
+        userRole: isDriver ? 'DRIVER' : 'PASSENGER',
+    };
 };
+
 
 const updateRide = async (rideId, driverId, data) => {
     const existingRide = await prisma.ride.findUnique({
