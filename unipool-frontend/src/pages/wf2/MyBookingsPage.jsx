@@ -45,7 +45,9 @@ function BookingCard({ booking, onCancel, cancelling }) {
   };
 
   const handleCardClick = () => {
-    if (booking.status === 'ACCEPTED' || booking.status === 'PENDING') {
+    if (ride?.status === 'IN_PROGRESS' && booking.status === 'ACCEPTED') {
+      navigate(`/rides/${ride.id}/track`);
+    } else if (booking.status === 'ACCEPTED' || booking.status === 'PENDING') {
       navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
     }
   };
@@ -103,9 +105,16 @@ function BookingCard({ booking, onCancel, cancelling }) {
         {booking.status === 'ACCEPTED' && (
           <button
             className="bc-track-chip"
-            onClick={(e) => { e.stopPropagation(); navigate(`/rides/${ride?.id}/preview`); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (ride?.status === 'IN_PROGRESS') {
+                navigate(`/rides/${ride?.id}/track`);
+              } else {
+                navigate(`/rides/${ride?.id}/preview`);
+              }
+            }}
           >
-            {isInstant ? 'Track Ride' : 'View Route'} <ChevronRight size={14} />
+            {ride?.status === 'IN_PROGRESS' ? 'Track Ride' : isInstant ? 'Track Ride' : 'View Route'} <ChevronRight size={14} />
           </button>
         )}
       </div>

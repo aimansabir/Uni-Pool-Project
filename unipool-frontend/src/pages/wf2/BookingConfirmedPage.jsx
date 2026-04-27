@@ -115,7 +115,7 @@ export default function BookingConfirmedPage() {
         {isInstant && (
           <button
             className="bc-track-btn"
-            onClick={() => navigate(`/rides/${ride?.id}/preview`)}
+            onClick={() => navigate('/active-ride', { state: { rideId: ride?.id } })}
           >
             Track Ride
           </button>

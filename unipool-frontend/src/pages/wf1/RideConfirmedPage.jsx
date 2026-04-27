@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { formatPKR, formatDateTime } from '../../utils/formatters';
 import Button from '../../components/common/Button/Button';
@@ -8,6 +9,10 @@ export default function RideConfirmedPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const ride = state?.ride;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
   const cleanLocation = (addr) => {

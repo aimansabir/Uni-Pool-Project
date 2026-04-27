@@ -132,15 +132,6 @@ export default function VehiclesPage() {
                   <div className="selection-card__right">
                     <div className="selection-card__header">
                       <h3 className="car-main-title">{vehicle.make} {vehicle.model}</h3>
-                      <div className="header-actions">
-                        {isSelected && (
-                          <div className="selection-check active">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
                     </div>
 
                     <p className="car-sub-details">{vehicle.color} • {vehicle.registrationNumber}</p>
@@ -151,12 +142,6 @@ export default function VehiclesPage() {
                           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                         <span>4 seats</span>
-                      </div>
-                      <div className="meta-item">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        </svg>
-                        <span>Insured</span>
                       </div>
                     </div>
 
@@ -176,6 +161,14 @@ export default function VehiclesPage() {
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                   </div>
+
+                  {isSelected && (
+                    <div className="selection-check active">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
               );
             })}

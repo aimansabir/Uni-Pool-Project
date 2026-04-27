@@ -96,9 +96,12 @@ export default function MessagesPage() {
                   <div className="msg-card-content">
                     <div className="msg-card-header">
                       <span className="msg-card-name">{conv.otherUser?.fullName || 'User'}</span>
-                      <span className="msg-card-time">
-                        {latest ? timeAgo(latest.createdAt) : timeAgo(conv.updatedAt)}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span className="msg-card-time">
+                          {latest ? timeAgo(latest.createdAt) : timeAgo(conv.updatedAt)}
+                        </span>
+                        {hasUnread && <div className="msg-card-unread-indicator" />}
+                      </div>
                     </div>
                     
                     <div className="msg-card-route">
@@ -110,9 +113,7 @@ export default function MessagesPage() {
                     </p>
                   </div>
 
-                  {hasUnread ? (
-                    <div className="msg-card-unread-indicator" />
-                  ) : (
+                  {!hasUnread && (
                     <div className="msg-card-arrow">
                       <ChevronRight size={18} color="#9CA3AF" />
                     </div>

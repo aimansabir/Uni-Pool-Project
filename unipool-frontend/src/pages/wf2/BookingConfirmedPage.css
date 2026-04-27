@@ -92,7 +92,7 @@
 .bc-route-card {
   width: 100%;
   max-width: 360px;
-  background: #fcf8f6;
+  background: #f0f9ff;
   border: 1px solid #E2E8F0;
   border-radius: 20px;
   padding: 20px;
@@ -127,7 +127,7 @@
 .bc-route-connector {
   width: 2px;
   height: 20px;
-  background: #F1F5F9;
+  background: #dadcde;
   margin: 4px 0 4px 4px;
   border-radius: 1px;
 }

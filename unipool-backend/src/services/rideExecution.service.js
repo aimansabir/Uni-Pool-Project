@@ -227,10 +227,18 @@ const getNavigationLink = async (rideId, driverId) => {
   }
 
   const bookingWaypoints = buildWaypointCandidatesFromBookings(ride);
-  const navigationLink =
+  let navigationLink =
     bookingWaypoints.length > 0
       ? buildNavigationLink(bookingWaypoints)
       : buildNavigationLink(ride.stops);
+
+  // Fallback: use routeGeometry start/end coordinates if no stops had valid lat/lng
+  if (!navigationLink && ride.routeGeometry?.coordinates?.length >= 2) {
+    const coords = ride.routeGeometry.coordinates;
+    const start = coords[0];           // [lng, lat]
+    const end = coords[coords.length - 1]; // [lng, lat]
+    navigationLink = `https://www.google.com/maps/dir/?api=1&origin=${start[1]},${start[0]}&destination=${end[1]},${end[0]}`;
+  }
 
   return {
     navigationLink,
@@ -314,26 +322,101 @@ const getTrackingData = async (rideId, userId) => {
     throw createError('This ride has been cancelled.', 400);
   }
 
+  // ── driverLocationFresh ───────────────────────────────────────────
+  const driverLocationFresh = ride.lastLocationAt
+    ? (Date.now() - new Date(ride.lastLocationAt).getTime()) < 60_000
+    : false;
+
+  const driverLat = ride.currentLat;
+  const driverLng = ride.currentLng;
+  const hasDriverLoc = Number.isFinite(driverLat) && Number.isFinite(driverLng);
+
+  // ── viewer (passenger) ETA ────────────────────────────────────────
   let etaTarget = null;
 
   if (viewerBooking && viewerBooking.pickupLat != null && viewerBooking.pickupLng != null) {
-    etaTarget = {
-      lat: viewerBooking.pickupLat,
-      lng: viewerBooking.pickupLng,
-    };
+    etaTarget = { lat: viewerBooking.pickupLat, lng: viewerBooking.pickupLng };
   } else if (ride.stops.length > 0) {
     const nextStop = ride.stops.find((s) => s.lat != null && s.lng != null);
-    if (nextStop) {
-      etaTarget = { lat: nextStop.lat, lng: nextStop.lng };
-    }
+    if (nextStop) etaTarget = { lat: nextStop.lat, lng: nextStop.lng };
   }
 
-  const estimatedArrivalMinutes = await getLiveEtaMinutes(
-    ride.currentLat,
-    ride.currentLng,
-    etaTarget?.lat,
-    etaTarget?.lng
+  // Keep existing estimatedArrivalMinutes — never throw on OSRM failure
+  let estimatedArrivalMinutes = null;
+  try {
+    estimatedArrivalMinutes = await getLiveEtaMinutes(
+      driverLat, driverLng, etaTarget?.lat, etaTarget?.lng
+    );
+  } catch { /* OSRM failure — return null, do not crash */ }
+
+  // ── per-passenger ETAs ────────────────────────────────────────────
+  const enrichedBookings = await Promise.all(
+    ride.bookingRequests.map(async (br) => {
+      let etaToPickupMinutes = null;
+      let etaToDropoffMinutes = null;
+
+      try {
+        if (hasDriverLoc && br.participantStatus === 'BOOKED' &&
+            br.pickupLat != null && br.pickupLng != null) {
+          etaToPickupMinutes = await getLiveEtaMinutes(
+            driverLat, driverLng, br.pickupLat, br.pickupLng
+          );
+        }
+        if (hasDriverLoc && br.participantStatus === 'PICKED_UP' &&
+            br.dropoffLat != null && br.dropoffLng != null) {
+          etaToDropoffMinutes = await getLiveEtaMinutes(
+            driverLat, driverLng, br.dropoffLat, br.dropoffLng
+          );
+        }
+      } catch { /* OSRM failure — return null for this booking */ }
+
+      return {
+        id: br.id,
+        passengerId: br.passengerId,
+        participantStatus: br.participantStatus,
+        plateVerified: br.plateVerified,
+        pickupLat: br.pickupLat,
+        pickupLng: br.pickupLng,
+        dropoffLat: br.dropoffLat,
+        dropoffLng: br.dropoffLng,
+        pickupStopName: br.pickupStopName,
+        dropoffStopName: br.dropoffStopName,
+        arrivedAtStopAt: br.arrivedAtStopAt ?? null,
+        pickedUpAt: br.pickedUpAt ?? null,
+        droppedOffAt: br.droppedOffAt ?? null,
+        noShowMarkedAt: br.noShowMarkedAt ?? null,
+        etaToPickupMinutes,
+        etaToDropoffMinutes,
+        passenger: br.passenger,
+      };
+    })
   );
+
+  // ── nextStopEtaMinutes for driver ────────────────────────────────
+  let nextStopEtaMinutes = null;
+  try {
+    if (hasDriverLoc) {
+      // First priority: next BOOKED pickup
+      const nextBooked = enrichedBookings.find(
+        (b) => b.participantStatus === 'BOOKED' && b.pickupLat != null && b.pickupLng != null
+      );
+      if (nextBooked) {
+        nextStopEtaMinutes = await getLiveEtaMinutes(
+          driverLat, driverLng, nextBooked.pickupLat, nextBooked.pickupLng
+        );
+      } else {
+        // Fallback: next PICKED_UP dropoff
+        const nextDropoff = enrichedBookings.find(
+          (b) => b.participantStatus === 'PICKED_UP' && b.dropoffLat != null && b.dropoffLng != null
+        );
+        if (nextDropoff) {
+          nextStopEtaMinutes = await getLiveEtaMinutes(
+            driverLat, driverLng, nextDropoff.dropoffLat, nextDropoff.dropoffLng
+          );
+        }
+      }
+    }
+  } catch { /* OSRM failure — return null */ }
 
   return {
     rideId: ride.id,
@@ -341,28 +424,18 @@ const getTrackingData = async (rideId, userId) => {
     driverId: ride.driverId,
     driver: ride.driver,
     vehicle: ride.vehicle,
-    currentLat: ride.currentLat,
-    currentLng: ride.currentLng,
+    currentLat: driverLat,
+    currentLng: driverLng,
     lastLocationAt: ride.lastLocationAt,
+    driverLocationFresh,
     estimatedArrivalMinutes,
+    nextStopEtaMinutes,
     stops: ride.stops,
     startedAt: ride.startedAt,
     departureTime: ride.departureTime,
     startLocation: ride.startLocation,
     destinationLocation: ride.destinationLocation,
-    bookingRequests: ride.bookingRequests.map(br => ({
-      id: br.id,
-      passengerId: br.passengerId,
-      participantStatus: br.participantStatus,
-      plateVerified: br.plateVerified,
-      pickupLat: br.pickupLat,
-      pickupLng: br.pickupLng,
-      dropoffLat: br.dropoffLat,
-      dropoffLng: br.dropoffLng,
-      pickupStopName: br.pickupStopName,
-      dropoffStopName: br.dropoffStopName,
-      passenger: br.passenger,
-    })),
+    bookingRequests: enrichedBookings,
   };
 };
 

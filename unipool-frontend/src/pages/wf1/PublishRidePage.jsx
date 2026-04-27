@@ -53,6 +53,8 @@ export default function PublishRidePage() {
     farePerSeat: '',
     genderPreference: 'ANY',
     confirmedStops: [],
+    startCoords: null,
+    destinationCoords: null,
   });
 
   const COORDS_ONLY_REGEX =
@@ -255,7 +257,15 @@ export default function PublishRidePage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [form.startLocation, form.destinationLocation, form.seatsTotal, form.departureTime]);
+  }, [
+    form.startLocation,
+    form.destinationLocation,
+    form.startCoords,
+    form.destinationCoords,
+    form.seatsTotal,
+    form.departureTime,
+    form.rideType
+  ]);
 
   useEffect(() => {
     const fetchVehicles = async () => {

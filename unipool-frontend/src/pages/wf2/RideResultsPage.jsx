@@ -40,7 +40,7 @@ export default function RideResultsPage() {
             dropoffLat: originalFilters.dropoffCoords?.lat,
             dropoffLng: originalFilters.dropoffCoords?.lng,
             targetSlot: originalFilters.targetSlot,
-            rideType: originalFilters.mode === 'slot' ? 'SCHEDULED' : originalFilters.mode === 'exact' ? 'SCHEDULED' : undefined
+            /* Do NOT filter by rideType — show both INSTANT and SCHEDULED rides */
         };
         const res = await ridesApi.searchRides(params);
         setRides(res.data || []);

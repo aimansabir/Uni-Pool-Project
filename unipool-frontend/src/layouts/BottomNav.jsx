@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
+import { chatApi } from '../api/chat.api';
 import './BottomNav.css';
 
 const navItems = [
@@ -61,6 +63,24 @@ const navItems = [
 ];
 
 export default function BottomNav() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await chatApi.listConversations();
+        const total = res.data?.reduce((sum, c) => sum + (c.unreadCount || 0), 0) || 0;
+        setUnreadCount(total);
+      } catch (err) {
+        console.error('Failed to fetch unread count:', err);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000); // Check every 10s
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => (
@@ -75,7 +95,12 @@ export default function BottomNav() {
             return `bottom-nav__item ${(isActive || isPoolingActive) ? 'bottom-nav__item--active' : ''}`;
           }}
         >
-          <span className="bottom-nav__icon">{item.icon}</span>
+          <div className="bottom-nav__icon-container">
+            <span className="bottom-nav__icon">{item.icon}</span>
+            {item.id === 'messages' && unreadCount > 0 && (
+              <span className="bottom-nav__badge">{unreadCount}</span>
+            )}
+          </div>
           <span className="bottom-nav__label">{item.label}</span>
         </NavLink>
       ))}

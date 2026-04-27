@@ -216,6 +216,7 @@ const verify = async ({ ibaEmail, code }) => {
 
   // Create real user and delete pending in a transaction
   const user = await prisma.$transaction(async (tx) => {
+    const normalizedGender = (pending.gender || '').toLowerCase();
     const newUser = await tx.user.create({
       data: {
         fullName: pending.fullName,
@@ -225,6 +226,7 @@ const verify = async ({ ibaEmail, code }) => {
         studentErp: pending.studentErp,
         gender: pending.gender,
         isVerified: true,
+        genderVerified: normalizedGender === 'female',
       },
     });
 
@@ -291,7 +293,11 @@ const updateProfile = async (userId, data) => {
   const updateData = {};
   if (fullName !== undefined) updateData.fullName = fullName;
   if (phone !== undefined) updateData.phone = phone;
-  if (gender !== undefined) updateData.gender = gender;
+  if (gender !== undefined) {
+    updateData.gender = gender;
+    // Auto-verify gender for female users (demo-safe approach)
+    updateData.genderVerified = (gender || '').toLowerCase() === 'female';
+  }
   if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
   // Handle studentErp carefully due to unique constraint

@@ -29,5 +29,12 @@
 .app-layout__content--full-width {
   padding-left: 0;
   padding-right: 0;
-  padding-top: var(--header-height);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* For map-based pages that handle their own scrolling */
+.app-layout__content--immersive {
+  overflow: hidden;
+  height: 100vh;
 }

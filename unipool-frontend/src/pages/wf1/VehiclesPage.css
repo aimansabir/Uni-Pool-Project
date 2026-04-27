@@ -161,24 +161,27 @@
 
 .selection-edit-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  background: #F1F5F9; /* Back to gray */
+  border: 2px solid #ffffff;
+  color: #64748B; /* Darker gray for icon visibility */
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .selection-edit-btn:hover {
-  background: #F1F5F9;
+  background: #E2E8F0;
   transform: scale(1.1);
+  color: #1F2937;
 }
 
 .selection-edit-btn:active {
@@ -192,15 +195,19 @@
 }
 
 .selection-check.active {
+  position: absolute;
+  top: 52px;
+  right: 18px;
   background: #22C55E;
   color: white;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+  z-index: 10;
 }
 
 .selected-pill {

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ridesApi } from '../../api/rides.api';
 import { bookingRequestsApi } from '../../api/bookingRequests.api';
 import { rideExecutionApi } from '../../api/rideExecution.api';
+import { chatApi } from '../../api/chat.api';
 import { useToast } from '../../context/ToastContext';
 import { formatDateTime, formatPKR, timeAgo } from '../../utils/formatters';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
@@ -155,44 +156,87 @@ export default function RideDetailPage() {
 
   const PassengerCard = ({ req, isConfirmed }) => {
     const passenger = req.passenger || {};
+    
+    const handleOpenGoogleMaps = () => {
+      // Try multiple sources for coordinates
+      let finalLat = req.pickupLat || req.pickupStop?.lat;
+      let finalLng = req.pickupLng || req.pickupStop?.lng;
+      
+      // Fallback 1: If passenger is picking up at the ride's start, use start coords
+      if (!finalLat && ride?.routeGeometry?.coordinates?.length > 0) {
+        // Many rides don't have explicit passenger coords, so we use the ride start
+        const [lng, lat] = ride.routeGeometry.coordinates[0];
+        finalLat = lat;
+        finalLng = lng;
+      }
+
+      // Fallback 2: Check the first confirmed stop
+      if (!finalLat && ride?.stops?.length > 0) {
+        const firstStop = ride.stops.find(s => s.lat != null);
+        if (firstStop) {
+          finalLat = firstStop.lat;
+          finalLng = firstStop.lng;
+        }
+      }
+
+      if (finalLat && finalLng) {
+        window.open(`https://www.google.com/maps?q=${finalLat},${finalLng}`, '_blank');
+      } else {
+        showError('Exact coordinates not found. Please coordinate pickup via Message.');
+      }
+    };
+
+    const rawLocation = req.pickupStopName || req.pickupStop?.stopName || ride?.startLocation || 'Pickup Point';
+    const mainLocation = rawLocation.split(',')[0].trim();
+
     return (
       <div className="d-passenger-card">
         <div className="d-passenger-header">
           <div className="d-passenger-info-row">
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
-              alt="Avatar"
-              className="d-passenger-avatar"
-            />
+            <div className="d-passenger-avatar-box">
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
+                alt="Avatar"
+                className="d-passenger-avatar"
+              />
+              {isConfirmed && (
+                <div className="d-confirmed-check">
+                  <Check size={10} color="white" strokeWidth={3} />
+                </div>
+              )}
+            </div>
+            
             <div className="d-passenger-details">
               <div className="d-passenger-name-row">
                 <span className="d-passenger-name">{passenger.fullName}</span>
-                <span className="d-passenger-rating">
-                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                  {(passenger.trustScore ? (passenger.trustScore / 20).toFixed(1) : '5.0')}
-                  <span className="d-passenger-trips">({passenger.totalRides || 0} rides)</span>
-                </span>
+                <div className="d-badge-stack">
+                  {isConfirmed && <span className="d-status-badge confirmed">Confirmed</span>}
+                  {(passenger.totalRatingsReceived || 0) === 0 && (
+                    <span className="d-status-badge new">New</span>
+                  )}
+                </div>
               </div>
-              <div className="d-passenger-meta-lines">
-                <div className="d-passenger-meta-item">
-                  <MapPin size={12} />
-                  <span>Current Location: {req.pickupLocation || 'Main Gate'}</span>
+              
+              <div className="d-passenger-meta-grid">
+                <div className="d-pax-meta-item">
+                  <MapPin size={11} />
+                  <span>{mainLocation}</span>
                 </div>
-                <div className="d-passenger-meta-item">
-                  <Clock size={12} />
-                  <span>Request Time: {formatDateTime(req.createdAt)}</span>
+                <div className="d-pax-meta-item">
+                  <Clock size={11} />
+                  <span>{timeAgo(req.createdAt)}</span>
                 </div>
-                {req.additionalInfo && (
-                  <div className="d-passenger-meta-item note">
-                    <MessageSquare size={12} />
-                    <span>{req.additionalInfo}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
-          {isConfirmed && <div className="d-confirmed-badge">Confirmed</div>}
         </div>
+
+        {req.additionalInfo && (
+          <div className="d-passenger-note">
+            <MessageSquare size={12} />
+            <p>{req.additionalInfo}</p>
+          </div>
+        )}
 
         {!isConfirmed && (
           <div className="d-action-buttons">
@@ -214,12 +258,21 @@ export default function RideDetailPage() {
         )}
 
         <div className="d-passenger-footer">
-          <button className="d-footer-link" onClick={() => showSuccess('Messaging coming soon!')}>
+          <button className="d-footer-link message" onClick={async () => {
+            try {
+              const res = await chatApi.openByBooking(req.id);
+              navigate(`/chat/${res.data.id}`, {
+                state: { otherUser: passenger, ride }
+              });
+            } catch (err) {
+              showError('Failed to open chat');
+            }
+          }}>
             <MessageSquare size={14} /> Message
           </button>
           <div className="d-footer-divider" />
-          <button className="d-footer-link" onClick={() => showSuccess('Map view coming soon!')}>
-            <MapIcon size={14} /> View on Map
+          <button className="d-footer-link maps" onClick={handleOpenGoogleMaps}>
+            <MapIcon size={14} /> Google Maps
           </button>
         </div>
       </div>

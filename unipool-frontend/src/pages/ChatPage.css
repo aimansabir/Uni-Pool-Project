@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 14px;
+  padding: 24px 16px 16px;
   /* Reduced from 48px to 16px */
   background: #ffffff;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -28,11 +28,11 @@
 }
 
 .chat-back-btn {
-  background: #F8FAFC;
+  background: #fef8ed;
   border: 1px solid #E2E8F0;
   border-radius: 50%;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,14 +52,16 @@
   gap: 10px;
   flex: 1;
   padding-left: 4px;
-  min-width: 0; /* Important for preventing overflow */
+  min-width: 0;
+  /* Important for preventing overflow */
 }
 
 .chat-header__text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 0; /* Important for text truncation */
+  min-width: 0;
+  /* Important for text truncation */
 }
 
 .chat-header__avatar {
@@ -77,7 +79,8 @@
 }
 
 .chat-header__name {
-  font-size: 0.95rem;
+  font-size: 15px;
+  /* Changed from 0.95rem */
   font-weight: 700;
   color: #0F172A;
   margin: 0;
@@ -91,7 +94,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.65rem;
+  font-size: 10px;
+  /* Changed from 0.65rem */
   color: #64748B;
   font-weight: 500;
   margin-top: 1px;
@@ -195,6 +199,49 @@
   display: none;
 }
 
+/* ── Empty State ── */
+.chat-empty-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 60px; /* Offset for better visual center */
+}
+
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.chat-empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.chat-empty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px;
+}
+
+.chat-empty-text {
+  font-size: 0.9rem;
+  color: #64748b;
+  max-width: 200px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 /* ── Bubbles ── */
 .chat-bubble-row {
   display: flex;
@@ -226,7 +273,7 @@
 }
 
 .chat-bubble.theirs {
-  background: #ffffff;
+  background: #ebebeb;
   color: #1F2937;
   border-bottom-left-radius: 4px;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../../context/AuthContext';
@@ -119,11 +119,26 @@ export default function DriverLiveRidePage() {
     fetchData(true);
     pollingRef.current = setInterval(() => fetchData(), 10000);
     updateDriverLocation();
-    locationRef.current = setInterval(updateDriverLocation, 25000);
+    locationRef.current = setInterval(updateDriverLocation, 12000);
     return () => { clearInterval(pollingRef.current); clearInterval(locationRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Actions ───────────────────────────────────────────────────── */
+
+  const handleRideAction = async (action, rideId) => {
+    setActionLoading(true);
+    try {
+      if (action === 'start') {
+        await rideExecutionApi.startRide(rideId);
+        showSuccess('Ride started! Drive safely.');
+        await fetchData();
+      }
+    } catch (err) {
+      showError(err.response?.data?.message || `Failed to ${action} ride`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handlePassengerAction = async (action, bookingId) => {
     setActionLoading(true); setLoadingAction(bookingId);
@@ -161,8 +176,17 @@ export default function DriverLiveRidePage() {
   if (ride.status !== 'IN_PROGRESS') return (
     <div className="driver-live-page"><div className="dlr-validation-view fade-in"><div className="dlr-validation-card">
       {ride.status === 'PUBLISHED' ? (<>
-        <Clock size={48} color="#f59e0b" /><h2>Ride Not Started</h2><p>Start this ride from the management screen first.</p>
-        <Button fullWidth variant="accent" onClick={() => navigate(`/rides/${id}/manage`)}>Go to Management</Button>
+        <Navigation size={48} color="#f59e0b" className="pulse-icon" />
+        <h2>Ready to Leave?</h2>
+        <p>Your ride is published. Once you start the journey, passengers can track your live location.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+          <Button fullWidth variant="accent" onClick={() => handleRideAction('start', id)} isLoading={actionLoading}>
+            Start Journey Now ⚡
+          </Button>
+          <Button fullWidth variant="outline" onClick={() => navigate(`/rides/${id}/manage`)}>
+            Manage Passengers
+          </Button>
+        </div>
       </>) : ride.status === 'COMPLETED' ? (<>
         <CheckCircle2 size={48} color="#10b981" /><h2>Ride Completed</h2><p>This ride has already finished.</p>
         <Button fullWidth onClick={() => navigate(`/rides/${id}/rate-members`)}>Rate Members</Button>
@@ -176,21 +200,31 @@ export default function DriverLiveRidePage() {
   /* ── Derived ───────────────────────────────────────────────────── */
 
   const passengers = tracking?.bookingRequests || [];
-  const etaMins = tracking?.estimatedArrivalMinutes ?? ride.durationMin ?? '—';
+  const etaMins = tracking?.nextStopEtaMinutes ?? tracking?.estimatedArrivalMinutes ?? ride.durationMin ?? '—';
   const googleMapsUrl = navData?.navigationLink || null;
+  const driverLocationFresh = tracking?.driverLocationFresh;
+  const hasDriverLoc = tracking?.currentLat && tracking?.currentLng;
+  const driverPos = hasDriverLoc ? [tracking.currentLat, tracking.currentLng] : null;
 
   const polylinePositions = ride.routeGeometry?.coordinates?.map(c => [c[1], c[0]]) || [];
   const startPoint = polylinePositions[0];
   const endPoint = polylinePositions[polylinePositions.length - 1];
 
+  // Status-aware markers: BOOKED→orange pickup, PICKED_UP→red dropoff, DROPPED_OFF→hidden
   const pickupMarkers = passengers
-    .filter(b => b.pickupLat && b.pickupLng && (!b.participantStatus || b.participantStatus === 'BOOKED'))
-    .map(b => ({ lat: b.pickupLat, lng: b.pickupLng, name: b.pickupStopName || 'Pickup', id: b.id }));
+    .filter(b => b.pickupLat && b.pickupLng && (b.participantStatus === 'BOOKED' || !b.participantStatus))
+    .map(b => ({ lat: b.pickupLat, lng: b.pickupLng, name: b.pickupStopName || 'Pickup stop', id: b.id, kind: 'pickup' }));
+
+  const dropoffMarkers = passengers
+    .filter(b => b.dropoffLat && b.dropoffLng && b.participantStatus === 'PICKED_UP')
+    .map(b => ({ lat: b.dropoffLat, lng: b.dropoffLng, name: b.dropoffStopName || 'Drop-off stop', id: b.id, kind: 'dropoff' }));
 
   const allPoints = [
     ...(startPoint ? [startPoint] : []),
     ...(endPoint ? [endPoint] : []),
+    ...(driverPos ? [driverPos] : []),
     ...pickupMarkers.map(m => [m.lat, m.lng]),
+    ...dropoffMarkers.map(m => [m.lat, m.lng]),
   ];
 
   const shortStart = ride.startLocation?.split(',')[0]?.trim();
@@ -200,43 +234,63 @@ export default function DriverLiveRidePage() {
 
   return (
     <div className="driver-live-page fade-in">
-
-      {/* Floating header over map */}
+      {/* 1. Control Layer (Fixed relative to the page container) */}
       <div className="dlr-floating-header">
         <button className="dlr-back-btn" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
-        <span className="dlr-header-title">Live Journey</span>
       </div>
 
-      {/* Full-screen map */}
-      <div className="dlr-map-section">
-        {polylinePositions.length > 1 ? (
-          <MapContainer center={startPoint} zoom={13} scrollWheelZoom={false} zoomControl={false} className="dlr-leaflet-map">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
-            <Polyline positions={polylinePositions} pathOptions={{ color: '#f59e0b', weight: 5, opacity: 0.9 }} />
-            {startPoint && <Marker position={startPoint} icon={greenIcon} />}
-            {endPoint && <Marker position={endPoint} icon={redIcon} />}
-            {pickupMarkers.map(m => <Marker key={m.id} position={[m.lat, m.lng]} icon={orangeIcon} />)}
-            <FitBounds positions={allPoints} />
-          </MapContainer>
-        ) : (
-          <div className="dlr-map-placeholder">
-            <Navigation size={48} color="#f59e0b" strokeWidth={1.5} />
-            <p>Route map not available</p>
-          </div>
-        )}
+      {googleMapsUrl && (
+        <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="dlr-gmaps-fab">
+          <Navigation size={16} fill="#fff" /> Navigate
+        </a>
+      )}
 
-        {/* Navigate button (like RoutePreviewPage) */}
-        {googleMapsUrl && (
-          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="dlr-gmaps-fab">
-            <Navigation size={16} fill="#fff" /> Navigate
-          </a>
-        )}
-      </div>
+      {/* 2. Scrollable Content Layer */}
+      <div className="dlr-scroll-container">
+        <div className="dlr-map-section">
+          {polylinePositions.length > 1 ? (
+            <MapContainer center={startPoint} zoom={13} scrollWheelZoom={false} zoomControl={false} className="dlr-leaflet-map">
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+              <Polyline positions={polylinePositions} pathOptions={{ color: '#f59e0b', weight: 5, opacity: 0.9 }} />
+              {startPoint && (
+                <Marker position={startPoint} icon={greenIcon}>
+                  <Popup><strong>Start:</strong> {ride.startLocation}</Popup>
+                </Marker>
+              )}
+              {endPoint && (
+                <Marker position={endPoint} icon={redIcon}>
+                  <Popup><strong>Destination:</strong> {ride.destinationLocation}</Popup>
+                </Marker>
+              )}
+              {pickupMarkers.map(m => (
+                <Marker key={`pickup-${m.id}`} position={[m.lat, m.lng]} icon={orangeIcon}>
+                  <Popup><strong>Pickup stop:</strong> {m.name}</Popup>
+                </Marker>
+              ))}
+              {dropoffMarkers.map(m => (
+                <Marker key={`dropoff-${m.id}`} position={[m.lat, m.lng]} icon={redIcon}>
+                  <Popup><strong>Drop-off stop:</strong> {m.name}</Popup>
+                </Marker>
+              ))}
+              {driverPos && (
+                <CircleMarker center={driverPos} radius={10}
+                  pathOptions={{ color: '#1d4ed8', fillColor: '#3b82f6', fillOpacity: 1, weight: 3 }}>
+                  <Popup><strong>Driver location</strong></Popup>
+                </CircleMarker>
+              )}
+              <FitBounds positions={allPoints} />
+            </MapContainer>
+          ) : (
+            <div className="dlr-map-placeholder">
+              <Navigation size={48} color="#f59e0b" strokeWidth={1.5} />
+              <p>Route map not available</p>
+            </div>
+          )}
+        </div>
 
-      {/* Bottom sheet */}
-      <div className="dlr-bottom-sheet">
+        <div className="dlr-bottom-sheet">
         <div className="dlr-sheet-handle" />
 
         {/* Route pill */}
@@ -245,15 +299,17 @@ export default function DriverLiveRidePage() {
           <span className="route-label">{shortStart} → {shortDest}</span>
         </div>
 
-        {/* ETA */}
+        {/* ETA row */}
         <div className="dlr-eta-row">
           <Navigation size={16} color="#f59e0b" fill="#f59e0b" />
-          <span>ETA to next stop: <strong>{etaMins} mins</strong></span>
+          <span>ETA to next stop: <strong>{etaMins === '—' ? '—' : `${etaMins} mins`}</strong></span>
         </div>
 
-        {locationError && (
+        {/* Stale location / GPS warning */}
+        {(locationError || driverLocationFresh === false) && (
           <div className="dlr-location-warning">
-            <AlertCircle size={14} /><span>{locationError}</span>
+            <AlertCircle size={14} />
+            <span>{locationError || 'Waiting for fresh driver location — enable GPS for live ETA'}</span>
           </div>
         )}
 
@@ -283,7 +339,15 @@ export default function DriverLiveRidePage() {
                 />
                 <div className="dlr-pax-meta">
                   <h4>{b.passenger?.fullName || 'Passenger'}</h4>
-                  <p><MapPin size={13} /> {isPickedUp ? (b.dropoffStopName || 'Drop-off') : (b.pickupStopName || 'Pickup')}</p>
+                  <p><MapPin size={13} /> {isPickedUp ? (b.dropoffStopName || 'Drop-off stop') : (b.pickupStopName || 'Pickup stop')}</p>
+                  {isBooked && b.etaToPickupMinutes != null && (
+                    <p className="dlr-pax-eta"><Clock size={12} /> ETA to pickup: <strong>{b.etaToPickupMinutes} min</strong></p>
+                  )}
+                  {isPickedUp && b.etaToDropoffMinutes != null && (
+                    <p className="dlr-pax-eta"><Clock size={12} /> ETA to drop-off: <strong>{b.etaToDropoffMinutes} min</strong></p>
+                  )}
+                  {isDroppedOff && <p className="dlr-pax-eta dlr-eta-done">Dropped off ✓</p>}
+                  {isNoShow && <p className="dlr-pax-eta dlr-eta-noshow">No-show</p>}
                 </div>
                 {isNoShow && <span className="dlr-badge dlr-badge-noshow">No Show</span>}
                 {isDroppedOff && <span className="dlr-badge dlr-badge-dropped">Dropped Off</span>}
@@ -292,11 +356,17 @@ export default function DriverLiveRidePage() {
 
               {isBooked && (
                 <div className="dlr-pax-actions">
-                  <button className="dlr-action-btn dlr-btn-pickup" disabled={busy} onClick={() => handlePassengerAction('pickup', b.id)}>
+                  <button className="dlr-action-btn dlr-btn-arrived" disabled={busy}
+                    onClick={() => handlePassengerAction('arrived', b.id)}>
+                    Arrived at Stop
+                  </button>
+                  <button className="dlr-action-btn dlr-btn-pickup" disabled={busy}
+                    onClick={() => handlePassengerAction('pickup', b.id)}>
                     Passenger Picked Up
                   </button>
-                  <button className="dlr-action-btn dlr-btn-noshow" disabled={busy} onClick={() => setShowConfirm({ type: 'noshow', id: b.id })}>
-                    Mark as no show
+                  <button className="dlr-action-btn dlr-btn-noshow" disabled={busy}
+                    onClick={() => setShowConfirm({ type: 'noshow', id: b.id })}>
+                    Mark No-Show
                   </button>
                 </div>
               )}
@@ -340,6 +410,7 @@ export default function DriverLiveRidePage() {
         variant={showConfirm?.type === 'noshow' ? 'danger' : 'primary'}
         isLoading={actionLoading}
       />
+      </div>
     </div>
   );
 }

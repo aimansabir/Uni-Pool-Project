@@ -67,15 +67,22 @@ const geocodeSingleAttempt = async (query) => {
 const geocodeLocation = async (query) => {
     const normalized = normalizeLocationQuery(query);
 
-    const attempts = [
-        normalized,
-        `${normalized}, Karachi`,
-        `${normalized}, Karachi, Pakistan`,
-    ].filter((value, index, arr) => value && arr.indexOf(value) === index);
+    const attempts = [normalized];
+    
+    // Only add Karachi suffix if not already present
+    if (!normalized.toLowerCase().includes('karachi')) {
+        attempts.push(`${normalized}, Karachi`);
+        attempts.push(`${normalized}, Karachi, Pakistan`);
+    } else if (!normalized.toLowerCase().includes('pakistan')) {
+        attempts.push(`${normalized}, Pakistan`);
+    }
+
+    // Filter unique attempts
+    const uniqueAttempts = [...new Set(attempts)];
 
     let lastError = null;
 
-    for (const attempt of attempts) {
+    for (const attempt of uniqueAttempts) {
         try {
             return await geocodeSingleAttempt(attempt);
         } catch (err) {
@@ -165,6 +172,8 @@ const extractRoadHighlights = (route) => {
 const buildRideIntelligence = async ({
     startLocation,
     destinationLocation,
+    startCoords,
+    destinationCoords,
     seatsTotal,
     rideType,
     departureTime,
@@ -173,8 +182,20 @@ const buildRideIntelligence = async ({
         throw new Error('startLocation and destinationLocation are required.');
     }
 
-    const start = await geocodeLocation(startLocation);
-    const destination = await geocodeLocation(destinationLocation);
+    // Prioritize coords from frontend if available
+    let start;
+    if (startCoords && startCoords.lat && startCoords.lng) {
+        start = { label: startLocation, lat: Number(startCoords.lat), lng: Number(startCoords.lng) };
+    } else {
+        start = await geocodeLocation(startLocation);
+    }
+
+    let destination;
+    if (destinationCoords && destinationCoords.lat && destinationCoords.lng) {
+        destination = { label: destinationLocation, lat: Number(destinationCoords.lat), lng: Number(destinationCoords.lng) };
+    } else {
+        destination = await geocodeLocation(destinationLocation);
+    }
 
     const routes = await fetchRoutes(start, destination);
 

@@ -46,7 +46,10 @@ export default function ActiveRidePage() {
       const rideData = res.data;
 
       
-      if (rideData && rideData.status === 'IN_PROGRESS') {
+      const isInstant = rideData && rideData.rideType === 'INSTANT';
+      const isLiveOrInstant = rideData && (rideData.status === 'IN_PROGRESS' || (rideData.status === 'PUBLISHED' && isInstant));
+
+      if (isLiveOrInstant) {
         if (rideData.driverId === user?.id) {
           navigate(`/rides/${rideData.id}/live`, { replace: true });
           return;
@@ -55,8 +58,12 @@ export default function ActiveRidePage() {
           navigate(`/rides/${rideData.id}/track`, { replace: true });
           return;
         }
-      } else if (rideData && rideData.status !== 'IN_PROGRESS') {
-        setError('This ride has not started yet or is already completed.');
+      } else if (rideData && rideData.status === 'COMPLETED') {
+        setError('This ride has already been completed.');
+        setLoading(false);
+        return;
+      } else if (rideData && rideData.status === 'CANCELLED') {
+        setError('This ride has been cancelled.');
         setLoading(false);
         return;
       }

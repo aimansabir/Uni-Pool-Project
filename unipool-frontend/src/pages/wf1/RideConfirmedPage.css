@@ -2,14 +2,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 20px 40px;
+  padding: 40px 20px 40px;
   background-color: #F9FAFB;
   min-height: calc(100vh - 64px);
 }
 
 .ride-confirmed__illustration {
-  margin-top: 20px;
-  margin-bottom: 32px;
+  margin-top: 10px;
+  margin-bottom: 24px;
   perspective: 1000px;
 }
 

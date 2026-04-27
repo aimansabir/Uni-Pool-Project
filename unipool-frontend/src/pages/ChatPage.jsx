@@ -58,8 +58,10 @@ export default function ChatPage() {
   const [showMenu, setShowMenu] = useState(false);
 
   const bottomRef = useRef(null);
+  const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const pollRef = useRef(null);
+  const isFirstLoad = useRef(true);
 
   const otherUser = state?.otherUser;
   const ride = state?.ride;
@@ -83,14 +85,33 @@ export default function ChatPage() {
     return () => clearInterval(pollRef.current);
   }, [fetchMessages]);
 
-  // Scroll to bottom whenever messages change
+  // Scroll to bottom logic
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!messages.length || !scrollRef.current) return;
+
+    const container = scrollRef.current;
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 200;
+    const isMyMessage = messages[messages.length - 1]?.senderId === user?.id;
+    const isOptimistic = messages[messages.length - 1]?.optimistic;
+
+    if (isFirstLoad.current || isOptimistic || isAtBottom) {
+      // Use 'smooth' only for your own NEW messages, otherwise 'auto' to prevent jitter
+      const behavior = (isOptimistic && !isFirstLoad.current) ? 'smooth' : 'auto';
+      bottomRef.current?.scrollIntoView({ behavior });
+      
+      if (isFirstLoad.current) {
+        // Double scroll on first load to ensure we are at the very bottom
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+          isFirstLoad.current = false;
+        }, 50);
+      }
+    }
+  }, [messages, user?.id]);
 
   const handleSend = async () => {
     const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || !user?.id) return;
 
     // Optimistic insert
     const optimistic = {
@@ -178,15 +199,18 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="chat-messages">
+      <div className="chat-messages" ref={scrollRef}>
         {loading ? (
           <div className="chat-loading">
             <Loader2 size={28} className="spin" color="#F59E0B" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="chat-empty">
-            <div className="chat-empty__icon">👋</div>
-            <p>Say hello to {otherUser?.fullName?.split(' ')[0] || 'them'}!</p>
+          <div className="chat-empty-container">
+            <div className="chat-empty-state">
+              <div className="chat-empty-icon">👋</div>
+              <h3 className="chat-empty-title">Say hello to {otherUser?.fullName?.split(' ')[0] || 'them'}!</h3>
+              <p className="chat-empty-text">Start a conversation to coordinate your ride details.</p>
+            </div>
           </div>
         ) : (
           grouped.map((item) => {

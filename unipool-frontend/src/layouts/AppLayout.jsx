@@ -8,8 +8,8 @@ export default function AppLayout() {
   const location = useLocation();
 
   // Pages where we hide the bottom nav for immersive experience
-  const hideNav = ['/verify', '/chat'].some((p) =>
-    location.pathname.startsWith(p)
+  const hideNav = ['/verify', '/chat', '/preview'].some((p) =>
+    location.pathname.includes(p) || location.pathname.startsWith(p)
   );
 
   const hideHeader = location.pathname === '/rides/publish' ||
@@ -17,17 +17,29 @@ export default function AppLayout() {
     location.pathname === '/rides/find' ||
     location.pathname === '/rides/results' ||
     location.pathname === '/financials' ||
-    location.pathname === '/financials' ||
-    location.pathname.startsWith('/chat');
+    location.pathname.startsWith('/chat') ||
+    location.pathname.includes('/preview') ||
+    location.pathname.startsWith('/active-ride') ||
+    location.pathname.includes('/live') ||
+    location.pathname.includes('/track');
 
   const isChat = location.pathname.startsWith('/chat');
-  const isFullWidth = location.pathname === '/financials' || location.pathname.includes('/preview');
+  const isFullWidth = location.pathname === '/financials' || 
+    location.pathname.includes('/preview') ||
+    location.pathname.startsWith('/active-ride') ||
+    location.pathname.includes('/live') ||
+    location.pathname.includes('/track');
+
+  const isImmersive = location.pathname.includes('/preview') ||
+    location.pathname.startsWith('/active-ride') ||
+    location.pathname.includes('/live') ||
+    location.pathname.includes('/track');
 
   return (
     <div className="app-shell">
       <GlobalToaster />
       {!hideHeader && <Header />}
-      <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''} ${hideHeader ? 'app-layout__content--no-header' : ''} ${isChat ? 'app-layout__content--chat' : ''} ${isFullWidth ? 'app-layout__content--full-width' : ''}`}>
+      <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''} ${hideHeader ? 'app-layout__content--no-header' : ''} ${isChat ? 'app-layout__content--chat' : ''} ${isFullWidth ? 'app-layout__content--full-width' : ''} ${isImmersive ? 'app-layout__content--immersive' : ''}`}>
         <Outlet />
       </main>
       {!hideNav && <BottomNav />}

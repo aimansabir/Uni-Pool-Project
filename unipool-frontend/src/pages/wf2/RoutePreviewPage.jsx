@@ -130,7 +130,7 @@ export default function RoutePreviewPage() {
                 state: { booking: res.data, ride }
             });
         } catch (err) {
-            showError(err.response?.data?.message || 'Failed to request seat');
+            showError(err.message || 'Failed to request seat');
         } finally {
             setLoading(false);
         }
@@ -138,56 +138,63 @@ export default function RoutePreviewPage() {
 
     return (
         <div className="route-preview-page">
-            <div className="preview-map-container">
-                <MapContainer
-                    center={startPoint || [24.8607, 67.0011]}
-                    zoom={13}
-                    style={{ height: '100%', width: '100%' }}
-                    zoomControl={false}
-                >
-                    <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    {polylinePositions.length > 0 && (
-                        <>
-                            <Polyline
-                                positions={polylinePositions}
-                                color="#F59E0B"
-                                weight={5}
-                                opacity={0.8}
-                                lineJoin="round"
-                            />
-                            <Marker position={startPoint} icon={startIcon}>
-                                <Popup>Pickup: {getShortAddress(ride.startLocation)}</Popup>
-                            </Marker>
-                            <Marker position={endPoint} icon={endIcon}>
-                                <Popup>Drop-off: {getShortAddress(ride.destinationLocation)}</Popup>
-                            </Marker>
-                            <MapBounds positions={polylinePositions} />
-                        </>
-                    )}
-                </MapContainer>
-
-                <button className="gmaps-shortcut-btn" onClick={handleOpenGoogleMaps} title="Open in Google Maps">
-                    <Navigation size={18} fill="#fff" color="#fff" />
-                    <span>Navigate</span>
+            {/* 1. Control Layer */}
+            <div className="preview-header">
+                <button className="preview-back-btn" onClick={() => navigate(-1)}>
+                    <ChevronLeft size={22} />
                 </button>
             </div>
 
-            <div className="preview-bottom-sheet slide-up">
-                <div className="preview-route-indicator">
-                    <MapPin size={18} color="#F59E0B" />
-                    <span className="route-text">
-                        {getShortAddress(ride.startLocation)} → {getShortAddress(ride.destinationLocation)}
-                    </span>
+            {/* 2. Scrollable Content Layer */}
+            <div className="preview-scroll-container">
+                <div className="preview-map-container">
+                    <MapContainer
+                        center={startPoint || [24.8607, 67.0011]}
+                        zoom={13}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={false}
+                    >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+                        {polylinePositions.length > 1 && (
+                            <Polyline positions={polylinePositions} pathOptions={{ color: '#F59E0B', weight: 4 }} />
+                        )}
+                        {startPoint && (
+                            <Marker position={startPoint} icon={startIcon}>
+                                <Popup className="marker-popup">
+                                    <strong>Pickup:</strong> {ride.startLocation}
+                                </Popup>
+                            </Marker>
+                        )}
+                        {endPoint && (
+                            <Marker position={endPoint} icon={endIcon}>
+                                <Popup className="marker-popup">
+                                    <strong>Drop off:</strong> {ride.destinationLocation}
+                                </Popup>
+                            </Marker>
+                        )}
+                        <MapBounds positions={polylinePositions} />
+                    </MapContainer>
+
+                    {/* Google Maps Shortcut */}
+                    <button className="gmaps-shortcut-btn" onClick={handleOpenGoogleMaps}>
+                        <Navigation size={14} fill="#fff" /> Navigate
+                    </button>
                 </div>
 
-                <div className="preview-driver-card">
+                <div className="preview-bottom-sheet slide-up">
+                    <div className="preview-sheet-handle" />
+                    <div className="preview-route-indicator">
+                        <MapPin size={18} color="#10b981" />
+                        <span className="route-text">
+                            {getShortAddress(ride.startLocation)} → {getShortAddress(ride.destinationLocation)}
+                        </span>
+                    </div>
+
+                    <div className="preview-driver-card">
                     <div className="driver-profile-row">
                         <div className="driver-avatar-box">
-                            {ride.driver?.imageUrl ? (
-                                <img src={ride.driver.imageUrl} alt={ride.driver.fullName} />
+                            {(ride.driver?.imageUrl || ride.driver?.profileImage) ? (
+                                <img src={ride.driver.imageUrl || ride.driver.profileImage} alt={ride.driver.fullName} />
                             ) : (
                                 <div className="avatar-placeholder">
                                     <Users size={30} color="#9CA3AF" />
@@ -195,7 +202,8 @@ export default function RoutePreviewPage() {
                             )}
                         </div>
                         <div className="driver-meta">
-                            <h3 className="driver-name">{ride.driver?.fullName} (Driver)</h3>
+                            <h3 className="driver-name">{ride.driver?.fullName}</h3>
+                            <span className="driver-role-badge">Driver</span>
                             <div className="driver-rating">
                                 <Star size={16} fill="#FDBA2E" color="#FDBA2E" />
                                 <span className="rating-val">
@@ -252,5 +260,6 @@ export default function RoutePreviewPage() {
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 }

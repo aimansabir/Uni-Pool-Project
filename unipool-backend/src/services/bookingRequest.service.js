@@ -87,8 +87,14 @@ const createBookingRequest = async ({
   }
 
   const seats = Number(requestedSeats ?? 1);
-  if (!Number.isInteger(seats) || seats !== 1) {
-    const err = new Error('Only one seat per booking request is allowed in this version.');
+  if (Number.isNaN(seats) || seats <= 0) {
+    const err = new Error('Please select a valid number of seats.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (seats > 1) {
+    const err = new Error('Only one seat per booking request is currently supported.');
     err.statusCode = 400;
     throw err;
   }
@@ -163,7 +169,7 @@ const createBookingRequest = async ({
           dropStopId: dropStopId || null,
           requestedSeats: seats,
           note: note || null,
-          status: 'PENDING',
+          status: ride.rideType === 'INSTANT' ? 'ACCEPTED' : 'PENDING',
         },
         include: {
           passenger: {
@@ -184,6 +190,7 @@ const createBookingRequest = async ({
               seatsAvailable: true,
               farePerSeat: true,
               isUrgent: true,
+              genderPreference: true,
             },
           },
           pickupStop: true,
@@ -192,6 +199,21 @@ const createBookingRequest = async ({
       });
 
       const isInstantRide = request.ride.rideType === 'INSTANT';
+
+      // If instant, decrement seats immediately
+      if (isInstantRide) {
+        if (request.ride.seatsAvailable < request.requestedSeats) {
+          throw new Error('This ride just became full.');
+        }
+        await tx.ride.update({
+          where: { id: rideId },
+          data: {
+            seatsAvailable: {
+              decrement: request.requestedSeats,
+            },
+          },
+        });
+      }
 
       const driverNotification = await tx.notification.create({
         data: {
