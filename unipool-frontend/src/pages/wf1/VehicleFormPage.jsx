@@ -91,6 +91,11 @@ export default function VehicleFormPage() {
     e.preventDefault();
     
     // Basic validation
+    if (!form.ownerFullName.trim() || !form.make.trim() || !form.model.trim() || !form.registrationNumber.trim() || !form.color.trim()) {
+      showError('Please fill in all required fields');
+      return;
+    }
+
     if (!form.imageUrl) {
       showError('Please upload a vehicle photo');
       return;
@@ -184,6 +189,7 @@ export default function VehicleFormPage() {
                 value={form.ownerFullName}
                 onChange={handleChange}
                 className="input-card__field"
+                required
               />
             </div>
           </div>
@@ -206,6 +212,7 @@ export default function VehicleFormPage() {
                 value={form.make}
                 onChange={handleChange}
                 className="input-card__field"
+                required
               />
             </div>
           </div>
@@ -226,6 +233,7 @@ export default function VehicleFormPage() {
                 value={form.model}
                 onChange={handleChange}
                 className="input-card__field"
+                required
               />
             </div>
           </div>
@@ -246,6 +254,7 @@ export default function VehicleFormPage() {
                 value={form.registrationNumber}
                 onChange={handleChange}
                 className="input-card__field"
+                required
               />
             </div>
           </div>
@@ -266,6 +275,7 @@ export default function VehicleFormPage() {
                   value={form.color}
                   onChange={handleChange}
                   className="input-card__field"
+                  required
                 />
                 <div className="color-preview-box" onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}>
                   <div 
