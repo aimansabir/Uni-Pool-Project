@@ -102,17 +102,17 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page fade-in">
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept="image/*" 
-        style={{ display: 'none' }} 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        style={{ display: 'none' }}
       />
 
       <div className="profile-page__header">
-        <button 
-          className="btn-edit-toggle" 
+        <button
+          className="btn-edit-toggle"
           onClick={() => setIsEditing(!isEditing)}
           aria-label={isEditing ? "Cancel" : "Edit Profile"}
         >
@@ -122,7 +122,7 @@ export default function ProfilePage() {
         <div className="avatar-container">
           <div className="profile-page__avatar">
             {formData.avatarUrl ? (
-              <img src={formData.avatarUrl} alt="Avatar" onError={(e) => e.target.style.display='none'} />
+              <img src={formData.avatarUrl} alt="Avatar" onError={(e) => e.target.style.display = 'none'} />
             ) : (
               <span>{formData.fullName?.[0]?.toUpperCase() || '?'}</span>
             )}
@@ -133,7 +133,7 @@ export default function ProfilePage() {
         </div>
 
         {isEditing ? (
-          <input 
+          <input
             className="profile-name-input"
             name="fullName"
             value={formData.fullName}
@@ -144,9 +144,9 @@ export default function ProfilePage() {
         ) : (
           <h2 className="profile-page__name">{user?.fullName || 'User'}</h2>
         )}
-        
+
         <p className="profile-page__email">{user?.ibaEmail}</p>
-        
+
         <div className="profile-page__badges">
           {user?.isVerified && <Badge variant="accent">Verified</Badge>}
           {user?.genderVerified && <Badge variant="primary">Gender Verified</Badge>}
@@ -158,14 +158,14 @@ export default function ProfilePage() {
           <span className="profile-page__info-label">Gender</span>
           {isEditing ? (
             <div className="gender-segmented-control">
-              <button 
+              <button
                 type="button"
                 className={`gender-segment ${formData.gender === 'male' ? 'active' : ''}`}
                 onClick={() => handleInputChange({ target: { name: 'gender', value: 'male' } })}
               >
                 ♂ Male
               </button>
-              <button 
+              <button
                 type="button"
                 className={`gender-segment ${formData.gender === 'female' ? 'active' : ''}`}
                 onClick={() => handleInputChange({ target: { name: 'gender', value: 'female' } })}
@@ -183,7 +183,7 @@ export default function ProfilePage() {
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Student ERP</span>
           {isEditing ? (
-            <input 
+            <input
               className="profile-edit-input"
               name="studentErp"
               value={formData.studentErp}
@@ -198,7 +198,7 @@ export default function ProfilePage() {
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Phone</span>
           {isEditing ? (
-            <input 
+            <input
               className="profile-edit-input"
               name="phone"
               value={formData.phone}
@@ -226,10 +226,10 @@ export default function ProfilePage() {
 
         {isEditing && (
           <div style={{ marginTop: '20px', paddingBottom: '10px' }}>
-            <Button 
-              variant="primary" 
-              fullWidth 
-              onClick={handleSave} 
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleSave}
               loading={loading}
               style={{ borderRadius: '14px', height: '50px' }}
             >
@@ -248,7 +248,7 @@ export default function ProfilePage() {
             <ClipboardList size={18} style={{ marginRight: '8px' }} /> My Rides
           </Button>
         </div>
-        
+
         <Button variant="danger" fullWidth onClick={handleLogout} style={{ marginTop: '12px' }}>
           <LogOut size={18} style={{ marginRight: '8px' }} /> Logout Account
         </Button>

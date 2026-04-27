@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { chatApi } from '../api/chat.api';
 import { useToast } from '../context/ToastContext';
 import { FullPageSpinner } from '../components/common/Spinner/Spinner';
+import { ChevronRight } from 'lucide-react';
 import './MessagesPage.css';
 
 const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
@@ -89,6 +90,7 @@ export default function MessagesPage() {
                 >
                   <div className="msg-card-avatar">
                     {conv.otherUser?.fullName?.[0]?.toUpperCase() || '?'}
+                    <div className="msg-card-status-dot" />
                   </div>
 
                   <div className="msg-card-content">
@@ -108,8 +110,12 @@ export default function MessagesPage() {
                     </p>
                   </div>
 
-                  {hasUnread && (
+                  {hasUnread ? (
                     <div className="msg-card-unread-indicator" />
+                  ) : (
+                    <div className="msg-card-arrow">
+                      <ChevronRight size={18} color="#9CA3AF" />
+                    </div>
                   )}
                 </div>
               );

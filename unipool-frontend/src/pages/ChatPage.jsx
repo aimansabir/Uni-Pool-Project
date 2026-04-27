@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { chatApi } from '../api/chat.api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { ChevronLeft, Send, Loader2, MapPin } from 'lucide-react';
+import { ChevronLeft, Send, Loader2, MapPin, MoreVertical, Smile } from 'lucide-react';
 import './ChatPage.css';
 
 const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
@@ -48,12 +48,14 @@ export default function ChatPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -140,15 +142,38 @@ export default function ChatPage() {
           <div className="chat-header__avatar">
             {otherUser?.fullName?.[0]?.toUpperCase() || '?'}
           </div>
-          <div>
-            <div className="chat-header__name">{otherUser?.fullName || 'Chat'}</div>
+          <div className="chat-header__text">
+            <h2 className="chat-header__name">{otherUser?.fullName || 'Chat'}</h2>
             {ride && (
               <div className="chat-header__route">
-                <MapPin size={11} />
-                {cleanLoc(ride.startLocation)} → {cleanLoc(ride.destinationLocation)}
+                <MapPin size={10} />
+                <span>{cleanLoc(ride.startLocation)} → {cleanLoc(ride.destinationLocation)}</span>
               </div>
             )}
           </div>
+        </div>
+
+        <div className="chat-header__actions">
+          <button className="chat-more-btn" onClick={() => setShowMenu(!showMenu)}>
+            <MoreVertical size={20} color="#6B7280" />
+          </button>
+          
+          {showMenu && (
+            <div className="chat-menu-dropdown">
+              <button onClick={() => { 
+                navigate('/profile'); 
+                setShowMenu(false); 
+              }}>View Profile</button>
+              <button onClick={() => {
+                showSuccess('Notifications muted');
+                setShowMenu(false);
+              }}>Mute Notifications</button>
+              <button className="danger" onClick={() => {
+                showSuccess('User has been reported');
+                setShowMenu(false);
+              }}>Report User</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -191,27 +216,42 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="chat-input-bar">
-        <textarea
-          ref={inputRef}
-          className="chat-input"
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
-          rows={1}
-        />
-        <button
-          className="chat-send-btn"
-          onClick={handleSend}
-          disabled={!body.trim() || sending}
-        >
-          {sending ? (
-            <Loader2 size={20} className="spin" />
-          ) : (
-            <Send size={20} strokeWidth={2.5} />
-          )}
-        </button>
+      <div className="chat-input-bar-container">
+        {showEmoji && (
+          <div className="emoji-picker-popover">
+            {['😊', '😂', '😍', '👋', '👍', '🙏', '🙌', '🚗', '📍', '✨', '🔥', '💯', '😎', '🎉'].map(emoji => (
+              <button key={emoji} onClick={() => {
+                setBody(prev => prev + emoji);
+                setShowEmoji(false);
+              }}>{emoji}</button>
+            ))}
+          </div>
+        )}
+        <div className="chat-input-bar">
+          <button className="chat-emoji-btn" onClick={() => setShowEmoji(!showEmoji)}>
+            <Smile size={24} color={showEmoji ? '#F59E0B' : '#9CA3AF'} />
+          </button>
+          <textarea
+            ref={inputRef}
+            className="chat-input"
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message…"
+            rows={1}
+          />
+          <button
+            className="chat-send-btn"
+            onClick={handleSend}
+            disabled={!body.trim() || sending}
+          >
+            {sending ? (
+              <Loader2 size={20} className="spin" />
+            ) : (
+              <Send size={20} strokeWidth={2.5} />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
