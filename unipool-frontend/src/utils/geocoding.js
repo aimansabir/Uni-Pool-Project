@@ -1,3 +1,12 @@
+/**
+ * geocoding.js
+ *
+ * NOTE: This module uses the public Nominatim API (OpenStreetMap).
+ * Public Nominatim must NOT be spammed — always debounce calls from UI and
+ * cache results where possible. A production build should use a self-hosted
+ * Nominatim instance or a paid geocoding service.
+ */
+
 const CAMPUSES = [
   { name: 'IBA City Campus', lat: 24.8683, lng: 67.0305 },
   { name: 'IBA Main Campus', lat: 24.9392, lng: 67.1124 },
@@ -11,29 +20,61 @@ const CAMPUSES = [
 ];
 
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // metres
-  const phi1 = lat1 * Math.PI/180;
-  const phi2 = lat2 * Math.PI/180;
-  const dphi = (lat2-lat1) * Math.PI/180;
-  const dlambda = (lon2-lon1) * Math.PI/180;
-
-  const a = Math.sin(dphi/2) * Math.sin(dphi/2) +
-          Math.cos(phi1) * Math.cos(phi2) *
-          Math.sin(dlambda/2) * Math.sin(dlambda/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-  return R * c; // in metres
+  const R = 6371e3;
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const dphi = (lat2 - lat1) * Math.PI / 180;
+  const dlambda = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dphi / 2) * Math.sin(dphi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) *
+    Math.sin(dlambda / 2) * Math.sin(dlambda / 2);
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+const PLUS_CODE_REGEX = /[A-Z0-9]{4,8}\+[A-Z0-9]{2,3}/i;
+
+/** Round lat/lng to 3 decimal places for cache key (~111m grid) */
+const cacheKey = (lat, lng) =>
+  `${Math.round(lat * 1000) / 1000},${Math.round(lng * 1000) / 1000}`;
+
+/** In-memory cache to avoid re-fetching the same coordinates */
+const reverseGeocodeCache = new Map();
+
 /**
- * Reverse geocodes a latitude and longitude into a human-readable address.
- * Uses Nominatim (OpenStreetMap) public API with custom campus snapping.
+ * isReadableAddress — returns true only if value is a human-readable string.
+ * Rejects: null, empty, coordinate-only strings.
+ */
+export const isReadableAddress = (value) => {
+  if (!value) return false;
+  const str = String(value).trim();
+  return str.length > 0 && !COORDS_ONLY_REGEX.test(str);
+};
+
+/**
+ * reverseGeocode — converts lat/lng to a human-readable address string.
+ *
+ * Guarantees:
+ *  - NEVER returns a raw coordinate string on success.
+ *  - Returns null (not a fallback label) if it cannot determine a readable name.
+ *  - Results are cached by rounded lat/lng to prevent Nominatim spam.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {Promise<string|null>} readable address or null
  */
 export async function reverseGeocode(lat, lng) {
+  // 1. Campus snap (within 300 m) — no network call needed
+  const nearbyCampus = CAMPUSES.find(c => getDistance(lat, lng, c.lat, c.lng) < 300);
+  if (nearbyCampus) return nearbyCampus.name;
+
+  // 2. Cache check
+  const key = cacheKey(lat, lng);
+  if (reverseGeocodeCache.has(key)) {
+    return reverseGeocodeCache.get(key); // may be null if previous attempt failed
+  }
+
   try {
-    // 1. Check for known campus snapping first (within 300m)
-    const nearbyCampus = CAMPUSES.find(c => getDistance(lat, lng, c.lat, c.lng) < 300);
-    
     const url = new URL('https://nominatim.openstreetmap.org/reverse');
     url.searchParams.set('lat', lat);
     url.searchParams.set('lon', lng);
@@ -41,76 +82,63 @@ export async function reverseGeocode(lat, lng) {
     url.searchParams.set('addressdetails', '1');
 
     const res = await fetch(url.toString(), {
-      headers: {
-        'User-Agent': 'uni-pool-frontend/1.0 (LocationPicker)'
-      }
+      headers: { 'User-Agent': 'uni-pool-frontend/1.0 (LocationPicker)' }
     });
 
-    if (!res.ok) {
-        throw new Error('Failed to fetch address from Geolocation service');
-    }
+    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
 
     const data = await res.json();
-    
-    // regex for Plus Codes (e.g., V28G+R3)
-    const plusCodeRegex = /[A-Z0-9]{4,8}\+[A-Z0-9]{2,3}/i;
 
     if (data && data.address) {
       const addr = data.address;
       const parts = [];
 
-      // If we snapped to a campus, use its name as the primary part
-      if (nearbyCampus) {
-        parts.push(nearbyCampus.name);
-      } else {
-        // 1. Primary identifier (Amenity, Building, etc.)
-        const primary = addr.amenity || addr.building || addr.office || 
-                        addr.university || addr.school || addr.shop || 
-                        addr.tourism || addr.leisure || addr.historic;
-        
-        if (primary && !plusCodeRegex.test(primary)) {
-          parts.push(primary);
-        }
-      }
+      // Primary identifier
+      const primary = addr.amenity || addr.building || addr.office ||
+        addr.university || addr.school || addr.shop ||
+        addr.tourism || addr.leisure || addr.historic;
+      if (primary && !PLUS_CODE_REGEX.test(primary)) parts.push(primary);
 
-      // 2. Road/Street
-      if (addr.road && !plusCodeRegex.test(addr.road)) {
-        parts.push(addr.road);
-      }
+      // Road/Street
+      if (addr.road && !PLUS_CODE_REGEX.test(addr.road)) parts.push(addr.road);
 
-      // 3. Suburb/Neighborhood/Area
+      // Suburb / neighbourhood / area
       const area = addr.suburb || addr.neighbourhood || addr.city_district || addr.village || addr.subdistrict;
-      if (area && !plusCodeRegex.test(area)) {
-        parts.push(area);
-      }
+      if (area && !PLUS_CODE_REGEX.test(area)) parts.push(area);
 
-      // 4. City (fallback if we don't have enough parts)
-      if (parts.length < 2 && addr.city && !plusCodeRegex.test(addr.city)) {
-        parts.push(addr.city);
-      }
+      // City as last resort
+      if (parts.length < 2 && addr.city && !PLUS_CODE_REGEX.test(addr.city)) parts.push(addr.city);
 
       if (parts.length > 0) {
-        return parts.slice(0, 3).join(', ');
+        const result = parts.slice(0, 3).join(', ');
+        reverseGeocodeCache.set(key, result);
+        return result;
       }
     }
 
-    // Fallback to display_name but filtered
+    // display_name fallback — strip Plus Codes and use first 3 segments
     if (data && data.display_name) {
-      const parts = data.display_name.split(',')
+      const cleanParts = data.display_name
+        .split(',')
         .map(p => p.trim())
-        .filter(p => !plusCodeRegex.test(p));
-      
-      // If we snapped to a campus, insert it at the start
-      if (nearbyCampus && !parts[0].includes(nearbyCampus.name)) {
-        parts.unshift(nearbyCampus.name);
-      }
+        .filter(p => p && !PLUS_CODE_REGEX.test(p) && !COORDS_ONLY_REGEX.test(p));
 
-      return parts.slice(0, 3).join(', ');
+      if (cleanParts.length > 0) {
+        const result = cleanParts.slice(0, 3).join(', ');
+        reverseGeocodeCache.set(key, result);
+        return result;
+      }
     }
 
-    return nearbyCampus ? nearbyCampus.name : `${lat.toFixed(4)}, ${lng.toFixed(4)}`; 
+    // If we get here, Nominatim gave us nothing useful — return null, NOT coordinates
+    console.warn('[reverseGeocode] No readable address found for', lat, lng);
+    reverseGeocodeCache.set(key, null);
+    return null;
+
   } catch (err) {
-    console.error('Reverse geocoding error:', err);
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; 
+    console.error('[reverseGeocode] Error:', err.message);
+    // Do NOT cache errors — allow retry later
+    // Return null, NEVER a raw coordinate string
+    return null;
   }
 }

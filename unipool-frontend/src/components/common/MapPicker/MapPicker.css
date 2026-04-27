@@ -245,10 +245,19 @@
 }
 
 .map-picker-confirm-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
   background: #D1D5DB;
   box-shadow: none;
+}
+
+.map-picker-geocode-error {
+  font-size: 0.78rem;
+  color: #EF4444;
+  text-align: center;
+  margin: 0 0 10px;
+  line-height: 1.4;
+  font-weight: 500;
 }
 
 .spinner-small {

@@ -58,30 +58,44 @@ export default function PublishRidePage() {
   const COORDS_ONLY_REGEX =
     /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
 
-  const cleanAddressLabel = (value, fallback = 'Pinned Location') => {
-    if (!value) return fallback;
+  /** Labels that must never reach the form or the backend */
+  const BAD_LABELS = ['pinned location', 'current location', 'resolving location...'];
 
+  const isReadableAddress = (value) => {
+    if (!value) return false;
     const str = String(value).trim();
-    if (!str || COORDS_ONLY_REGEX.test(str)) return fallback;
+    return (
+      str.length > 0 &&
+      !COORDS_ONLY_REGEX.test(str) &&
+      !BAD_LABELS.includes(str.toLowerCase())
+    );
+  };
 
-    const parts = str
+  /** Clean raw address string — returns null if the result is not readable */
+  const cleanAddressLabel = (value) => {
+    if (!isReadableAddress(value)) return null;
+    const parts = String(value)
       .split(',')
       .map((p) => p.trim())
       .filter(Boolean)
       .slice(0, 3);
-
-    return parts.length ? parts.join(', ') : fallback;
+    return parts.length ? parts.join(', ') : null;
   };
 
   const handleGetLocation = useCallback(async (fieldName = 'startLocation') => {
     try {
       const loc = await requestLocation();
       const rawAddress = await reverseGeocode(loc.latitude, loc.longitude);
-      const cleanAddress = cleanAddressLabel(rawAddress, 'Pinned Location');
+      const clean = cleanAddressLabel(rawAddress);
+
+      if (!clean) {
+        showError('Could not identify your current location. Please search for it manually.');
+        return;
+      }
 
       setForm((f) => ({
         ...f,
-        [fieldName]: cleanAddress,
+        [fieldName]: clean,
         [`${fieldName === 'startLocation' ? 'start' : 'destination'}Coords`]: {
           lat: loc.latitude,
           lng: loc.longitude,
@@ -89,7 +103,7 @@ export default function PublishRidePage() {
       }));
 
       showSuccess('Current location updated');
-    } catch (err) {
+    } catch {
       showError('Failed to get current location');
     }
   }, [requestLocation, showSuccess, showError]);
@@ -98,15 +112,17 @@ export default function PublishRidePage() {
     if (locationStatus === 'denied') {
       navigate('/enable-location', { state: { from: '/rides/publish' } });
     } else if (locationStatus === 'granted' && latitude && longitude && !form.startLocation) {
-      // Auto-set start location on load if granted
+      // Auto-set start location on load if granted — only if readable
       reverseGeocode(latitude, longitude).then((rawAddress) => {
-        const cleanAddress = cleanAddressLabel(rawAddress, 'Pinned Location');
-
-        setForm((f) => ({
-          ...f,
-          startLocation: cleanAddress,
-          startCoords: { lat: latitude, lng: longitude },
-        }));
+        const clean = cleanAddressLabel(rawAddress);
+        if (clean) {
+          setForm((f) => ({
+            ...f,
+            startLocation: clean,
+            startCoords: { lat: latitude, lng: longitude },
+          }));
+        }
+        // If null, do nothing — leave the field empty so user knows to search
       });
     }
   }, [locationStatus, latitude, longitude, navigate]);
@@ -123,6 +139,7 @@ export default function PublishRidePage() {
   const [suggestedFare, setSuggestedFare] = useState(0);
   const [fareCap, setFareCap] = useState(0);
   const [fetchingFare, setFetchingFare] = useState(false);
+  const [fareError, setFareError] = useState(false); // set when fare preview API fails
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // Helper to map our new UI to the existing scheduling state
@@ -195,41 +212,49 @@ export default function PublishRidePage() {
   };
 
   useEffect(() => {
-    if (form.startLocation && form.destinationLocation) {
-      if (form.startLocation === form.destinationLocation) {
-        setSuggestedFare(0);
-        setFareCap(0);
-        return;
-      }
-
-      const timer = setTimeout(async () => {
-        try {
-          setFetchingFare(true);
-          const res = await ridesApi.previewIntelligence({
-            ...form,
-            departureTime: form.departureTime || new Date(Date.now() + 30 * 60 * 1000).toISOString()
-          });
-
-          // Fix: Extract data from the backend success envelope { success: true, data: { ... } }
-          const intelligenceData = res.data;
-          const fare = intelligenceData?.fareSuggestion?.suggestedFarePerSeat || 0;
-          const cap = intelligenceData?.fareSuggestion?.fareCap || 0;
-
-          setSuggestedFare(fare);
-          setFareCap(cap);
-
-          if (!form.farePerSeat || form.farePerSeat === '0') {
-            setForm(f => ({ ...f, farePerSeat: fare.toString() }));
-          }
-        } catch (err) {
-          console.error('Fare intelligence failed:', err);
-        } finally {
-          setFetchingFare(false);
-        }
-      }, 1000);
-
-      return () => clearTimeout(timer);
+    // Only call fare intelligence when BOTH locations are readable named strings
+    if (!isReadableAddress(form.startLocation) || !isReadableAddress(form.destinationLocation)) {
+      setSuggestedFare(0);
+      setFareCap(0);
+      setFareError(false);
+      return;
     }
+
+    if (form.startLocation === form.destinationLocation) {
+      setSuggestedFare(0);
+      setFareCap(0);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setFetchingFare(true);
+        setFareError(false);
+        const res = await ridesApi.previewIntelligence({
+          ...form,
+          departureTime: form.departureTime || new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        });
+
+        const intelligenceData = res.data;
+        const fare = intelligenceData?.fareSuggestion?.suggestedFarePerSeat || 0;
+        const cap = intelligenceData?.fareSuggestion?.fareCap || 0;
+
+        setSuggestedFare(fare);
+        setFareCap(cap);
+
+        if (!form.farePerSeat || form.farePerSeat === '0') {
+          setForm(f => ({ ...f, farePerSeat: fare.toString() }));
+        }
+      } catch (err) {
+        console.error('Fare intelligence failed:', err);
+        setFareError(true);
+        setSuggestedFare(0);
+      } finally {
+        setFetchingFare(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [form.startLocation, form.destinationLocation, form.seatsTotal, form.departureTime]);
 
   useEffect(() => {
@@ -304,8 +329,8 @@ export default function PublishRidePage() {
     }
 
     const validationErrors = {};
-    if (!form.startLocation) validationErrors.startLocation = 'Please select a starting location';
-    if (!form.destinationLocation) validationErrors.destinationLocation = 'Please select a drop-off location';
+    if (!isReadableAddress(form.startLocation)) validationErrors.startLocation = 'Please select a named starting location from search';
+    if (!isReadableAddress(form.destinationLocation)) validationErrors.destinationLocation = 'Please select a named drop-off location from search';
     if (!form.vehicleId) validationErrors.vehicleId = 'Please select a vehicle first';
 
     if (form.rideType === 'SCHEDULED') {
@@ -781,6 +806,8 @@ export default function PublishRidePage() {
               <div className="fare-intelligence-v2">
                 {fetchingFare ? (
                   <span className="intelligence-loading pulse">Calculating...</span>
+                ) : fareError ? (
+                  <span className="intelligence-hint error-hint">Could not calculate fare. Enter an amount manually.</span>
                 ) : form.startLocation && form.destinationLocation && form.startLocation === form.destinationLocation ? (
                   <span className="intelligence-hint error-hint">Start and end locations must be different</span>
                 ) : suggestedFare > 0 ? (
@@ -856,17 +883,21 @@ export default function PublishRidePage() {
           }}
           onClose={() => setActiveMapInput(null)}
           onConfirm={(address, coords) => {
-            const cleanAddress = cleanAddressLabel(
-              address,
-              activeMapInput === 'startLocation' ? 'Current Location' : 'Pinned Location'
-            );
+            const clean = cleanAddressLabel(address);
+
+            if (!clean) {
+              showError('Please select a named location from search.');
+              return;
+            }
 
             setForm((f) => ({
               ...f,
-              [activeMapInput]: cleanAddress,
+              [activeMapInput]: clean,
               [`${activeMapInput === 'startLocation' ? 'start' : 'destination'}Coords`]: coords,
             }));
 
+            // Clear fare error so it re-evaluates with new valid locations
+            setFareError(false);
             setErrors((prev) => ({ ...prev, [activeMapInput]: false }));
             setActiveMapInput(null);
           }}

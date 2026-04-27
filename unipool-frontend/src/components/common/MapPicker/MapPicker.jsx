@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
-import { reverseGeocode } from '../../../utils/geocoding';
+import { reverseGeocode, isReadableAddress } from '../../../utils/geocoding';
 import 'leaflet/dist/leaflet.css';
 import './MapPicker.css';
 
@@ -40,10 +40,21 @@ const haversineMeters = (lat1, lon1, lat2, lon2) => {
 const COORDS_ONLY_REGEX =
   /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
 
-const isReadableAddress = (value) => {
+/** Generic labels that must NEVER reach the publish form */
+const BAD_LABELS = new Set([
+  'pinned location',
+  'current location',
+  'resolving location...',
+]);
+
+const isReadableAddressLocal = (value) => {
   if (!value) return false;
   const str = String(value).trim();
-  return Boolean(str) && !COORDS_ONLY_REGEX.test(str);
+  return (
+    str.length > 0 &&
+    !COORDS_ONLY_REGEX.test(str) &&
+    !BAD_LABELS.has(str.toLowerCase())
+  );
 };
 
 const cleanAddress = (value) => {
@@ -203,6 +214,7 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [geocodeError, setGeocodeError] = useState(false); // true when drag reverse-geocode failed
   const abortControllerRef = useRef(null);
   const searchInputRef = useRef(null);
 
@@ -215,20 +227,18 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
 
     if (resolvingDraggedPinRef.current) return;
 
-    // If the map is still basically on the selected place, do nothing
+    // If map is basically still on the selected place, do nothing
     if (selectedPlace) {
       const distMeters = haversineMeters(
-        center.lat,
-        center.lng,
-        selectedPlace.lat,
-        selectedPlace.lng
+        center.lat, center.lng,
+        selectedPlace.lat, selectedPlace.lng
       );
-
       if (distMeters < 35) return;
     }
 
     resolvingDraggedPinRef.current = true;
     setSelectedPlace(null);
+    setGeocodeError(false);
 
     skipSearchEffectRef.current = true;
     setSearchQuery('Resolving location...');
@@ -237,25 +247,22 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
 
     try {
       const raw = await reverseGeocode(center.lat, center.lng);
-      const label = cleanAddress(raw) || 'Pinned Location';
 
-      setSelectedPlace({
-        address: label,
-        lat: center.lat,
-        lng: center.lng,
-      });
-
-      skipSearchEffectRef.current = true;
-      setSearchQuery(label.split(',')[0]);
+      if (raw && isReadableAddressLocal(raw)) {
+        const label = cleanAddress(raw);
+        setSelectedPlace({ address: label, lat: center.lat, lng: center.lng });
+        skipSearchEffectRef.current = true;
+        setSearchQuery(label.split(',')[0]);
+      } else {
+        // Geocoding returned null/bad data — do NOT set a bad label
+        setGeocodeError(true);
+        skipSearchEffectRef.current = true;
+        setSearchQuery('');
+      }
     } catch {
-      setSelectedPlace({
-        address: 'Pinned Location',
-        lat: center.lat,
-        lng: center.lng,
-      });
-
+      setGeocodeError(true);
       skipSearchEffectRef.current = true;
-      setSearchQuery('Pinned Location');
+      setSearchQuery('');
     } finally {
       resolvingDraggedPinRef.current = false;
     }
@@ -286,27 +293,22 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
         const raw = await reverseGeocode(initialLocation.lat, initialLocation.lng);
         if (cancelled) return;
 
-        const label = cleanAddress(raw) || 'Current Location';
-
-        setSelectedPlace({
-          address: label,
-          lat: initialLocation.lat,
-          lng: initialLocation.lng,
-        });
-
-        skipSearchEffectRef.current = true;
-        setSearchQuery(label.split(',')[0]);
+        if (raw && isReadableAddressLocal(raw)) {
+          const label = cleanAddress(raw);
+          setSelectedPlace({ address: label, lat: initialLocation.lat, lng: initialLocation.lng });
+          skipSearchEffectRef.current = true;
+          setSearchQuery(label.split(',')[0]);
+        } else {
+          // Could not get readable name for initial coords — ask user to search
+          setGeocodeError(true);
+          skipSearchEffectRef.current = true;
+          setSearchQuery('');
+        }
       } catch {
         if (cancelled) return;
-
-        setSelectedPlace({
-          address: 'Current Location',
-          lat: initialLocation.lat,
-          lng: initialLocation.lng,
-        });
-
+        setGeocodeError(true);
         skipSearchEffectRef.current = true;
-        setSearchQuery('Current Location');
+        setSearchQuery('');
       }
     };
 
@@ -318,15 +320,11 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
   }, [initialLocation]);
 
   const handleConfirmClick = async () => {
-    if (selectedPlace) {
+    if (selectedPlace && isReadableAddressLocal(selectedPlace.address)) {
       onConfirm(selectedPlace.address, { lat: selectedPlace.lat, lng: selectedPlace.lng });
       return;
     }
-
-    setLoading(true);
-    const address = await reverseGeocode(centerLat, centerLng);
-    setLoading(false);
-    onConfirm(address, { lat: centerLat, lng: centerLng });
+    // No valid selectedPlace — this button should be disabled, but guard anyway
   };
 
   const handleSearch = useCallback(async (query) => {
@@ -419,32 +417,25 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
 
     const timer = setTimeout(() => {
       handleSearch(searchQuery);
-    }, 400);
+    }, 600); // 600ms debounce — respects Nominatim usage policy
 
     return () => clearTimeout(timer);
   }, [searchQuery, handleSearch]);
 
   const selectSearchResult = (result) => {
-    const coords = {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-    };
-
+    const coords = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
     const label = cleanAddress(result.display_name) || result.display_name;
     const primary = label.split(',')[0];
 
     setFlyToCoords(coords);
     setSearchResults([]);
     setShowDropdown(false);
+    setGeocodeError(false); // clear any previous geocode error
 
     skipSearchEffectRef.current = true;
     setSearchQuery(primary);
 
-    setSelectedPlace({
-      address: label,
-      lat: coords.lat,
-      lng: coords.lng,
-    });
+    setSelectedPlace({ address: label, lat: coords.lat, lng: coords.lng });
   };
 
   const handleKeyDown = (e) => {
@@ -562,10 +553,15 @@ export default function MapPicker({ onClose, onConfirm, initialLocation }) {
         </div>
 
         <div className="map-picker-footer">
+          {geocodeError && (
+            <p className="map-picker-geocode-error">
+              Could not identify this pinned place. Please search and select a named location.
+            </p>
+          )}
           <button
             className="map-picker-confirm-btn"
             onClick={handleConfirmClick}
-            disabled={loading}
+            disabled={loading || !selectedPlace || !isReadableAddressLocal(selectedPlace?.address)}
           >
             {loading ? 'Fetching Address...' : 'Confirm Location'}
           </button>
