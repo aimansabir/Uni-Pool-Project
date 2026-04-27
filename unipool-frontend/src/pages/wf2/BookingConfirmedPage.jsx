@@ -63,11 +63,6 @@ export default function BookingConfirmedPage() {
 
   return (
     <div className={`booking-confirmed-page fade-in ${isInstant ? 'instant-variant' : ''}`}>
-      {/* Back button */}
-      <button className="bc-back-btn" onClick={() => navigate('/bookings')}>
-        <ChevronLeft size={24} strokeWidth={2.5} />
-      </button>
-
       <div className="bc-content">
         {/* Status Icon */}
         <div className={`bc-status-icon ${isInstant ? 'instant' : 'scheduled'}`}>
@@ -153,8 +148,6 @@ export default function BookingConfirmedPage() {
           </p>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

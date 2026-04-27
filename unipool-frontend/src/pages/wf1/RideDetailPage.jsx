@@ -229,84 +229,84 @@ export default function RideDetailPage() {
   return (
     <div className="d-ride-page fade-in">
       <div className="d-ride-container">
-
-        {/* Header */}
-        <header className="d-header">
-          <button className="d-back-btn" onClick={() => navigate('/rides')}>
-            <ChevronLeft size={24} />
-          </button>
-          <div className="d-header-title">Ride Details</div>
-          <div style={{ width: 24 }} />
-        </header>
-
         <div className="d-status-section">
-          <div>
+          <div className="status-text-group">
             <span className="d-status-subtitle">MANAGE RIDE</span>
             <h1 className="d-status-title">Your Ride</h1>
           </div>
-          <div className={`d-badge ${ride.status.toLowerCase()}`}>{badge.label}</div>
+          <div className={`d-badge ${ride.status.toLowerCase()}`}>
+            <span className="badge-dot"></span>
+            {badge.label}
+          </div>
         </div>
 
         {/* Ride Info Card */}
         <div className="d-card d-info-card">
-          <div className="d-route">
-            <div className="d-route-node">
-              <div className="d-node-icon start"><MapPin size={14} /></div>
-              <div className="d-node-info">
-                <div className="d-node-label">START LOCATION</div>
-                <div className="d-node-value">{ride.startLocation}</div>
+          <div className="d-premium-route">
+            <div className="route-item">
+              <div className="route-icon-box start">
+                <MapPin size={14} />
+              </div>
+              <div className="route-content">
+                <span className="route-label">STARTING FROM</span>
+                <span className="route-value">{cleanLocation(ride.startLocation)}</span>
               </div>
             </div>
-            <div className="d-route-connector" />
-            <div className="d-route-node">
-              <div className="d-node-icon end"><MapPin size={14} /></div>
-              <div className="d-node-info">
-                <div className="d-node-label">DESTINATION</div>
-                <div className="d-node-value">{ride.destinationLocation}</div>
+            <div className="route-connector-line" />
+            <div className="route-item">
+              <div className="route-icon-box end">
+                <MapPin size={14} />
               </div>
-            </div>
-          </div>
-
-          <div className="d-divider" />
-
-          <div className="d-grid-2x2">
-            <div className="d-grid-item">
-              <Calendar size={18} className="d-grid-icon" />
-              <div>
-                <div className="d-grid-label">TARGET SLOT</div>
-                <div className="d-grid-value">{ride.targetSlot || 'Flexible'}</div>
-              </div>
-            </div>
-            <div className="d-grid-item">
-              <Clock size={18} className="d-grid-icon highlight-icon" />
-              <div>
-                <div className="d-grid-label">DEPARTING TIME</div>
-                <div className="d-grid-value">{extractTime(ride.departureTime)}</div>
-              </div>
-            </div>
-            <div className="d-grid-item">
-              <Wallet size={18} className="d-grid-icon highlight-icon" />
-              <div>
-                <div className="d-grid-label">FARE / SEAT</div>
-                <div className="d-grid-value">Rs. {ride.farePerSeat}</div>
-              </div>
-            </div>
-            <div className="d-grid-item">
-              <TrendingUp size={18} className="d-grid-icon highlight-icon" />
-              <div>
-                <div className="d-grid-label">EXPECTED EARNINGS</div>
-                <div className="d-grid-value highlight-text">Rs. {earnings}</div>
+              <div className="route-content">
+                <span className="route-label">DESTINATION</span>
+                <span className="route-value">{cleanLocation(ride.destinationLocation)}</span>
               </div>
             </div>
           </div>
 
-          <div className="d-divider" />
+          <div className="premium-divider" />
 
-          <div className="d-grid-item" style={{ paddingLeft: '8px' }}>
-            <Users size={18} className="d-grid-icon" />
-            <div>
-              <div className="d-grid-label">PASSENGERS</div>
-              <div className="d-grid-value">{acceptedRequests.length} / {totalSeats}</div>
+          <div className="d-compact-grid">
+            <div className="compact-item">
+              <div className="compact-icon-box">
+                <Calendar size={18} />
+              </div>
+              <div className="compact-content">
+                <span className="compact-label">SLOT</span>
+                <span className="compact-value">{ride.targetSlot || 'Flexible'}</span>
+              </div>
+            </div>
+
+            <div className="compact-item">
+              <div className="compact-icon-box">
+                <Clock size={18} />
+              </div>
+              <div className="compact-content">
+                <span className="compact-label">DEPARTURE</span>
+                <span className="compact-value">{extractTime(ride.departureTime)}</span>
+              </div>
+            </div>
+
+            <div className="compact-item">
+              <div className="compact-icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="M17.3 12.3l.7.7" />
+                </svg>
+              </div>
+              <div className="compact-content">
+                <span className="compact-label">FARE</span>
+                <span className="compact-value">Rs. {ride.farePerSeat}</span>
+              </div>
+            </div>
+
+            <div className="compact-item">
+              <div className="compact-icon-box">
+                <Users size={18} />
+              </div>
+              <div className="compact-content">
+                <span className="compact-label">OCCUPANCY</span>
+                <span className="compact-value">{acceptedRequests.length} / {totalSeats}</span>
+              </div>
             </div>
           </div>
         </div>

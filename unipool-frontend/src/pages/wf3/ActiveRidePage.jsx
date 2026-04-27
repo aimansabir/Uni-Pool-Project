@@ -122,20 +122,22 @@ export default function ActiveRidePage() {
   if (loading) return <FullPageSpinner />;
   if (error) return (
     <div className="wf3-container fade-in">
-      <header className="wf3-header">
-        <button className="back-btn" onClick={() => navigate('/rides')}>
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="wf3-title">Live Ride</h1>
-      </header>
-      
       <div className="wf3-content">
         <EmptyState 
-          icon="🚗"
+          icon={
+            <div className="empty-state__icon-wrapper">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 13.1V16c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <path d="M9 17h6" />
+                <circle cx="17" cy="17" r="2" />
+              </svg>
+            </div>
+          }
           title="No Active Ride"
-          description={error}
+          description={error || "You don't have any rides currently in progress. Start a ride to track it here."}
           action={
-            <Button variant="primary" onClick={() => navigate('/rides')}>
+            <Button variant="primary" className="btn-view-rides" onClick={() => navigate('/rides')}>
               View My Rides
             </Button>
           }
@@ -151,10 +153,7 @@ export default function ActiveRidePage() {
 
   return (
     <div className="wf3-container fade-in">
-      <header className="wf3-header">
-        <button className="back-btn" onClick={() => navigate(-1)}><ChevronLeft size={24} /></button>
-        <h1 className="wf3-title">Active Ride</h1>
-      </header>
+      <div className="wf3-content">
       <div className="wf3-card">
         <div className="ride-summary">
           <div className="route-display">
@@ -169,6 +168,7 @@ export default function ActiveRidePage() {
       <div className="wf3-placeholder">
         <h2 className="wf3-placeholder__title">Live Tracking View</h2>
         <p className="wf3-placeholder__subtitle">You are viewing the {isDriver ? 'driver' : 'passenger'} live tracking screen.</p>
+      </div>
       </div>
     </div>
   );

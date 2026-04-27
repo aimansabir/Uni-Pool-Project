@@ -21,6 +21,14 @@ import {
 } from 'lucide-react';
 import './PassengerRideDetailsView.css';
 
+const COORDS_ONLY_REGEX = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+const cleanLocation = (addr) => {
+  if (!addr) return 'Unknown';
+  const trimmed = addr.trim();
+  if (COORDS_ONLY_REGEX.test(trimmed)) return 'Pinned Location';
+  return trimmed;
+};
+
 export default function PassengerRideDetailsView({ ride, myBooking, onCancelSuccess }) {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -125,7 +133,7 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
               <div className="p-node-icon start"><MapPin size={16} /></div>
               <div className="p-node-info">
                 <div className="p-node-label">START LOCATION</div>
-                <div className="p-node-value">{ride.startLocation}</div>
+                <div className="p-node-value">{cleanLocation(ride.startLocation)}</div>
               </div>
             </div>
             <div className="p-route-connector" />
@@ -133,7 +141,7 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
               <div className="p-node-icon end"><MapPin size={16} /></div>
               <div className="p-node-info">
                 <div className="p-node-label">DESTINATION</div>
-                <div className="p-node-value">{ride.destinationLocation}</div>
+                <div className="p-node-value">{cleanLocation(ride.destinationLocation)}</div>
               </div>
             </div>
           </div>

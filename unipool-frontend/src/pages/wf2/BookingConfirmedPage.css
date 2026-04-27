@@ -1,31 +1,12 @@
 .booking-confirmed-page {
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: #0F0F0F;
+  min-height: 90vh;
+  min-height: 90dvh;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px;
+  padding-bottom: 10px;
   position: relative;
 }
-
-.bc-back-btn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 10;
-  background: rgba(255,255,255,0.08);
-  border: none;
-  border-radius: 12px;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.bc-back-btn:hover { background: rgba(255,255,255,0.15); }
 
 .bc-content {
   flex: 1;
@@ -33,7 +14,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 28px 32px;
+  padding: 40px 24px 32px;
   text-align: center;
 }
 
@@ -48,35 +29,47 @@
   margin-bottom: 24px;
   animation: bcPulseIn 0.6s ease-out;
 }
+
 .bc-status-icon.scheduled {
   background: linear-gradient(135deg, #10B981, #059669);
   color: #fff;
 }
+
 .bc-status-icon.instant {
   background: linear-gradient(135deg, #F59E0B, #D97706);
   color: #fff;
-  box-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
 }
 
 @keyframes bcPulseIn {
-  0% { transform: scale(0.3); opacity: 0; }
-  60% { transform: scale(1.15); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Title */
 .bc-title {
-  font-size: 1.55rem;
+  font-size: 1.65rem;
   font-weight: 800;
-  color: #fff;
+  color: #111827;
   margin: 0 0 8px;
   line-height: 1.25;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
 .bc-subtitle {
-  font-size: 0.92rem;
-  color: #9CA3AF;
+  font-size: 0.95rem;
+  color: #6B7280;
   margin: 0 0 24px;
   font-weight: 500;
 }
@@ -89,41 +82,52 @@
   font-size: 1.05rem;
   font-weight: 700;
   color: #F59E0B;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 8px 16px;
+  border-radius: 50px;
 }
 
 /* Route Card */
 .bc-route-card {
   width: 100%;
-  max-width: 340px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  padding: 18px 20px;
+  max-width: 360px;
+  background: #fcf8f6;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 20px;
   margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
 .bc-route-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 0.95rem;
-  color: #E5E7EB;
-  font-weight: 500;
+  font-size: 1rem;
+  color: #374151;
+  font-weight: 600;
 }
+
 .bc-route-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.bc-route-dot.start { background: #10B981; }
-.bc-route-dot.end { background: #EF4444; }
+
+.bc-route-dot.start {
+  background: #10B981;
+}
+
+.bc-route-dot.end {
+  background: #EF4444;
+}
 
 .bc-route-connector {
   width: 2px;
   height: 20px;
-  background: rgba(255,255,255,0.12);
+  background: #F1F5F9;
   margin: 4px 0 4px 4px;
   border-radius: 1px;
 }
@@ -131,21 +135,23 @@
 /* Fare Box */
 .bc-fare-box {
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
   padding: 16px 20px;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
+
 .bc-fare-label {
   font-size: 0.88rem;
-  color: #9CA3AF;
+  color: #83878e;
   font-weight: 500;
 }
+
 .bc-fare-amount {
   font-size: 1.1rem;
   font-weight: 800;
@@ -160,13 +166,14 @@
   border: none;
   border-radius: 14px;
   background: linear-gradient(135deg, #F59E0B, #D97706);
-  color: #fff;
+  color: #000000;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   margin-bottom: 12px;
   transition: transform 0.15s, box-shadow 0.15s;
 }
+
 .bc-track-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
@@ -191,7 +198,10 @@
   margin-bottom: 12px;
   transition: background 0.2s;
 }
-.bc-msg-btn:hover { background: rgba(99, 102, 241, 0.08); }
+
+.bc-msg-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
 
 /* Cancel Button */
 .bc-cancel-btn {
@@ -208,9 +218,11 @@
   transition: background 0.2s, color 0.2s;
   margin-bottom: 16px;
 }
+
 .bc-cancel-btn:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
 .bc-cancel-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

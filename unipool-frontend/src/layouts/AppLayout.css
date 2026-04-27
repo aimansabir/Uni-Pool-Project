@@ -29,4 +29,5 @@
 .app-layout__content--full-width {
   padding-left: 0;
   padding-right: 0;
+  padding-top: var(--header-height);
 }

@@ -7,6 +7,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import hondaCivic from '../../assets/images/honda_civic.png';
 import toyotaCorolla from '../../assets/images/toyota_corolla.png';
+import noVehiclesIllustration from '../../assets/images/no_vehicles_illustration.png';
 import './VehiclesPage.css';
 
 export default function VehiclesPage() {
@@ -18,7 +19,7 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Initialize selection from state if coming back from Publish page
   const [selectedVehicleId, setSelectedVehicleId] = useState(location.state?.vehicleId || null);
 
@@ -76,12 +77,25 @@ export default function VehiclesPage() {
 
       {vehicles.length === 0 ? (
         <EmptyState
-          icon="🚗"
+          icon={
+            <div className="empty-state__icon-wrapper">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 13.1V16c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <path d="M9 17h6" />
+                <circle cx="17" cy="17" r="2" />
+              </svg>
+            </div>
+          }
           title="No vehicles yet"
-          description="Add your first vehicle to start offering rides"
+          description="Add your first vehicle to start offering rides and sharing journeys."
           action={
             <button className="add-car-footer-btn" onClick={() => navigate('/vehicles/new')}>
-              Add Car
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Your First Car
             </button>
           }
         />
@@ -95,8 +109,8 @@ export default function VehiclesPage() {
               const isToyota = vehicle.make?.toLowerCase().includes('toyota');
 
               return (
-                <div 
-                  key={vId} 
+                <div
+                  key={vId}
                   className={`vehicle-selection-card ${isSelected ? 'selected' : ''}`}
                   onClick={() => handleSelect(vId)}
                 >
@@ -107,9 +121,9 @@ export default function VehiclesPage() {
                         {isToyota && <span className="brand-icon">T</span>}
                         {!isHonda && !isToyota && <span className="brand-icon">🚗</span>}
                       </div>
-                      <img 
-                        src={vehicle.imageUrl || (isHonda ? hondaCivic : toyotaCorolla)} 
-                        alt={`${vehicle.make} ${vehicle.model}`} 
+                      <img
+                        src={vehicle.imageUrl || (isHonda ? hondaCivic : toyotaCorolla)}
+                        alt={`${vehicle.make} ${vehicle.model}`}
                         className="car-selection-img"
                       />
                     </div>
@@ -122,7 +136,7 @@ export default function VehiclesPage() {
                         {isSelected && (
                           <div className="selection-check active">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                             </svg>
                           </div>
                         )}
@@ -133,23 +147,28 @@ export default function VehiclesPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <p className="car-sub-details">{vehicle.color} • {vehicle.registrationNumber}</p>
-                    
+
                     <div className="car-meta-row">
                       <div className="meta-item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="12" cy="7" r="4"></circle>
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                         <span>4 seats</span>
+                      </div>
+                      <div className="meta-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>Insured</span>
                       </div>
                     </div>
 
                     {isSelected && (
                       <div className="selected-pill">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                         </svg>
                         <span>Selected</span>
                       </div>

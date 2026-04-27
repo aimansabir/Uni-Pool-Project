@@ -42,71 +42,74 @@
 /* ── Selection Card ── */
 .vehicle-selection-card {
   background: white;
-  border-radius: 20px;
-  padding: 16px;
+  border-radius: 24px;
+  padding: 18px;
   display: flex;
-  gap: 16px;
-  border: 2px solid #F3F4F6;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  gap: 18px;
+  border: 1px solid #F1F5F9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+}
+
+.vehicle-selection-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
 }
 
 .vehicle-selection-card.selected {
   border-color: #FFB946;
   background: #FFFBEB;
-  /* Light peach background */
+  box-shadow: 0 12px 30px rgba(255, 185, 70, 0.15);
 }
 
 /* ── Card Left: Image ── */
 .selection-card__left {
-  width: 120px;
+  width: 110px;
 }
 
 .car-image-box {
-  width: 120px;
-  height: 120px;
-  background: #F9FAFB;
-  border-radius: 16px;
+  width: 110px;
+  height: 110px;
+  background: #F8FAFC;
+  border-radius: 20px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transition: background 0.3s ease;
 }
 
 .vehicle-selection-card.selected .car-image-box {
   background: #FEF3C7;
-  /* Warmer for selected */
 }
 
 .brand-logo-pill {
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: white;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   z-index: 2;
 }
 
-.brand-icon {
-  font-size: 16px;
-  font-weight: 900;
-  color: #111827;
-}
-
 .car-selection-img {
-  width: 100%;
+  width: 90%;
   height: auto;
   object-fit: contain;
-  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.vehicle-selection-card:hover .car-selection-img {
+  transform: scale(1.15);
 }
 
 /* ── Card Right: Details ── */
@@ -115,108 +118,59 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-}
-
-.selection-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-right: 24px;
+  gap: 2px;
 }
 
 .car-main-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
-  color: #111827;
+  color: #1F2937;
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  position: absolute;
-  top: 16px;
-  right: 16px;
-}
-
-.selection-edit-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid #E5E7EB;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.selection-edit-btn:hover {
-  background: #F3F4F6;
-  border-color: #D1D5DB;
-}
-
-.selection-check {
-  width: 24px;
-  height: 24px;
-  background: #FFB946;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-  /* Prevent shrinking */
-}
-
-.selection-chevron {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid #E5E7EB;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  /* Prevent shrinking */
 }
 
 .car-sub-details {
   font-size: 13px;
-  color: #6B7280;
+  color: #64748B;
   font-weight: 600;
   margin: 0;
 }
 
 .car-meta-row {
-  margin-top: 4px;
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #9CA3AF;
-  font-weight: 600;
+  gap: 4px;
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 700;
+  background: #F1F5F9;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.vehicle-selection-card.selected .meta-item {
+  background: rgba(251, 191, 36, 0.1);
+  color: #D97706;
 }
 
 .selected-pill {
-  margin-top: 8px;
-  background: #FEF3C7;
+  margin-top: 10px;
+  background: #FFB946;
   border-radius: 50px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   display: flex;
   align-items: center;
   gap: 6px;
   width: fit-content;
-  color: #D97706;
-  font-size: 12px;
+  color: white;
+  font-size: 11px;
   font-weight: 800;
-  border: 1px solid rgba(217, 119, 6, 0.1);
+  box-shadow: 0 4px 10px rgba(255, 185, 70, 0.3);
 }
 
 /* ── Footer Button ── */
@@ -249,6 +203,18 @@
 
 .fade-in {
   animation: fadeIn 0.4s ease-out;
+}
+
+.empty-state__icon-wrapper {
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255, 185, 70, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFB946;
+  margin-bottom: 8px;
 }
 
 @keyframes fadeIn {

@@ -1,21 +1,25 @@
 .route-preview-page {
     position: relative;
-    top: 0;
-    left: 0;
-    right: 0;
     height: 100vh;
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #f3f4f6;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: white;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
+}
+
+.route-preview-page::-webkit-scrollbar {
+    display: none;
 }
 
 .preview-header {
-    position: absolute;
+    position: abs;
     top: 20px;
     left: 20px;
-    z-index: 1000;
+    z-index: 1100;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -34,6 +38,7 @@
     cursor: pointer;
     color: #1f2937;
     transition: all 0.2s;
+    position: relative;
 }
 
 .preview-back-btn:active {
@@ -51,29 +56,31 @@
 }
 
 .preview-map-container {
-    flex: 1;
+    position: sticky;
+    top: 0;
     width: 100%;
-    min-width: 50px;
+    height: 65vh;
+    /* Increased map visibility */
     z-index: 1;
-    position: relative;
 }
 
 .gmaps-shortcut-btn {
     position: absolute;
-    top: -55px;
-    right: 15px;
+    top: 20px;
+    /* Moved to top right of map area */
+    right: 20px;
     z-index: 1001;
     background: #4285F4;
     border: none;
     border-radius: 50px;
-    padding: 12px 20px;
+    padding: 10px 18px;
     display: flex;
     align-items: center;
     gap: 8px;
     box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
     cursor: pointer;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: white;
     transition: all 0.2s;
     white-space: nowrap;
@@ -84,18 +91,19 @@
 }
 
 .preview-bottom-sheet {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     background: white;
-    border-radius: 28px 28px 0 0;
-    padding: 16px 8px;
+    border-radius: 32px 32px 0 0;
+    padding: 24px 20px 40px;
     z-index: 1000;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.08);
+    margin-top: -70px;
+    /* Overlap the map slightly */
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 24px;
+    min-height: 73vh;
+    /* Allow more scrolling space */
 }
 
 .preview-route-indicator {

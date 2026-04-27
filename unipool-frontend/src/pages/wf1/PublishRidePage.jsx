@@ -58,7 +58,7 @@ export default function PublishRidePage() {
   const COORDS_ONLY_REGEX =
     /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
 
-  const cleanAddressLabel = (value, fallback = 'Current Location') => {
+  const cleanAddressLabel = (value, fallback = 'Pinned Location') => {
     if (!value) return fallback;
 
     const str = String(value).trim();
@@ -77,7 +77,7 @@ export default function PublishRidePage() {
     try {
       const loc = await requestLocation();
       const rawAddress = await reverseGeocode(loc.latitude, loc.longitude);
-      const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+      const cleanAddress = cleanAddressLabel(rawAddress, 'Pinned Location');
 
       setForm((f) => ({
         ...f,
@@ -100,7 +100,7 @@ export default function PublishRidePage() {
     } else if (locationStatus === 'granted' && latitude && longitude && !form.startLocation) {
       // Auto-set start location on load if granted
       reverseGeocode(latitude, longitude).then((rawAddress) => {
-        const cleanAddress = cleanAddressLabel(rawAddress, 'Current Location');
+        const cleanAddress = cleanAddressLabel(rawAddress, 'Pinned Location');
 
         setForm((f) => ({
           ...f,

@@ -1,47 +1,65 @@
 .wf3-container {
   min-height: 100vh;
-  background-color: #f9fafb;
-  padding-bottom: 80px;
+  background-color: #F9FAFB;
+  padding-bottom: 40px;
 }
 
 .wf3-header {
   background: white;
-  padding: 1rem;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  gap: 16px;
+  border-bottom: 1px solid #F1F5F9;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #1F2937;
+  cursor: pointer;
 }
 
 .wf3-title {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1F2937;
   margin: 0;
+}
+
+.wf3-content {
+  padding: 24px 20px;
+}
+
+.empty-state__icon-wrapper {
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255, 185, 70, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFB946;
+  margin-bottom: 12px;
+}
+
+.btn-view-rides {
+  min-width: 200px !important;
+  height: 54px !important;
+  border-radius: 18px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 10px 25px rgba(255, 185, 70, 0.3) !important;
 }
 
 .wf3-card {
   background: white;
-  margin: 1rem;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.wf3-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  text-align: center;
-}
-
-.wf3-placeholder__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-}
-
-.wf3-placeholder__subtitle {
-  color: #6b7280;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid #F1F5F9;
 }

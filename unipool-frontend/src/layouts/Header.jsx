@@ -21,6 +21,9 @@ export default function Header() {
     if (path.includes('/vehicles/') && path.includes('/edit')) return 'Edit Vehicle';
     if (path === '/rides/publish') return 'Publish a Ride';
     if (path === '/rides') return 'My Rides';
+    if (path === '/active-ride') return 'Live Ride';
+    if (path.includes('/live')) return 'Active Ride';
+    if (path.includes('/track')) return 'Live Tracking';
     if (path.includes('/rides/') && path.includes('/confirmed')) return 'Ride Published';
     if (path.includes('/rides/')) return 'Ride Details';
     if (path === '/notifications') return 'Notifications';
@@ -28,6 +31,10 @@ export default function Header() {
     if (path === '/profile') return 'Profile';
     if (path === '/search') return 'Find a Ride';
     if (path === '/map') return 'Explore Map';
+    if (path.includes('/preview')) return 'Route Preview';
+    if (path.includes('/bookings/') && path.includes('/confirmed')) return 'Ride Requested';
+    if (path === '/financials') return 'Financials';
+    if (path.startsWith('/chat')) return 'Chat';
     return '';
   };
 
@@ -40,16 +47,16 @@ export default function Header() {
           {showBack && (
             <button className="header__back" onClick={() => navigate(-1)} aria-label="Go back">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18l-6-6 6-6"/>
+                <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
           )}
           {isDashboard && (
             <div className="header__user-avatar-frame">
-              <img 
-                src={user?.avatarUrl || userAvatar} 
-                alt="Profile" 
-                className="header__user-avatar-img" 
+              <img
+                src={user?.avatarUrl || userAvatar}
+                alt="Profile"
+                className="header__user-avatar-img"
               />
             </div>
           )}
@@ -65,7 +72,7 @@ export default function Header() {
               aria-label="Notifications"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V10c0-3.07-1.63-5.64-4.5-6.32V3c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 4.36 6 6.92 6 10v6l-2 2v1h16v-1l-2-2z"/>
+                <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V10c0-3.07-1.63-5.64-4.5-6.32V3c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 4.36 6 6.92 6 10v6l-2 2v1h16v-1l-2-2z" />
               </svg>
             </button>
           )}

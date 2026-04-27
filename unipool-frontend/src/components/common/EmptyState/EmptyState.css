@@ -13,6 +13,13 @@
   margin-bottom: var(--space-xs);
 }
 
+.empty-state__illustration {
+  width: 220px;
+  height: auto;
+  margin-bottom: var(--space-md);
+  object-fit: contain;
+}
+
 .empty-state__title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);

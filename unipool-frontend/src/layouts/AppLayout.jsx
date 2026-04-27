@@ -17,11 +17,11 @@ export default function AppLayout() {
     location.pathname === '/rides/find' ||
     location.pathname === '/rides/results' ||
     location.pathname === '/financials' ||
-    location.pathname.includes('/preview') ||
+    location.pathname === '/financials' ||
     location.pathname.startsWith('/chat');
 
   const isChat = location.pathname.startsWith('/chat');
-  const isFullWidth = location.pathname === '/financials';
+  const isFullWidth = location.pathname === '/financials' || location.pathname.includes('/preview');
 
   return (
     <div className="app-shell">

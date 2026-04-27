@@ -5,7 +5,7 @@ import { ridesApi } from '../../api/rides.api';
 
 // Assets
 import dashCar from '../../assets/images/dash_car1.png';
-import dashAvatar from '../../assets/images/dash_avatar.png';
+// import dashAvatar from '../../assets/images/dash_avatar.png'; // Removed non-existent file
 import './DashboardPage.css';
 
 /* ── REUSABLE COMPONENTS ── */
@@ -157,11 +157,17 @@ export default function DashboardPage() {
       {/* 1. Header Section */}
       <header className="dashboard__header">
         <div className="dashboard__user">
-          <img 
-            src={user?.avatarUrl || dashAvatar} 
-            alt="Profile" 
-            className="dashboard__avatar" 
-          />
+          {user?.avatarUrl ? (
+            <img 
+              src={user.avatarUrl} 
+              alt="Profile" 
+              className="dashboard__avatar" 
+            />
+          ) : (
+            <div className="dashboard__avatar dashboard__avatar--placeholder">
+              {firstName.charAt(0)}
+            </div>
+          )}
           <div className="dashboard__greeting">
             <span className="dashboard__welcome-text">Welcome back,</span>
             <span className="dashboard__user-name">{firstName} 👋</span>

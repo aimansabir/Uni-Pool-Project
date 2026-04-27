@@ -54,8 +54,8 @@ function MapBounds({ positions }) {
             const bounds = L.latLngBounds(positions);
             // Shift the route to the top half of the screen to avoid the bottom sheet
             map.fitBounds(bounds, {
-                paddingTopLeft: [50, 80],
-                paddingBottomRight: [50, 350]
+                padding: [60, 60],
+                paddingBottomRight: [50, 100]
             });
         }
     }, [positions, map]);
@@ -138,13 +138,6 @@ export default function RoutePreviewPage() {
 
     return (
         <div className="route-preview-page">
-            <div className="preview-header">
-                <button className="preview-back-btn" onClick={() => navigate(-1)}>
-                    <ChevronLeft size={24} strokeWidth={2.5} />
-                </button>
-                <div className="preview-header-title">Route Preview</div>
-            </div>
-
             <div className="preview-map-container">
                 <MapContainer
                     center={startPoint || [24.8607, 67.0011]}
@@ -175,14 +168,14 @@ export default function RoutePreviewPage() {
                         </>
                     )}
                 </MapContainer>
-            </div>
 
-            <div className="preview-bottom-sheet slide-up">
                 <button className="gmaps-shortcut-btn" onClick={handleOpenGoogleMaps} title="Open in Google Maps">
                     <Navigation size={18} fill="#fff" color="#fff" />
                     <span>Navigate</span>
                 </button>
+            </div>
 
+            <div className="preview-bottom-sheet slide-up">
                 <div className="preview-route-indicator">
                     <MapPin size={18} color="#F59E0B" />
                     <span className="route-text">
