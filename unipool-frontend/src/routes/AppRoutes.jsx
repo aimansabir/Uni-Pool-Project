@@ -59,7 +59,6 @@ export default function AppRoutes() {
           path="/"
           element={
             <div className="app-shell">
-              <GlobalToaster />
               <SplashPage />
             </div>
           }

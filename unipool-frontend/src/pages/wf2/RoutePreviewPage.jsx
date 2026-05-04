@@ -70,12 +70,15 @@ export default function RoutePreviewPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!id || id === 'undefined') return;
+
         const fetchPreview = async () => {
             try {
                 const res = await ridesApi.getPreview(id);
                 setRide(res.data);
             } catch (err) {
-                showError('Failed to load ride preview');
+                console.error('Preview error:', err);
+                showError(err.message || 'Failed to load ride preview');
                 navigate(-1);
             } finally {
                 setLoading(false);

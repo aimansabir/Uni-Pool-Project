@@ -37,7 +37,6 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
-      <GlobalToaster />
       {!hideHeader && <Header />}
       <main className={`app-layout__content ${hideNav ? 'app-layout__content--no-nav' : ''} ${hideHeader ? 'app-layout__content--no-header' : ''} ${isChat ? 'app-layout__content--chat' : ''} ${isFullWidth ? 'app-layout__content--full-width' : ''} ${isImmersive ? 'app-layout__content--immersive' : ''}`}>
         <Outlet />

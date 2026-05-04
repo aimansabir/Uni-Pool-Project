@@ -18,12 +18,12 @@ const FARE_PER_KM_PKR = Number(process.env.FARE_PER_KM_PKR || 18);
 const FARE_MAX_MULTIPLIER = Number(process.env.FARE_MAX_MULTIPLIER || 1.25);
 
 const LOCATION_ALIASES = {
-    'Maskan Gate': 'Maskan Chowrangi, Karachi, Pakistan',
-    'Maskan Chowrangi': 'Maskan Chowrangi, Karachi, Pakistan',
-    'IBA City Campus': 'Institute of Business Administration City Campus, Karachi, Pakistan',
-    'City Campus': 'Institute of Business Administration City Campus, Karachi, Pakistan',
-    'IBA Main Campus': 'Institute of Business Administration Main Campus, Karachi, Pakistan',
-    'Main Campus': 'Institute of Business Administration Main Campus, Karachi, Pakistan',
+    'Maskan Gate': 'Maskan Chowrangi, Karachi',
+    'Maskan Chowrangi': 'Maskan Chowrangi, Karachi',
+    'IBA City Campus': 'IBA City Campus Karachi',
+    'City Campus': 'IBA City Campus Karachi',
+    'IBA Main Campus': 'Institute of Business Administration Karachi Main Campus',
+    'Main Campus': 'Institute of Business Administration Karachi Main Campus',
 };
 
 const roundToNearest10 = (value) => Math.ceil(value / 10) * 10;
@@ -69,12 +69,20 @@ const geocodeLocation = async (query) => {
 
     const attempts = [normalized];
     
-    // Only add Karachi suffix if not already present
-    if (!normalized.toLowerCase().includes('karachi')) {
-        attempts.push(`${normalized}, Karachi`);
-        attempts.push(`${normalized}, Karachi, Pakistan`);
-    } else if (!normalized.toLowerCase().includes('pakistan')) {
-        attempts.push(`${normalized}, Pakistan`);
+    // If normalization changed the query, add the original query as a fallback
+    if (normalized !== query) {
+        attempts.push(query);
+    }
+
+    // Generate extended attempts (Karachi/Pakistan suffixes)
+    const baseAttempts = [...attempts];
+    for (const base of baseAttempts) {
+        if (!base.toLowerCase().includes('karachi')) {
+            attempts.push(`${base}, Karachi`);
+            attempts.push(`${base}, Karachi, Pakistan`);
+        } else if (!base.toLowerCase().includes('pakistan')) {
+            attempts.push(`${base}, Pakistan`);
+        }
     }
 
     // Filter unique attempts

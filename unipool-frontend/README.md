@@ -1,165 +1,129 @@
-# UniPool Frontend
+# UniPool Frontend — Premium Carpooling Interface 🚗
 
-> **University Carpooling Platform — React Frontend**
-> A responsive, mobile-first React frontend for UniPool, built with Vite and designed to match the project's Figma wireframes pixel-by-pixel.
-
----
-
-## Tech Stack
-
-| Layer       | Technology              |
-|-------------|-------------------------|
-| Framework   | React 19                |
-| Bundler     | Vite 8                  |
-| Routing     | React Router v7         |
-| HTTP Client | Axios                   |
-| Maps        | Leaflet + OpenStreetMap  |
-| Toasts      | react-hot-toast         |
-| Styling     | Vanilla CSS (Modular)   |
+> **University Ride-Sharing — High-Fidelity React Experience**
+> A responsive, mobile-first React frontend for UniPool, designed to bridge the gap between campus commuters. Built with **React 19**, **Vite**, and **Vanilla CSS** for pixel-perfect fidelity to Figma wireframes.
 
 ---
 
-## Getting Started
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![React Router](https://img.shields.io/badge/React_Router-7-CA4245?style=for-the-badge&logo=react-router&logoColor=white)
+![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=for-the-badge&logo=leaflet&logoColor=white)
+![Axios](https://img.shields.io/badge/Axios-HTTP-5A29E4?style=for-the-badge&logo=axios&logoColor=white)
 
-### 1. Install Dependencies
+---
 
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- **Node.js** ≥ 18.x
+- **npm** ≥ 9.x
+- **Backend API** running (Default: `http://localhost:3000`)
+
+### 2. Installation
 ```bash
+# Navigate to the frontend directory
 cd unipool-frontend
+
+# Install dependencies
 npm install
 ```
 
-### 2. Configure Environment
-
+### 3. Environment Configuration
+Create a `.env` file from the template:
 ```bash
 cp .env.example .env
 ```
-
-Edit `.env` and set your backend URL:
-
-```
+Ensure `VITE_API_URL` points to your active backend:
+```env
 VITE_API_URL=http://localhost:3000
 ```
 
-### 3. Start Development Server
-
+### 4. Launch Development Server
 ```bash
 npm run dev
 ```
+The application will be accessible at **http://localhost:5173**.
 
-The app will start at **http://localhost:5173**
+---
 
-### 4. Production Build
+## 🛠️ Tech Stack & Design System
+
+| Component | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Framework** | React 19 | Modern component-based architecture with latest hooks. |
+| **Build Tool** | Vite 8 | Ultra-fast HMR and optimized production bundling. |
+| **Routing** | React Router v7 | Seamless SPA navigation and protected route handling. |
+| **State Mgmt** | React Context | Lightweight global state for Auth and UI notifications. |
+| **Styling** | Vanilla CSS (Modular) | Maximum flexibility to match Figma designs exactly. |
+| **Mapping** | Leaflet + OSM | Open-source, high-performance interactive maps. |
+| **Feedback** | React Hot Toast | Responsive, non-intrusive notification system. |
+
+### Design Philosophy
+UniPool follows a **Mobile-First App Shell** design:
+- **Responsive Layout**: Optimized for 430px (iPhone Pro Max) width, centered on desktop for a native app feel.
+- **Brand Identity**: Primary Amber (`#F3A32D`) and Accent Teal (`#18A085`) palette.
+- **Typography**: Clean, professional "Inter" font family.
+- **Interactions**: Smooth CSS transitions and micro-animations for high-end UX.
+
+---
+
+## ✨ Key Features
+
+### 🔐 Auth & Onboarding
+- **Identity Guard**: IBA-email-only registration (`@iba.edu.pk`).
+- **OTP Verification**: Clean, dedicated verification screen.
+- **Role Selection**: Seamlessly toggle between Driver and Passenger personas.
+- **Smart Redirects**: Context-aware routing based on auth status.
+
+### 🚗 Workflow 1: Driver Supply (Supply Side)
+- **Vehicle Vault**: Manage your fleet with full CRUD support and vehicle imagery.
+- **Intelligence Publishing**: Smart ride creation with route preview, stop sequence, and fare suggestions.
+- **Supply Dashboard**: High-level stats on rides offered and earnings.
+- **Real-time Notifications**: Live SSE stream for incoming booking alerts.
+
+### 🔍 Workflow 2: Passenger Search (Demand Side)
+- **Smart Search**: Find rides by destination or class time-slots.
+- **Live Feed**: Urgent "Leaving Now" rides highlighted at the top.
+- **Occupancy Insights**: Visual breakdown of gender composition for safety.
+- **Booking Lifecycle**: Request seats, select pickup stops, and track booking status.
+
+### 📍 Workflow 3: Live Navigation & Trust (Execution)
+- **Driver Navigation**: Google Maps deep-links for optimized turn-by-turn routing.
+- **Passenger Tracking**: Real-time driver location updates on interactive maps.
+- **Verification System**: License plate confirmation before boarding.
+- **Settlement & Ratings**: Integrated JazzCash/Cash payment flow and mutual rating system.
+
+---
+
+## 📂 Project Structure
 
 ```bash
-npm run build
-```
-
----
-
-## Project Structure
-
-```
 unipool-frontend/
-├── public/
-│   └── favicon.svg
 ├── src/
-│   ├── api/                    # API layer (Axios modules per resource)
-│   │   ├── client.js           # Axios instance + interceptors
-│   │   ├── auth.api.js
-│   │   ├── vehicles.api.js
-│   │   ├── rides.api.js
-│   │   └── notifications.api.js
-│   ├── components/
-│   │   └── common/             # Reusable UI primitives
-│   │       ├── Button/
-│   │       ├── Input/
-│   │       ├── Modal/
-│   │       ├── Spinner/
-│   │       ├── EmptyState/
-│   │       ├── ConfirmDialog/
-│   │       └── Badge/
-│   ├── context/
-│   │   ├── AuthContext.jsx     # Auth state management
-│   │   └── ToastContext.jsx    # Global notifications
-│   ├── layouts/
-│   │   ├── AppLayout.jsx       # Authenticated layout + bottom nav
-│   │   ├── AuthLayout.jsx      # Login/register layout
-│   │   ├── Header.jsx
-│   │   └── BottomNav.jsx
-│   ├── pages/
-│   │   ├── auth/               # Login, Register, OTP, Role Select
-│   │   ├── wf1/                # Dashboard, Vehicles, Rides, Notifications
-│   │   ├── ProfilePage.jsx
-│   │   ├── MessagesPage.jsx
-│   │   └── NotFoundPage.jsx
-│   ├── routes/
-│   │   ├── AppRoutes.jsx       # Route definitions
-│   │   └── ProtectedRoute.jsx  # Auth guard
-│   ├── styles/
-│   │   ├── variables.css       # Design tokens
-│   │   └── global.css          # Reset + global styles
-│   ├── utils/
-│   │   ├── constants.js
-│   │   ├── formatters.js
-│   │   ├── validators.js
-│   │   └── storage.js
-│   ├── App.jsx
-│   └── main.jsx
-├── .env.example
-├── index.html
-└── package.json
+│   ├── api/          # Axios services mapped to backend endpoints
+│   ├── components/   # Atomic UI components (Buttons, Modals, Cards)
+│   ├── context/      # Global state (Auth, Toast, Sidebar)
+│   ├── layouts/      # AppShell, BottomNav, and AuthLayout
+│   ├── pages/        # Main views grouped by Workflow (wf1, wf2, wf3)
+│   ├── routes/       # Route definitions and Auth guards
+│   ├── styles/       # CSS Design Tokens and Global resets
+│   └── utils/        # Constants, Formatters, and Validators
+├── public/           # Static assets (Favicons, Icons)
+└── index.html        # SPA entry point
 ```
 
 ---
 
-## Implemented Features
+## 👥 Contributors & Responsibilities
 
-### Authentication
-- Login with IBA email + password
-- Registration with full validation (IBA email domain enforcement)
-- OTP verification screen (UI isolated, backend-agnostic)
-- Role selection: Driver / Passenger
-
-### Workflow 1 — Driver Ride Publication (Khizer)
-- **Dashboard**: Welcome card, offer/find ride buttons, stats, recent activities
-- **Vehicle Management**: Full CRUD (list, add, edit, delete) with confirmation dialogs
-- **Ride Publishing**: Multi-field form with route intelligence preview, suggested stops, fare calculation, ride type toggle (Scheduled/Instant), seats selector, gender preference
-- **My Rides**: Filterable list by status (Published, In Progress, Completed)
-- **Ride Detail**: Carpool room view with route, stops, vehicle info, start/cancel actions
-- **Notifications**: List with read/unread states, channel icons, time-ago formatting
-
-### Shared
-- **Profile**: Read-only user info, trust score, logout
-- **Messages**: "Coming Soon" placeholder
-- **404 Page**: Friendly error page with navigation
+| Contributor | Focus Areas |
+| :--- | :--- |
+| **Khizer** | Auth, Workflow 1 (Supply), Workflow 3 (Live Execution), Core Layout |
+| **Aiman** | Workflow 2 (Passenger Search), UI Polishing, Form Validations |
 
 ---
 
-## Design Approach
+## 📄 License
+This project is developed for academic purposes as part of the **Web-Based Application Development** course at IBA.
 
-This frontend preserves the **mobile-app aesthetic** from the Figma wireframes:
-
-- **430px max-width** centered on desktop — looks like a phone screen
-- **Bottom navigation bar** with 5 tabs (Home, Map, Messages, Pooling, Profile)
-- **Amber/orange (#F3A32D)** primary color scheme matching Figma exactly
-- **Teal (#18A085)** accent color for success/action states
-- **Inter** font family from Google Fonts
-- **Smooth animations** on page transitions and interactions
-- **Toast notifications** for all success/error feedback
-
----
-
-## Team Contributions
-
-| Member  | Scope |
-|---------|-------|
-| **Khizer** | Auth + Workflow 1 (Driver Ride Publication) + Workflow 3 (Live Navigation) |
-| **Aiman** | Workflow 2 (Passenger Search & Booking) |
-
----
-
-## Environment Variables
-
-| Variable       | Required | Default                 | Description           |
-|----------------|----------|-------------------------|-----------------------|
-| `VITE_API_URL` | ✅       | `http://localhost:3000` | Backend API base URL  |
