@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import Badge from '../components/common/Badge/Badge';
 import Button from '../components/common/Button/Button';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut, Trash2, BellRing, Star } from 'lucide-react';
+import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut, Trash2, BellRing, Star, MapPin, Navigation, Clock, Smartphone, Mail } from 'lucide-react';
 import { subscriptionsApi } from '../api/notifications.api';
 import { ratingsApi } from '../api/ratings.api';
 import './ProfilePage.css';
@@ -344,19 +344,46 @@ export default function ProfilePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {subscriptions.map(sub => (
-              <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #eee' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                    {sub.startLocation} <span style={{color: '#999'}}>→</span> {sub.destinationLocation}
-                  </span>
-                  <span style={{ fontSize: '12px', color: '#666' }}>Via {sub.channel}</span>
+              <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px', background: '#ffffff', borderRadius: '16px', border: '1px solid #eaeaea', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, paddingRight: '12px' }}>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <MapPin size={16} color="#10b981" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: '1.4' }}>{sub.startLocation.split('|')[0]}</span>
+                    </div>
+                    <div style={{ width: '2px', height: '10px', background: '#e5e7eb', marginLeft: '7px' }} />
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <Navigation size={16} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: '1.4' }}>{sub.destinationLocation}</span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#6b7280', marginTop: '4px', flexWrap: 'wrap' }}>
+                    {sub.startLocation.includes('|') && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#e0e7ff', color: '#4338ca', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                        <Clock size={12} />
+                        <span>{sub.startLocation.split('|')[1]}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px' }}>
+                       <Clock size={12} />
+                       <span>{new Date(sub.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {new Date(sub.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px' }}>
+                       {sub.channel === 'EMAIL' ? <Mail size={12} /> : <Smartphone size={12} />}
+                       <span>{sub.channel === 'IN_APP_TOAST' || sub.channel === 'IN_APP' ? 'Push Alert' : 'Email'}</span>
+                    </div>
+                  </div>
+                  
                 </div>
+                
                 <button 
                   onClick={() => handleDeleteSubscription(sub.id)}
                   aria-label="Delete route alert"
-                  style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={18} />
                 </button>
               </div>
             ))}

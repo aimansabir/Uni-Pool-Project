@@ -11,7 +11,7 @@ const LOCATION_ALIASES = {
 };
 
 const normalizeLocationKey = (value = '') => {
-    const rawKey = String(value)
+    const rawKey = String(value).split('|')[0]
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9\s-]/g, '')

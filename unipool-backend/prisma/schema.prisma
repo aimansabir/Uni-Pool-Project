@@ -241,6 +241,7 @@ model RouteSubscription {
   destinationKey      String?
   startLocation       String
   destinationLocation String
+  targetSlot          String?
   channel             NotificationChannel @default(EMAIL)
   isActive            Boolean             @default(true)
 

@@ -128,9 +128,9 @@ export default function RideResultsPage() {
     try {
       setSubscribing(true);
       await subscriptionsApi.create({
-        pickupLocation: originalFilters.pickupLocation,
+        pickupLocation: originalFilters.targetSlot ? `${originalFilters.pickupLocation}|${originalFilters.targetSlot}` : originalFilters.pickupLocation,
         dropoffLocation: originalFilters.dropoffLocation,
-        channel: 'EMAIL',
+        channel: 'IN_APP_TOAST',
       });
       showSuccess('Route alert saved! You will be notified when rides are published.');
     } catch (err) {
