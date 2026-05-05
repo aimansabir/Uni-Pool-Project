@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { buildRideIntelligence } = require('./mapping.service');
+const { buildRideIntelligence, computeFareSuggestion } = require('./mapping.service');
 const { dispatchRideNotifications } = require('./notification.service');
 const { emitToUser } = require('../lib/sseHub');
 
@@ -15,8 +15,7 @@ const createRide = async (driverId, data) => {
         farePerSeat,
         genderPreference = 'ANY',
         confirmedStops,
-        startCoords,
-        destinationCoords,
+        selectedRouteOptionNumber,
     } = data;
 
     if (
@@ -75,23 +74,15 @@ const createRide = async (driverId, data) => {
         throw err;
     }
 
-    if (normalizedGenderPreference === 'FEMALES_ONLY') {
-        // Self-healing for demo: if user is female but not gender-verified, verify them now
-        if (driver.gender === 'female' && !driver.genderVerified) {
-            await prisma.user.update({
-                where: { id: driverId },
-                data: { genderVerified: true }
-            });
-            driver.genderVerified = true;
-        }
-
-        if (!(driver.gender === 'female' && driver.genderVerified)) {
-            const err = new Error(
-                'Only gender-verified female drivers can publish Females Only rides.'
-            );
-            err.statusCode = 403;
-            throw err;
-        }
+    if (
+        normalizedGenderPreference === 'FEMALES_ONLY' &&
+        !(driver.gender === 'female' && driver.genderVerified)
+    ) {
+        const err = new Error(
+            'Only gender-verified female drivers can publish Females Only rides.'
+        );
+        err.statusCode = 403;
+        throw err;
     }
 
     const seatCount = Number(seatsTotal);
@@ -102,12 +93,24 @@ const createRide = async (driverId, data) => {
     const intelligence = await buildRideIntelligence({
         startLocation,
         destinationLocation,
-        startCoords,
-        destinationCoords,
         seatsTotal: seatCount,
         rideType: normalizedRideType,
         departureTime,
     });
+
+    // If driver selected a specific route option, override intelligence with that option's values
+    if (selectedRouteOptionNumber != null && intelligence.routeOptions) {
+        const chosen = intelligence.routeOptions.find(
+            (opt) => opt.optionNumber === Number(selectedRouteOptionNumber)
+        );
+        if (chosen) {
+            intelligence.routeGeometry = chosen.routeGeometry;
+            intelligence.distanceKm = chosen.distanceKm;
+            intelligence.durationMin = chosen.durationMin;
+            intelligence.suggestedLandmarks = chosen.suggestedLandmarks;
+            intelligence.fareSuggestion = computeFareSuggestion(chosen.distanceKm, seatCount);
+        }
+    }
 
     const requestedFare =
         farePerSeat != null
@@ -246,18 +249,6 @@ const getRideById = async (rideId, userId) => {
                     participantStatus: true,
                     requestedSeats: true,
                     status: true,
-                    createdAt: true,
-                    note: true,
-                    pickupStopName: true,
-                    passenger: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            gender: true,
-                            trustScore: true,
-                            totalRatingsReceived: true,
-                        },
-                    },
                 },
             },
         },
@@ -295,14 +286,6 @@ const updateRide = async (rideId, driverId, data) => {
 
     if (existingRide.driverId !== driverId) {
         throw new Error('Unauthorized.');
-    }
-
-    if (existingRide.status !== 'PUBLISHED') {
-        const err = new Error(
-            `Only published rides can be edited. Current status: ${existingRide.status}.`
-        );
-        err.statusCode = 400;
-        throw err;
     }
 
     const driver = await prisma.user.findUnique({
@@ -371,12 +354,25 @@ const updateRide = async (rideId, driverId, data) => {
             startLocation: data.startLocation ?? existingRide.startLocation,
             destinationLocation:
                 data.destinationLocation ?? existingRide.destinationLocation,
-            startCoords: data.startCoords,
-            destinationCoords: data.destinationCoords,
             seatsTotal: data.seatsTotal ?? existingRide.seatsTotal,
             rideType: nextRideType,
             departureTime: data.departureTime ?? existingRide.departureTime,
         });
+
+        // If driver selected a specific route option, override refreshed values
+        if (data.selectedRouteOptionNumber != null && refreshed.routeOptions) {
+            const chosen = refreshed.routeOptions.find(
+                (opt) => opt.optionNumber === Number(data.selectedRouteOptionNumber)
+            );
+            if (chosen) {
+                refreshed.routeGeometry = chosen.routeGeometry;
+                refreshed.distanceKm = chosen.distanceKm;
+                refreshed.durationMin = chosen.durationMin;
+                refreshed.suggestedLandmarks = chosen.suggestedLandmarks;
+                const nextSeats = data.seatsTotal ?? existingRide.seatsTotal;
+                refreshed.fareSuggestion = computeFareSuggestion(chosen.distanceKm, nextSeats);
+            }
+        }
     }
 
     const updateData = {

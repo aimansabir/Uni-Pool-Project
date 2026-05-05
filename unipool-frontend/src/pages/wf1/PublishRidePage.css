@@ -14,7 +14,8 @@
   flex-direction: column;
   background-color: var(--bg-light);
   min-height: auto;
-  padding-bottom: 40px; /* Reduced from 80px */
+  padding-bottom: 40px;
+  /* Reduced from 80px */
 
   /* Robust Full-Width Expansion */
   position: relative;
@@ -112,7 +113,8 @@
 /* ── Container ── */
 .publish-container {
   padding: 24px;
-  padding-bottom: 40px; /* Add some bottom padding for the button */
+  padding-bottom: 40px;
+  /* Add some bottom padding for the button */
   margin-top: 10px;
   /* Adjusted since header now bulges down */
   position: relative;
@@ -342,7 +344,8 @@
 }
 
 .date-tab.custom-date-tab {
-  flex: 1.3; /* Give more space to the picker button */
+  flex: 1.3;
+  /* Give more space to the picker button */
 }
 
 .date-tab.active {
@@ -572,6 +575,7 @@
 .column-options::-webkit-scrollbar {
   width: 3px;
 }
+
 .column-options::-webkit-scrollbar-thumb {
   background: #E5E7EB;
   border-radius: 10px;
@@ -683,15 +687,18 @@
   background: #F5F7FA;
   padding: 4px;
   border-radius: 10px;
-  height: 40px; /* Reduced from 48px */
+  height: 40px;
+  /* Reduced from 48px */
   box-sizing: border-box;
 }
 
 .stepper-btn {
   background: var(--white);
   border: none;
-  width: 30px; /* Reduced from 34px */
-  height: 30px; /* Reduced from 34px */
+  width: 30px;
+  /* Reduced from 34px */
+  height: 30px;
+  /* Reduced from 34px */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -707,7 +714,8 @@
 }
 
 .stepper-value {
-  font-size: 18px; /* Reduced from 22px */
+  font-size: 18px;
+  /* Reduced from 22px */
   font-weight: 700;
   color: #1F2937;
 }
@@ -845,6 +853,236 @@
   100% {
     opacity: 0.5;
   }
+}
+
+/* ── Route Selection Section ── */
+.route-selection-section {
+  background: var(--white);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.route-selection-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-selection-icon {
+  width: 32px;
+  height: 32px;
+  background: #FFF1D6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-orange);
+}
+
+.route-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.route-option-card {
+  background: var(--bg-light);
+  border: 1.5px solid #F3F4F6;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.route-option-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.route-option-card.active {
+  background: #FFF9ED;
+  border-color: var(--primary-orange);
+  box-shadow: 0 4px 16px rgba(253, 186, 46, 0.15);
+}
+
+.route-option-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.route-option-card__badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  background: var(--white);
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.route-option-card.active .route-option-card__badge {
+  background: var(--primary-orange);
+  color: var(--white);
+  border-color: var(--primary-orange);
+}
+
+.route-option-card__check {
+  width: 22px;
+  height: 22px;
+  background: var(--white);
+  color: var(--primary-orange);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1.5px solid var(--primary-orange);
+}
+
+.route-option-card__stats {
+  display: flex;
+  gap: 16px;
+}
+
+.route-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.route-option-card.active .route-stat {
+  color: #92400E;
+}
+
+.route-option-card__highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.road-highlight-pill {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6B7280;
+  background: var(--white);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-option-card.active .road-highlight-pill {
+  background: rgba(253, 186, 46, 0.08);
+  border-color: rgba(253, 186, 46, 0.3);
+  color: #92400E;
+}
+
+/* ── Suggested Stops Section ── */
+.stops-section {
+  background: var(--white);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stops-section__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stops-section__icon {
+  width: 32px;
+  height: 32px;
+  background: #FFF1D6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-orange);
+  flex-shrink: 0;
+}
+
+.stops-section__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.stops-section__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.stops-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stop-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-light);
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #6B7280;
+  font-size: 12px;
+  font-weight: 600;
+  position: relative;
+}
+
+.stop-chip:hover {
+  border-color: #D1D5DB;
+  transform: translateY(-1px);
+}
+
+.stop-chip.selected {
+  background: #FFF9ED;
+  border-color: var(--primary-orange);
+  color: #92400E;
+}
+
+.stop-chip__name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stop-chip__check {
+  width: 16px;
+  height: 16px;
+  background: var(--primary-orange);
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
 }
 
 /* ── Gender Selection ── */
@@ -1207,8 +1445,15 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .publish-page__no-vehicle-title {
