@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../api/auth.api';
 import { useToast } from '../context/ToastContext';
 import Badge from '../components/common/Badge/Badge';
 import Button from '../components/common/Button/Button';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut, Trash2, BellRing } from 'lucide-react';
+import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut, Trash2, BellRing, Star } from 'lucide-react';
 import { subscriptionsApi } from '../api/notifications.api';
+import { ratingsApi } from '../api/ratings.api';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
@@ -28,6 +29,9 @@ export default function ProfilePage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
 
+  const [trustData, setTrustData] = useState(null);
+  const [loadingTrust, setLoadingTrust] = useState(true);
+
   useEffect(() => {
     const fetchSubs = async () => {
       try {
@@ -40,7 +44,14 @@ export default function ProfilePage() {
       }
     };
     fetchSubs();
-  }, []);
+
+    if (user?.id) {
+      ratingsApi.getTrustScore(user.id)
+        .then(res => setTrustData(res.data))
+        .catch(err => console.error('Failed to load trust score', err))
+        .finally(() => setLoadingTrust(false));
+    }
+  }, [user?.id]);
 
   const handleDeleteSubscription = async (id) => {
     try {
@@ -238,11 +249,65 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <div className="profile-page__info-row">
-          <span className="profile-page__info-label">Trust Score</span>
-          <span className="profile-page__info-value font-bold text-primary">
-            ⭐ {user?.trustScore?.toFixed(1) || '100.0'}
-          </span>
+        <div className="profile-page__info-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: trustData?.totalRatingsReceived > 0 ? '12px' : '4px' }}>
+            <span className="profile-page__info-label">Trust Score</span>
+            {loadingTrust ? (
+              <span className="profile-page__info-value">Loading...</span>
+            ) : trustData ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Star size={18} fill="#FDBA2E" color="#FDBA2E" />
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '15px' }}>
+                    {(trustData.trustScorePercent / 20).toFixed(1)}
+                  </span>
+                </div>
+                <span style={{ fontSize: '13px', color: '#666' }}>
+                  • {trustData.totalRatingsReceived} ratings
+                </span>
+              </div>
+            ) : (
+              <span className="profile-page__info-value">—</span>
+            )}
+          </div>
+          
+          {trustData && trustData.totalRatingsReceived > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', background: '#f8f9fa', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Punctual</span>
+                {trustData.punctualityScorePercent != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <Star size={12} fill="#FDBA2E" color="#FDBA2E" />
+                    <span style={{ fontWeight: 600, fontSize: '13px' }}>{(trustData.punctualityScorePercent / 20).toFixed(1)}</span>
+                  </div>
+                ) : <span style={{ fontSize: '13px', color: '#999' }}>—</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Safety</span>
+                {trustData.safetyScorePercent != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <Star size={12} fill="#FDBA2E" color="#FDBA2E" />
+                    <span style={{ fontWeight: 600, fontSize: '13px' }}>{(trustData.safetyScorePercent / 20).toFixed(1)}</span>
+                  </div>
+                ) : <span style={{ fontSize: '13px', color: '#999' }}>—</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Behavior</span>
+                {trustData.behaviorScorePercent != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <Star size={12} fill="#FDBA2E" color="#FDBA2E" />
+                    <span style={{ fontWeight: 600, fontSize: '13px' }}>{(trustData.behaviorScorePercent / 20).toFixed(1)}</span>
+                  </div>
+                ) : <span style={{ fontSize: '13px', color: '#999' }}>—</span>}
+              </div>
+            </div>
+          )}
+
+          {trustData && trustData.totalRatingsReceived === 0 && (
+             <div style={{ fontSize: '13px', color: '#666' }}>
+               New user — no ratings yet
+             </div>
+          )}
         </div>
 
         <div className="profile-page__info-row">

@@ -519,14 +519,22 @@ const getUserTrustScore = async (userId) => {
     throw createError('User not found.', 404);
   }
 
+  const tScore = user.trustScore ?? 100;
+
   return {
     id: user.id,
     fullName: user.fullName,
-    trustScore: user.trustScore != null ? `${user.trustScore}%` : null,
+    // Legacy string fields
+    trustScore: `${tScore}%`,
     punctualityScore: user.punctualityScore != null ? `${user.punctualityScore}%` : null,
     safetyScore: user.safetyScore != null ? `${user.safetyScore}%` : null,
     behaviorScore: user.behaviorScore != null ? `${user.behaviorScore}%` : null,
-    totalRatingsReceived: user.totalRatingsReceived
+    // Raw numeric fields for precise UI rendering (stars)
+    trustScorePercent: tScore,
+    punctualityScorePercent: user.punctualityScore,
+    safetyScorePercent: user.safetyScore,
+    behaviorScorePercent: user.behaviorScore,
+    totalRatingsReceived: user.totalRatingsReceived || 0
   };
 };
 

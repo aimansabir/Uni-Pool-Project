@@ -79,13 +79,18 @@ const ActivityCard = ({ role, date, time, from, to, amount, status }) => {
       case 'pending': return 'activity__status-pill--pending';
       case 'cancelled': return 'activity__status-pill--cancelled';
       case 'rejected': return 'activity__status-pill--cancelled';
+      case 'paid': return 'activity__status-pill--completed';
+      case 'payment confirmed': return 'activity__status-pill--completed';
+      case 'pending payment': return 'activity__status-pill--pending';
+      case 'no show': return 'activity__status-pill--cancelled';
       default: return 'activity__status-pill--default';
     }
   };
 
   const isPassenger = role === 'Passenger';
   const amountPrefix = isPassenger ? '-' : '+';
-  const amountClass = isPassenger ? 'activity__amount--expense' : '';
+  const amountClass = isPassenger && amount > 0 ? 'activity__amount--expense' : '';
+  const amountStr = amount > 0 ? `${amountPrefix} Rs ${amount}` : `Rs 0`;
 
   return (
     <div className="card--activity">
@@ -117,7 +122,7 @@ const ActivityCard = ({ role, date, time, from, to, amount, status }) => {
       </div>
 
       <div className="activity__right">
-        <span className={`activity__amount ${amountClass}`}>{amountPrefix} Rs {amount}</span>
+        <span className={`activity__amount ${amountClass}`}>{amountStr}</span>
         <div className={`activity__status-pill ${getStatusClass(status)}`}>{status}</div>
       </div>
     </div>
@@ -132,14 +137,14 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ earned: 0, split: 0, total: 0, recentActivities: [] });
+  const [stats, setStats] = useState({ earned: 0, split: 0, total: 0, pendingReceivables: 0, pendingPayables: 0, recentActivities: [] });
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
         const res = await ridesApi.getDashboardStats();
-        setStats(res.data || { earned: 0, split: 0, total: 0, recentActivities: [] });
+        setStats(res.data || { earned: 0, split: 0, total: 0, pendingReceivables: 0, pendingPayables: 0, recentActivities: [] });
       } catch (err) {
         console.error("Failed to load dashboard stats:", err);
         setError("Could not load dashboard statistics.");
@@ -284,13 +289,23 @@ export default function DashboardPage() {
                   Fares Earned
                 </span>
                 <span className="stat-item__value text-success">Rs {stats.earned.toLocaleString()}</span>
+                {stats.pendingReceivables > 0 && (
+                  <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', display: 'block' }}>
+                    + Rs {stats.pendingReceivables.toLocaleString()} pending
+                  </span>
+                )}
               </div>
-              <div className="stat-item">
+              <div className="stat-item" style={{ marginTop: stats.pendingReceivables > 0 ? '8px' : '0' }}>
                 <span className="stat-item__label">
                   <span className="stat-dot stat-dot--split" />
                   Fares Split
                 </span>
                 <span className="stat-item__value">Rs {stats.split.toLocaleString()}</span>
+                {stats.pendingPayables > 0 && (
+                  <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', display: 'block' }}>
+                    + Rs {stats.pendingPayables.toLocaleString()} unpaid
+                  </span>
+                )}
               </div>
             </div>
 

@@ -92,7 +92,22 @@ export default function RideResultsPage() {
           /* Do NOT filter by rideType — show both INSTANT and SCHEDULED rides */
         };
         const res = await ridesApi.searchRides(params);
-        setRides(res.data || []);
+        
+        // Defensive client-side filter: only show bookable rides
+        const now = new Date();
+        const graceWindow = new Date(now.getTime() - 15 * 60000);
+        
+        const bookableRides = (res.data || []).filter(ride => {
+          if (ride.status !== 'PUBLISHED') return false;
+          if (ride.seatsAvailable <= 0) return false;
+          
+          const departure = new Date(ride.departureTime);
+          if (departure < graceWindow) return false;
+          
+          return true;
+        });
+
+        setRides(bookableRides);
       } catch (err) {
         console.error('Fetch error:', err);
         showError(err.message || 'Failed to fetch rides.');

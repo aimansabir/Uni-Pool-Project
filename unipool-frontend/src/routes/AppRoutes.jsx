@@ -50,9 +50,12 @@ import MessagesPage from '../pages/MessagesPage';
 import ChatPage from '../pages/ChatPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
+import NotificationStream from '../components/NotificationStream';
+
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <NotificationStream />
       <Routes>
         {/* Splash — entry point */}
         <Route

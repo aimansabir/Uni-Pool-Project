@@ -975,8 +975,7 @@ export default function PublishRidePage() {
           <div className="gender-pills">
             {[
               { id: 'ANY', label: 'Any' },
-              { id: 'FEMALES_ONLY', label: 'Females' },
-              { id: 'MALES_ONLY', label: 'Males' }
+              { id: 'FEMALES_ONLY', label: 'Females' }
             ].map((g) => (
               <button
                 key={g.id}

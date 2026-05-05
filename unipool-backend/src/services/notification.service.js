@@ -156,20 +156,25 @@ const dispatchRideNotifications = async (ride) => {
 
     if (ride.rideType === 'INSTANT') {
         for (const search of activeSearchUsers) {
+            const payload = {
+                type: 'INSTANT_RIDE_AVAILABLE',
+                rideId: ride.id,
+                routeKey: ride.routeKey,
+                destinationKey: ride.destinationKey,
+                startLocation: ride.startLocation,
+                destinationLocation: ride.destinationLocation,
+                departureTime: ride.departureTime,
+                farePerSeat: ride.farePerSeat,
+                rideType: ride.rideType,
+            };
+
             const notification = await createNotification({
                 userId: search.userId,
                 rideId: ride.id,
                 channel: 'IN_APP_TOAST',
                 title: 'Instant ride available now',
                 message: `${ride.startLocation} → ${ride.destinationLocation} leaving shortly`,
-                payload: {
-                    rideId: ride.id,
-                    routeKey: ride.routeKey,
-                    destinationKey: ride.destinationKey,
-                    departureTime: ride.departureTime,
-                    farePerSeat: ride.farePerSeat,
-                    rideType: ride.rideType,
-                },
+                payload,
             });
 
             await prisma.notification.update({
@@ -181,11 +186,7 @@ const dispatchRideNotifications = async (ride) => {
                 id: notification.id,
                 title: 'Instant ride available now',
                 message: `${ride.startLocation} → ${ride.destinationLocation} leaving shortly`,
-                rideId: ride.id,
-                routeKey: ride.routeKey,
-                destinationKey: ride.destinationKey,
-                departureTime: ride.departureTime,
-                farePerSeat: ride.farePerSeat,
+                ...payload
             });
         }
     }

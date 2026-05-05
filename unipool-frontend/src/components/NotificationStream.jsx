@@ -1,12 +1,17 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { notificationsApi } from '../api/notifications.api';
+import { MapPin, Navigation, Zap, X } from 'lucide-react';
+import './common/NotificationStream/NotificationStream.css'; // Using the CSS we just created
 
 export default function NotificationStream() {
   const { isAuthenticated, token } = useAuth();
   const { showRideToast } = useToast();
+  const navigate = useNavigate();
   const eventSourceRef = useRef(null);
+  const [urgentAlert, setUrgentAlert] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -24,14 +29,17 @@ export default function NotificationStream() {
       eventSourceRef.current = source;
 
       source.addEventListener('connected', (e) => {
-        // Connected successfully, no toast needed
         console.log('SSE Stream Connected');
       });
 
       const handleNotification = (e) => {
         try {
           const data = JSON.parse(e.data);
-          showRideToast(data);
+          if (data.type === 'INSTANT_RIDE_AVAILABLE') {
+            setUrgentAlert(data);
+          } else {
+            showRideToast(data);
+          }
         } catch (err) {
           console.error('Failed to parse SSE event data', err);
         }
@@ -51,7 +59,6 @@ export default function NotificationStream() {
 
       source.onerror = (err) => {
         console.error('SSE Error:', err);
-        // EventSource automatically reconnects, so we just log it.
       };
 
     } catch (err) {
@@ -66,5 +73,56 @@ export default function NotificationStream() {
     };
   }, [isAuthenticated, token, showRideToast]);
 
-  return null;
+  if (!urgentAlert) return null;
+
+  const handleView = () => {
+    navigate(`/rides/${urgentAlert.rideId}/preview`);
+    setUrgentAlert(null);
+  };
+
+  const handleDismiss = () => {
+    setUrgentAlert(null);
+  };
+
+  return (
+    <div className="urgent-alert-overlay">
+      <div className="urgent-alert-modal fade-in">
+        <button className="urgent-alert-close" onClick={handleDismiss}>
+          <X size={20} />
+        </button>
+        <div className="urgent-alert-icon pulse">
+          <Zap size={32} color="#F59E0B" />
+        </div>
+        <h2 className="urgent-alert-title">{urgentAlert.title || 'Instant ride available now'}</h2>
+        
+        <div className="urgent-alert-route">
+          <div className="alert-route-item">
+            <MapPin size={16} />
+            <span>{urgentAlert.startLocation}</span>
+          </div>
+          <div className="alert-route-divider" />
+          <div className="alert-route-item">
+            <Navigation size={16} />
+            <span>{urgentAlert.destinationLocation}</span>
+          </div>
+        </div>
+
+        <div className="urgent-alert-details">
+          <div className="alert-detail">
+            <span className="label">Fare</span>
+            <span className="value">Rs. {urgentAlert.farePerSeat}</span>
+          </div>
+        </div>
+
+        <div className="urgent-alert-actions">
+          <button className="d-btn-main primary" onClick={handleView}>
+            View Ride
+          </button>
+          <button className="d-btn-main outline" onClick={handleDismiss} style={{ background: '#f8f9fa', color: '#666', border: '1px solid #ddd' }}>
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

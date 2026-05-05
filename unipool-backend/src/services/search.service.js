@@ -168,9 +168,13 @@ const searchRides = async ({
   const primaryPickup = pickup ? getPrimaryName(pickup) : null;
   const primaryDropoff = dropoff ? getPrimaryName(dropoff) : null;
 
+  // Grace window: 15 mins to allow users to book a ride that is just about to start or slightly late
+  const graceWindow = new Date(Date.now() - 15 * 60000);
+
   const where = {
     status: 'PUBLISHED',
     seatsAvailable: { gt: 0 },
+    departureTime: { gte: graceWindow },
     ...(rideType ? { rideType: rideType.toUpperCase() } : {}),
     ...(onlyUrgent === 'true' || onlyUrgent === true ? { isUrgent: true } : {}),
     AND: [

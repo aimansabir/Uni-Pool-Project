@@ -287,7 +287,7 @@ const createBookingRequest = async ({
 };
 
 const listMyBookingRequests = async (passengerId) => {
-  return prisma.bookingRequest.findMany({
+  const requests = await prisma.bookingRequest.findMany({
     where: {
       passengerId,
     },
@@ -314,10 +314,39 @@ const listMyBookingRequests = async (passengerId) => {
       },
       pickupStop: true,
       dropStop: true,
+      payment: true,
+      ratings: {
+        where: {
+          raterId: passengerId,
+          ratingType: 'PASSENGER_TO_DRIVER'
+        }
+      }
     },
     orderBy: {
       createdAt: 'desc',
     },
+  });
+
+  return requests.map(req => {
+    const pStatus = req.payment?.status;
+    const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || req.payment?.paidAt != null;
+    const ratingCompleted = req.ratings && req.ratings.length > 0;
+    
+    let settlementCompleted = paymentCompleted; // Front-end payment page blocks rating if paidAt exists
+    if (req.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+      settlementCompleted = true;
+    }
+
+    // Strip ratings array from payload if desired, but keeping it is fine.
+    // Adding computed fields for frontend
+    return {
+      ...req,
+      paymentStatus: pStatus || null,
+      paymentPaidAt: req.payment?.paidAt || null,
+      paymentCompleted,
+      ratingCompleted,
+      settlementCompleted
+    };
   });
 };
 
@@ -357,6 +386,13 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
       },
       pickupStop: true,
       dropStop: true,
+      payment: true,
+      ratings: {
+        where: {
+          raterId: currentUserId,
+          ratingType: 'PASSENGER_TO_DRIVER'
+        }
+      }
     },
   });
 
@@ -375,7 +411,23 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
     throw err;
   }
 
-  return bookingRequest;
+  const pStatus = bookingRequest.payment?.status;
+  const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || bookingRequest.payment?.paidAt != null;
+  const ratingCompleted = bookingRequest.ratings && bookingRequest.ratings.length > 0;
+  
+  let settlementCompleted = paymentCompleted; // Match list behavior
+  if (bookingRequest.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+    settlementCompleted = true;
+  }
+
+  return {
+    ...bookingRequest,
+    paymentStatus: pStatus || null,
+    paymentPaidAt: bookingRequest.payment?.paidAt || null,
+    paymentCompleted,
+    ratingCompleted,
+    settlementCompleted
+  };
 };
 
 const respondToBookingRequest = async ({

@@ -44,10 +44,40 @@ function BookingCard({ booking, onCancel, cancelling }) {
     return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
   };
 
+  let actionLabel = '';
+  let actionFn = null;
+
+  if (booking.status === 'PENDING') {
+    actionLabel = 'View Request';
+    actionFn = () => navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
+  } else if (booking.status === 'ACCEPTED') {
+    if (booking.participantStatus === 'NO_SHOW') {
+      actionLabel = 'View Details';
+      actionFn = () => navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
+    } else if (booking.participantStatus === 'DROPPED_OFF' || ride?.status === 'COMPLETED') {
+      if (booking.settlementCompleted) {
+        actionLabel = 'View Details';
+        actionFn = () => navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
+      } else {
+        actionLabel = 'Payment & Rating';
+        actionFn = () => navigate(`/rides/${ride.id}/payment-rating`);
+      }
+    } else if (ride?.status === 'IN_PROGRESS') {
+      actionLabel = 'Track Ride';
+      actionFn = () => navigate(`/rides/${ride.id}/track`);
+    } else if (ride?.status === 'PUBLISHED') {
+      actionLabel = 'View Details';
+      actionFn = () => navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
+    } else {
+      actionLabel = 'View Details';
+      actionFn = () => navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
+    }
+  }
+
   const handleCardClick = () => {
-    if (ride?.status === 'IN_PROGRESS' && booking.status === 'ACCEPTED') {
-      navigate(`/rides/${ride.id}/track`);
-    } else if (booking.status === 'ACCEPTED' || booking.status === 'PENDING') {
+    if (actionFn) {
+      actionFn();
+    } else if (booking.status === 'PENDING') {
       navigate(`/bookings/${booking.id}/confirmed`, { state: { booking, ride } });
     }
   };
@@ -80,7 +110,7 @@ function BookingCard({ booking, onCancel, cancelling }) {
         </div>
         <div className="bc-status-pill" style={{ background: cfg.bg, color: cfg.color }}>
           <StatusIcon size={12} />
-          <span>{cfg.label}</span>
+          <span>{ride?.status === 'COMPLETED' ? 'Completed' : cfg.label}</span>
         </div>
       </div>
 
@@ -102,19 +132,15 @@ function BookingCard({ booking, onCancel, cancelling }) {
           <Car size={14} color="#D97706" />
           <span>Rs {ride?.farePerSeat} / seat</span>
         </div>
-        {booking.status === 'ACCEPTED' && (
+        {booking.status === 'ACCEPTED' && actionLabel && (
           <button
             className="bc-track-chip"
             onClick={(e) => {
               e.stopPropagation();
-              if (ride?.status === 'IN_PROGRESS') {
-                navigate(`/rides/${ride?.id}/track`);
-              } else {
-                navigate(`/rides/${ride?.id}/preview`);
-              }
+              actionFn();
             }}
           >
-            {ride?.status === 'IN_PROGRESS' ? 'Track Ride' : isInstant ? 'Track Ride' : 'View Route'} <ChevronRight size={14} />
+            {actionLabel} <ChevronRight size={14} />
           </button>
         )}
       </div>

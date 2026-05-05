@@ -49,7 +49,7 @@ export default function FindRidePage() {
     pickupCoords: prevFilters?.pickupCoords || null,
     dropoffCoords: prevFilters?.dropoffCoords || null,
     targetSlot: prevFilters?.targetSlot || '',
-    genderPreference: prevFilters?.genderPreference || 'ANY',
+    genderPreference: (prevFilters?.genderPreference === 'MALES_ONLY' ? 'ANY' : prevFilters?.genderPreference) || 'ANY',
     details: prevFilters?.details || ''
   });
 
@@ -509,8 +509,7 @@ export default function FindRidePage() {
             <div className="gender-pills">
               {[
                 { id: 'ANY', label: 'Any' },
-                { id: 'FEMALES_ONLY', label: 'Females' },
-                { id: 'MALES_ONLY', label: 'Males' }
+                { id: 'FEMALES_ONLY', label: 'Females' }
               ].map((g) => (
                 <button
                   key={g.id}

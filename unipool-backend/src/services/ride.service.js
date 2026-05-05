@@ -247,12 +247,23 @@ const getRideById = async (rideId, userId) => {
                         { passengerId: userId }
                     ]
                 },
-                select: {
-                    id: true,
-                    passengerId: true,
-                    participantStatus: true,
-                    requestedSeats: true,
-                    status: true,
+                include: {
+                    passenger: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            gender: true,
+                            phone: true,
+                            avatarUrl: true
+                        }
+                    },
+                    payment: true,
+                    ratings: {
+                        where: {
+                            raterId: userId,
+                            ratingType: 'DRIVER_TO_PASSENGER'
+                        }
+                    }
                 },
             },
         },
@@ -269,8 +280,30 @@ const getRideById = async (rideId, userId) => {
         throw new Error('Unauthorized.');
     }
 
+    // Enhance booking requests with summary flags for frontend convenience
+    const enhancedBookings = ride.bookingRequests.map(br => {
+        const pStatus = br.payment?.status;
+        const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || br.payment?.paidAt != null;
+        const ratingCompleted = br.ratings && br.ratings.length > 0;
+        
+        let settlementCompleted = paymentCompleted;
+        if (br.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+            settlementCompleted = true;
+        }
+        
+        return {
+            ...br,
+            paymentStatus: pStatus || null,
+            paymentPaidAt: br.payment?.paidAt || null,
+            paymentCompleted,
+            ratingCompleted,
+            settlementCompleted
+        };
+    });
+
     return {
         ...ride,
+        bookingRequests: enhancedBookings,
         userRole: isDriver ? 'DRIVER' : 'PASSENGER',
     };
 };
@@ -586,7 +619,6 @@ const getDashboardStats = async (userId) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // 1. Primary Source: RidePayments
     const earnedPayments = await prisma.ridePayment.aggregate({
         where: {
             driverId: userId,
@@ -599,54 +631,39 @@ const getDashboardStats = async (userId) => {
     const splitPayments = await prisma.ridePayment.aggregate({
         where: {
             passengerId: userId,
-            status: 'PAID',
             paidAt: { gte: startOfMonth, lte: endOfMonth }
         },
         _sum: { amount: true }
     });
 
+    const pendingReceivablesAgg = await prisma.ridePayment.aggregate({
+        where: { driverId: userId, status: 'PENDING' },
+        _sum: { amount: true }
+    });
+
+    const pendingPayablesAgg = await prisma.ridePayment.aggregate({
+        where: { passengerId: userId, status: 'PENDING', paidAt: null },
+        _sum: { amount: true }
+    });
+
     let earned = earnedPayments._sum.amount || 0;
     let split = splitPayments._sum.amount || 0;
+    let pendingReceivables = pendingReceivablesAgg._sum.amount || 0;
+    let pendingPayables = pendingPayablesAgg._sum.amount || 0;
 
-    // 2. Fallback Source: BookingRequests & Rides (if payments are 0)
-    if (earned === 0) {
-        const driverBookings = await prisma.bookingRequest.findMany({
-            where: {
-                ride: { driverId: userId, status: 'COMPLETED', completedAt: { gte: startOfMonth, lte: endOfMonth } },
-                status: 'ACCEPTED',
-                participantStatus: { not: 'NO_SHOW' }
-            },
-            include: { ride: true }
-        });
-        earned = driverBookings.reduce((sum, b) => sum + (b.requestedSeats * b.ride.farePerSeat), 0);
-    }
-
-    if (split === 0) {
-        const passengerBookings = await prisma.bookingRequest.findMany({
-            where: {
-                passengerId: userId,
-                status: 'ACCEPTED',
-                participantStatus: { not: 'NO_SHOW' },
-                ride: { status: 'COMPLETED', completedAt: { gte: startOfMonth, lte: endOfMonth } }
-            },
-            include: { ride: true }
-        });
-        split = passengerBookings.reduce((sum, b) => sum + (b.requestedSeats * b.ride.farePerSeat), 0);
-    }
-
-    // 3. Recent Activities (Include ALL activities: published, pending, completed, cancelled)
+    // 2. Recent Activities (Include ALL activities: published, pending, completed, cancelled)
     const recentDriverRides = await prisma.ride.findMany({
         where: { driverId: userId },
         orderBy: { updatedAt: 'desc' },
         take: 3,
-        include: { stops: true }
+        include: { stops: true, payments: true }
     });
 
     const recentPassengerBookings = await prisma.bookingRequest.findMany({
         where: { passengerId: userId },
         orderBy: { updatedAt: 'desc' },
         take: 3,
-        include: { ride: { include: { stops: true } } }
+        include: { ride: { include: { stops: true } }, payment: true }
     });
 
     const formatDate = (date) => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -656,6 +673,25 @@ const getDashboardStats = async (userId) => {
         ...recentDriverRides.map(r => {
             const firstStop = r.stops?.[0]?.stopName || r.startLocation;
             const lastStop = r.stops?.[r.stops.length - 1]?.stopName || r.destinationLocation;
+            
+            let displayStatus = r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase();
+            let displayAmount = r.farePerSeat; 
+
+            if (r.status === 'COMPLETED') {
+                const paidTotal = r.payments?.filter(p => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0) || 0;
+                const anyPending = r.payments?.some(p => p.status === 'PENDING');
+                
+                if (paidTotal > 0) {
+                    displayStatus = 'Payment Confirmed';
+                    displayAmount = paidTotal;
+                } else if (anyPending) {
+                    displayStatus = 'Pending Payment';
+                    displayAmount = 0;
+                } else {
+                    displayAmount = 0;
+                }
+            }
+
             return {
                 id: r.id,
                 role: 'Driver',
@@ -664,12 +700,30 @@ const getDashboardStats = async (userId) => {
                 rawDate: r.completedAt || r.updatedAt,
                 from: firstStop,
                 to: lastStop,
-                amount: r.farePerSeat, // Base fare, actual could be higher depending on seats
-                status: r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase()
+                amount: displayAmount,
+                status: displayStatus
             };
         }),
         ...recentPassengerBookings.map(b => {
             const r = b.ride;
+            let displayStatus = b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase();
+            let displayAmount = b.requestedSeats * r.farePerSeat;
+
+            if (r.status === 'COMPLETED' && b.participantStatus !== 'NO_SHOW') {
+                if (b.payment?.status === 'PAID' || b.payment?.paidAt) {
+                    displayStatus = 'Paid';
+                    displayAmount = b.payment.amount;
+                } else if (b.payment) {
+                    displayStatus = 'Pending Payment';
+                    displayAmount = 0; 
+                } else {
+                    displayAmount = 0;
+                }
+            } else if (b.participantStatus === 'NO_SHOW') {
+                displayStatus = 'No Show';
+                displayAmount = 0;
+            }
+
             return {
                 id: b.id,
                 role: 'Passenger',
@@ -678,8 +732,8 @@ const getDashboardStats = async (userId) => {
                 rawDate: r.completedAt || r.updatedAt,
                 from: b.pickupStopName || r.startLocation,
                 to: b.dropoffStopName || r.destinationLocation,
-                amount: b.requestedSeats * r.farePerSeat,
-                status: b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()
+                amount: displayAmount,
+                status: displayStatus
             };
         })
     ];
@@ -694,6 +748,8 @@ const getDashboardStats = async (userId) => {
         earned,
         split,
         total: earned + split,
+        pendingReceivables,
+        pendingPayables,
         recentActivities: activities
     };
 };

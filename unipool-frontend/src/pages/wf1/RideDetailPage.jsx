@@ -144,15 +144,173 @@ export default function RideDetailPage() {
     );
   }
 
-  const badge = STATUS_MAP[ride.status] || STATUS_MAP.PUBLISHED;
-  const totalSeats = ride.seatsTotal || 0;
-  const earnings = ride.farePerSeat * acceptedRequests.length;
-
   const extractTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  if (ride.status === 'COMPLETED') {
+    const passengers = ride.bookingRequests?.filter(req => req.status === 'ACCEPTED') || [];
+    const totalPassengers = passengers.filter(p => p.participantStatus !== 'NO_SHOW').length;
+    const paidTotal = passengers.filter(p => p.paymentCompleted).length;
+    const needsAction = passengers.some(p => p.participantStatus !== 'NO_SHOW' && (!p.paymentCompleted || !p.ratingCompleted));
+
+    return (
+      <div className="d-ride-page fade-in">
+        <div className="d-ride-container">
+          <div className="d-status-section" style={{marginBottom: '20px'}}>
+            <div className="status-text-group">
+              <h1 className="d-status-title">Ride Completed</h1>
+            </div>
+            <div className="d-badge completed" style={{background: '#d1fae5', color: '#065f46', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <span className="badge-dot" style={{width: '6px', height: '6px', background: '#10b981', borderRadius: '50%'}}></span>
+              Completed
+            </div>
+          </div>
+
+          <div className="d-card d-info-card">
+            <div className="d-premium-route">
+              <div className="route-item">
+                <div className="route-icon-box start">
+                  <MapPin size={14} />
+                </div>
+                <div className="route-content">
+                  <span className="route-label">STARTING FROM</span>
+                  <span className="route-value">{cleanLocation(ride.startLocation)}</span>
+                </div>
+              </div>
+              <div className="route-connector-line" />
+              <div className="route-item">
+                <div className="route-icon-box end">
+                  <MapPin size={14} />
+                </div>
+                <div className="route-content">
+                  <span className="route-label">DESTINATION</span>
+                  <span className="route-value">{cleanLocation(ride.destinationLocation)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="premium-divider" />
+
+            <div className="d-compact-grid">
+              <div className="compact-item">
+                <div className="compact-icon-box">
+                  <Clock size={18} />
+                </div>
+                <div className="compact-content">
+                  <span className="compact-label">DEPARTURE</span>
+                  <span className="compact-value">{extractTime(ride.departureTime)}</span>
+                </div>
+              </div>
+
+              <div className="compact-item">
+                <div className="compact-icon-box">
+                  <Check size={18} />
+                </div>
+                <div className="compact-content">
+                  <span className="compact-label">COMPLETED</span>
+                  <span className="compact-value">{ride.completedAt ? extractTime(ride.completedAt) : '—'}</span>
+                </div>
+              </div>
+
+              <div className="compact-item">
+                <div className="compact-icon-box">
+                  <Users size={18} />
+                </div>
+                <div className="compact-content">
+                  <span className="compact-label">PASSENGERS</span>
+                  <span className="compact-value">{totalPassengers}</span>
+                </div>
+              </div>
+
+              <div className="compact-item">
+                <div className="compact-icon-box">
+                  <Wallet size={18} />
+                </div>
+                <div className="compact-content">
+                  <span className="compact-label">PAID</span>
+                  <span className="compact-value">{paidTotal} / {totalPassengers}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {passengers.length > 0 && (
+            <section className="d-section">
+              <h2 className="d-section-title">Passenger Summary</h2>
+              <div className="d-list">
+                {passengers.map(req => {
+                  const passenger = req.passenger || {};
+                  return (
+                    <div key={req.id} className="d-passenger-card" style={{padding: '16px'}}>
+                      <div className="d-passenger-header" style={{marginBottom: 0}}>
+                        <div className="d-passenger-info-row">
+                          <div className="d-passenger-avatar-box">
+                            <img
+                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
+                              alt="Avatar"
+                              className="d-passenger-avatar"
+                            />
+                          </div>
+                          <div className="d-passenger-details">
+                            <span className="d-passenger-name">{passenger.fullName}</span>
+                            <div className="d-badge-stack" style={{marginTop: '4px', display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
+                              {req.participantStatus === 'NO_SHOW' ? (
+                                <span className="d-status-badge" style={{background: '#fee2e2', color: '#b91c1c'}}>No-Show</span>
+                              ) : (
+                                <>
+                                  <span className="d-status-badge" style={{background: '#e0e7ff', color: '#4338ca'}}>Dropped Off</span>
+                                  {req.paymentCompleted ? (
+                                    <span className="d-status-badge" style={{background: '#d1fae5', color: '#065f46'}}>Paid</span>
+                                  ) : (
+                                    <span className="d-status-badge" style={{background: '#fef3c7', color: '#b45309'}}>Payment Pending</span>
+                                  )}
+                                  {req.ratingCompleted ? (
+                                    <span className="d-status-badge" style={{background: '#d1fae5', color: '#065f46'}}>Rated</span>
+                                  ) : (
+                                    <span className="d-status-badge" style={{background: '#f3f4f6', color: '#4b5563'}}>Unrated</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <div className="d-footer-actions">
+            {needsAction ? (
+              <button
+                className="d-btn-main primary"
+                onClick={() => navigate(`/rides/${id}/rate-members`)}
+              >
+                Rate Members & Confirm Payments
+              </button>
+            ) : (
+              <button
+                className="d-btn-main outline"
+                onClick={() => navigate('/rides')}
+                style={{background: 'white', color: 'var(--text-main)', border: '1px solid var(--border)'}}
+              >
+                Back to My Rides
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const badge = STATUS_MAP[ride.status] || STATUS_MAP.PUBLISHED;
+  const totalSeats = ride.seatsTotal || 0;
+  const earnings = ride.farePerSeat * acceptedRequests.length;
 
   const PassengerCard = ({ req, isConfirmed }) => {
     const passenger = req.passenger || {};
