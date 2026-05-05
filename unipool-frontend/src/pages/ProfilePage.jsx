@@ -5,7 +5,8 @@ import { useToast } from '../context/ToastContext';
 import Badge from '../components/common/Badge/Badge';
 import Button from '../components/common/Button/Button';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut } from 'lucide-react';
+import { Camera, Edit2, Check, X, Car, ClipboardList, LogOut, Trash2, BellRing } from 'lucide-react';
+import { subscriptionsApi } from '../api/notifications.api';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
@@ -23,6 +24,33 @@ export default function ProfilePage() {
     gender: user?.gender || 'male',
     avatarUrl: user?.avatarUrl || ''
   });
+
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
+
+  useEffect(() => {
+    const fetchSubs = async () => {
+      try {
+        const res = await subscriptionsApi.list();
+        setSubscriptions(res.data || []);
+      } catch (err) {
+        console.error('Failed to load subscriptions', err);
+      } finally {
+        setLoadingSubscriptions(false);
+      }
+    };
+    fetchSubs();
+  }, []);
+
+  const handleDeleteSubscription = async (id) => {
+    try {
+      await subscriptionsApi.delete(id);
+      setSubscriptions(prev => prev.filter(s => s.id !== id));
+      showSuccess('Route alert deleted');
+    } catch (err) {
+      showError('Failed to delete route alert');
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -235,6 +263,38 @@ export default function ProfilePage() {
             >
               <Check size={18} style={{ marginRight: '8px' }} /> Save Changes
             </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="profile-page__card" style={{ marginTop: '16px', marginBottom: '16px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', marginBottom: '16px' }}>
+          <BellRing size={18} /> My Route Alerts
+        </h3>
+        
+        {loadingSubscriptions ? (
+          <div style={{ fontSize: '14px', color: '#666' }}>Loading alerts...</div>
+        ) : subscriptions.length === 0 ? (
+          <div style={{ fontSize: '14px', color: '#666' }}>No route alerts set.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {subscriptions.map(sub => (
+              <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #eee' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                    {sub.startLocation} <span style={{color: '#999'}}>→</span> {sub.destinationLocation}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>Via {sub.channel}</span>
+                </div>
+                <button 
+                  onClick={() => handleDeleteSubscription(sub.id)}
+                  aria-label="Delete route alert"
+                  style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

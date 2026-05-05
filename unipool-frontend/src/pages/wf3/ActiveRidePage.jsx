@@ -96,7 +96,7 @@ export default function ActiveRidePage() {
       } else if (action === 'complete') {
         await rideExecutionApi.completeRide(rideId);
         showSuccess('Ride completed!');
-        navigate(`/payments/${rideId}`);
+        navigate(`/rides/${rideId}/rate-members`);
       }
       await fetchRideData();
     } catch (err) {

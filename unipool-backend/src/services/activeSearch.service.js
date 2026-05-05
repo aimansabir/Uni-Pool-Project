@@ -2,14 +2,15 @@ const prisma = require('../lib/prisma');
 const { buildRouteKey, buildDestinationKey } = require('../utils/routekey');
 
 const upsertActiveSearch = async (userId, data) => {
-    const { startLocation, destinationLocation } = data;
+    const startLocation = data.startLocation || data.pickupLocation || data.pickup || data.start;
+    const destinationLocation = data.destinationLocation || data.dropoffLocation || data.dropoff || data.destination;
 
     if (!startLocation || !destinationLocation) {
-        throw new Error('startLocation and destinationLocation are required.');
+        throw new Error('startLocation (pickup) and destinationLocation (dropoff) are required.');
     }
 
-    const routeKey = buildRouteKey(startLocation, destinationLocation);
-    const destinationKey = buildDestinationKey(destinationLocation);
+    const routeKey = data.routeKey || buildRouteKey(startLocation, destinationLocation);
+    const destinationKey = data.destinationKey || buildDestinationKey(destinationLocation);
 
     return prisma.activeRouteSearch.upsert({
         where: {

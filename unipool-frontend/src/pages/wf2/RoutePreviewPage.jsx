@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { ChevronLeft, MapPin, Clock, Wallet, Users, Star, Navigation } from 'lucide-react';
+import { ChevronLeft, MapPin, Clock, Wallet, Users, Star, Navigation, Check } from 'lucide-react';
 import { ridesApi } from '../../api/rides.api';
 import { bookingRequestsApi } from '../../api/bookingRequests.api';
 import { useToast } from '../../context/ToastContext';
@@ -27,9 +27,9 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Custom Icons for Start and End
+// Custom Icons for Start, End, and Stops
 const startIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: markerShadow,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -38,7 +38,7 @@ const startIcon = new L.Icon({
 });
 
 const endIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: markerShadow,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -46,19 +46,37 @@ const endIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-// Component to fit map to polyline
-function MapBounds({ positions }) {
+const stopIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+    shadowUrl: markerShadow,
+    iconSize: [22, 36],
+    iconAnchor: [11, 36],
+    popupAnchor: [1, -30],
+    shadowSize: [36, 36]
+});
+
+const stopHighlightedIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+    shadowUrl: markerShadow,
+    iconSize: [28, 46],
+    iconAnchor: [14, 46],
+    popupAnchor: [1, -38],
+    shadowSize: [46, 46]
+});
+
+// Component to fit map to polyline + stop markers
+function MapBounds({ positions, extraPositions }) {
     const map = useMap();
     useEffect(() => {
-        if (positions && positions.length > 0) {
-            const bounds = L.latLngBounds(positions);
-            // Shift the route to the top half of the screen to avoid the bottom sheet
+        const all = [...(positions || []), ...(extraPositions || [])];
+        if (all.length > 0) {
+            const bounds = L.latLngBounds(all);
             map.fitBounds(bounds, {
                 padding: [60, 60],
                 paddingBottomRight: [50, 100]
             });
         }
-    }, [positions, map]);
+    }, [positions, extraPositions, map]);
     return null;
 }
 
@@ -68,6 +86,8 @@ export default function RoutePreviewPage() {
     const { showSuccess, showError } = useToast();
     const [ride, setRide] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [selectedPickup, setSelectedPickup] = useState(0);    // index into routePoints, default to start
+    const [selectedDrop, setSelectedDrop] = useState(null);     // index into routePoints, set after ride loads
 
     useEffect(() => {
         if (!id || id === 'undefined') return;
@@ -120,13 +140,59 @@ export default function RoutePreviewPage() {
         return trimmed.split(',')[0].trim();
     };
 
+    // Build ordered route points: start + confirmed stops + destination
+    const confirmedStops = (ride.stops || []).filter(s => s.isConfirmed !== false);
+    const routePoints = [
+        { label: getShortAddress(ride.startLocation), fullLabel: ride.startLocation, type: 'start', stopId: null, sequence: -1 },
+        ...confirmedStops.map(s => ({
+            label: s.stopName,
+            fullLabel: s.stopName,
+            type: 'stop',
+            stopId: s.id,
+            sequence: s.sequence,
+            lat: s.lat,
+            lng: s.lng,
+        })),
+        { label: getShortAddress(ride.destinationLocation), fullLabel: ride.destinationLocation, type: 'destination', stopId: null, sequence: Number.MAX_SAFE_INTEGER },
+    ];
+    const hasStops = confirmedStops.length > 0;
+    const lastPointIdx = routePoints.length - 1;
+
+    // Default drop to destination on first render
+    const effectiveDrop = selectedDrop !== null ? selectedDrop : lastPointIdx;
+
+    const handlePickupSelect = (idx) => {
+        setSelectedPickup(idx);
+        // If current drop is at or before new pickup, reset to destination
+        if (effectiveDrop <= idx) {
+            setSelectedDrop(lastPointIdx);
+        }
+    };
+
+    const handleDropSelect = (idx) => {
+        setSelectedDrop(idx);
+    };
+
     const handleRequestSeat = async () => {
         try {
             setLoading(true);
-            const res = await bookingRequestsApi.create({
+            const finalPickup = selectedPickup;
+            const finalDrop = effectiveDrop;
+
+            const payload = {
                 rideId: id,
                 requestedSeats: 1,
-            });
+            };
+
+            // Only send stop IDs for actual intermediate stops (not start/destination)
+            if (finalPickup !== null && routePoints[finalPickup]?.stopId) {
+                payload.pickupStopId = routePoints[finalPickup].stopId;
+            }
+            if (finalDrop !== null && routePoints[finalDrop]?.stopId) {
+                payload.dropStopId = routePoints[finalDrop].stopId;
+            }
+
+            const res = await bookingRequestsApi.create(payload);
             showSuccess(ride?.rideType === 'INSTANT' ? 'Instant ride joined! ⚡' : 'Seat requested!');
             // Navigate to the booking confirmation screen
             navigate(`/bookings/${res.data.id}/confirmed`, {
@@ -175,7 +241,30 @@ export default function RoutePreviewPage() {
                                 </Popup>
                             </Marker>
                         )}
-                        <MapBounds positions={polylinePositions} />
+                        {confirmedStops.map((stop) => {
+                            if (!stop.lat || !stop.lng) return null;
+                            const pos = [stop.lat, stop.lng];
+                            const isSelected =
+                                (routePoints[selectedPickup]?.stopId === stop.id) ||
+                                (routePoints[effectiveDrop]?.stopId === stop.id);
+                            return (
+                                <Marker
+                                    key={stop.id}
+                                    position={pos}
+                                    icon={isSelected ? stopHighlightedIcon : stopIcon}
+                                >
+                                    <Popup className="marker-popup">
+                                        <strong>Stop:</strong> {stop.stopName}
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
+                        <MapBounds
+                            positions={polylinePositions}
+                            extraPositions={confirmedStops
+                                .filter(s => s.lat && s.lng)
+                                .map(s => [s.lat, s.lng])}
+                        />
                     </MapContainer>
 
                     {/* Google Maps Shortcut */}
@@ -250,6 +339,69 @@ export default function RoutePreviewPage() {
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* ── Pickup / Drop-off Selection ── */}
+                    <div className="stop-selection-section">
+                        <div className="stop-selection-header">
+                            <MapPin size={16} strokeWidth={2.5} color="#FDBA2E" />
+                            <span className="stop-selection-title">Select Pickup & Drop-off</span>
+                        </div>
+
+                        {!hasStops && (
+                            <p className="stop-selection-hint">
+                                No intermediate stops were added by the driver. Pickup defaults to ride start and drop-off defaults to destination.
+                            </p>
+                        )}
+
+                        <div className="stop-selection-timeline">
+                            {routePoints.map((pt, idx) => {
+                                const isPickup = selectedPickup === idx;
+                                const isDrop = effectiveDrop === idx;
+                                const isDisabledDrop = idx <= selectedPickup;
+                                const isFirst = idx === 0;
+                                const isLast = idx === routePoints.length - 1;
+
+                                return (
+                                    <div key={idx} className="timeline-point">
+                                        <div className="timeline-dot-col">
+                                            <div className={`timeline-dot ${
+                                                isFirst ? 'start' : isLast ? 'end' : 'mid'
+                                            } ${isPickup ? 'selected-pickup' : ''} ${isDrop ? 'selected-drop' : ''}`} />
+                                            {!isLast && <div className="timeline-line" />}
+                                        </div>
+                                        <div className="timeline-content">
+                                            <span className={`timeline-label ${
+                                                isPickup || isDrop ? 'highlighted' : ''
+                                            }`}>
+                                                <span className="timeline-label-text" title={pt.fullLabel}>{pt.label}</span>
+                                                {isFirst && <span className="point-tag">Start</span>}
+                                                {isLast && <span className="point-tag">End</span>}
+                                            </span>
+                                            <div className="timeline-actions">
+                                                <button
+                                                    type="button"
+                                                    className={`stop-action-btn pickup ${isPickup ? 'active' : ''}`}
+                                                    onClick={() => handlePickupSelect(idx)}
+                                                >
+                                                    {isPickup ? <Check size={12} strokeWidth={3} /> : null}
+                                                    Pickup
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`stop-action-btn dropoff ${isDrop ? 'active' : ''}`}
+                                                    disabled={isDisabledDrop}
+                                                    onClick={() => handleDropSelect(idx)}
+                                                >
+                                                    {isDrop ? <Check size={12} strokeWidth={3} /> : null}
+                                                    Drop
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

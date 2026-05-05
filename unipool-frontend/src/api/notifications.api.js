@@ -13,13 +13,8 @@ export const notificationsApi = {
   connectStream: () => {
     const token = localStorage.getItem('unipool_token');
     const url = `${API_URL}/api/notifications/stream`;
-    const eventSource = new EventSource(url, {
-      // Note: EventSource doesn't support custom headers natively.
-      // Backend SSE on this project reads from query param or cookie as fallback.
-      // We'll pass token as query param.
-    });
-    // For backends that accept query-based auth, use:
-    // const eventSource = new EventSource(`${url}?token=${token}`);
+    // Pass token as query param since EventSource cannot set custom headers natively
+    const eventSource = new EventSource(`${url}?token=${encodeURIComponent(token || '')}`);
     return eventSource;
   },
 };

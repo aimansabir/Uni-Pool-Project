@@ -109,7 +109,7 @@
     position: relative;
     background: white;
     border-radius: 32px 32px 0 0;
-    padding: 24px 20px 40px;
+    padding: 24px 20px 56px;
     z-index: 1000;
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.08);
     margin-top: -70px;
@@ -117,8 +117,8 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    min-height: 73vh;
-    /* Allow more scrolling space */
+    min-height: 80vh;
+    /* Taller sheet so button never feels cramped */
 }
 
 .preview-route-indicator {
@@ -276,11 +276,213 @@
     box-shadow: 0 6px 16px rgba(251, 191, 36, 0.3);
     cursor: pointer;
     transition: all 0.2s;
+    margin-top: 8px;
+    flex-shrink: 0;
 }
 
 .preview-request-btn:active {
     transform: translateY(2px);
     box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+}
+
+/* ── Stop Selection Section ── */
+.stop-selection-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    background: #FAFBFC;
+    border-radius: 18px;
+    border: 1.5px solid #F3F4F6;
+}
+
+.stop-selection-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stop-selection-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.stop-selection-hint {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.4;
+    padding: 0 2px;
+}
+
+.stop-selection-timeline {
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-point {
+    display: flex;
+    gap: 12px;
+    min-height: 52px;
+}
+
+.timeline-dot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 16px;
+    flex-shrink: 0;
+    padding-top: 4px;
+}
+
+.timeline-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2.5px solid #D1D5DB;
+    background: white;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.timeline-dot.start {
+    border-color: #10b981;
+    background: #10b981;
+}
+
+.timeline-dot.end {
+    border-color: #1f2937;
+    background: #1f2937;
+}
+
+.timeline-dot.mid {
+    border-color: #FBBF24;
+}
+
+.timeline-dot.selected-pickup {
+    border-color: #10b981;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.timeline-dot.selected-drop {
+    border-color: #EF4444;
+    background: #EF4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.timeline-line {
+    width: 2px;
+    flex: 1;
+    background: repeating-linear-gradient(
+        to bottom,
+        #D1D5DB 0px,
+        #D1D5DB 4px,
+        transparent 4px,
+        transparent 8px
+    );
+    min-height: 20px;
+}
+
+.timeline-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 14px;
+    min-width: 0;
+}
+
+.timeline-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #4B5563;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.timeline-label-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.timeline-label.highlighted {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.point-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #9CA3AF;
+    background: #F3F4F6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+
+.timeline-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.stop-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #E5E7EB;
+    background: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6B7280;
+}
+
+.stop-action-btn:hover:not(:disabled) {
+    border-color: #D1D5DB;
+    transform: translateY(-1px);
+}
+
+.stop-action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.stop-action-btn.pickup.active {
+    background: #ECFDF5;
+    border-color: #10b981;
+    color: #065F46;
+}
+
+.stop-action-btn.dropoff.active {
+    background: #FEF2F2;
+    border-color: #EF4444;
+    color: #991B1B;
+}
+
+.driver-role-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #FDBA2E;
+    background: #FFF7ED;
+    padding: 2px 8px;
+    border-radius: 6px;
+    width: fit-content;
 }
 
 .slide-up {

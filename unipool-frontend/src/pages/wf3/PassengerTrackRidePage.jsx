@@ -8,6 +8,7 @@ import { useToast } from '../../context/ToastContext';
 import { rideExecutionApi } from '../../api/rideExecution.api';
 import { ridesApi } from '../../api/rides.api';
 import { chatApi } from '../../api/chat.api';
+import { paymentsApi } from '../../api/payments.api';
 import Button from '../../components/common/Button/Button';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import {
@@ -107,15 +108,33 @@ export default function PassengerTrackRidePage() {
         setEtaSeconds(null);
       }
 
-      // Detect ride COMPLETED → show popup
-      if (trackRes.data) {
-        const rideStatus = trackRes.data.status;
+      // Check payment status if dropped off or completed
+      const rideStatus = trackRes.data?.status || rideRes.data?.status;
+      const bookings = trackRes.data?.bookingRequests || [];
+      const userBooking = bookings.find(b => b.passengerId === user?.id);
+      const isDropped = userBooking?.participantStatus === 'DROPPED_OFF';
+      const isComplete = rideStatus === 'COMPLETED';
 
-        if (rideStatus === 'COMPLETED' && prevStatusRef.current !== 'COMPLETED_SHOWN') {
-          setShowDropoffPopup(true);
-          clearInterval(pollingRef.current);
-          prevStatusRef.current = 'COMPLETED_SHOWN';
+      if (isDropped || isComplete) {
+        try {
+          const paymentRes = await paymentsApi.getRidePaymentsDue(id);
+          const payment = paymentRes.data;
+          const isPaid = payment?.paidAt || payment?.status === 'PAID' || payment?.status === 'WAIVED';
+          
+          if (payment && !isPaid) {
+            setShowDropoffPopup(true);
+            clearInterval(pollingRef.current);
+          } else {
+            setShowDropoffPopup(false);
+          }
+        } catch (paymentErr) {
+          if (paymentErr.response?.status !== 404) {
+            console.error('Failed to check payment status:', paymentErr);
+          }
+          setShowDropoffPopup(false);
         }
+      } else {
+        setShowDropoffPopup(false);
       }
     } catch (err) {
       console.error('Failed to load tracking:', err);
@@ -232,12 +251,6 @@ export default function PassengerTrackRidePage() {
               onClick={() => navigate(`/rides/${id}/payment-rating`)}
             >
               Continue to Payment & Rating
-            </button>
-            <button
-              className="ptr-popup-dismiss"
-              onClick={() => setShowDropoffPopup(false)}
-            >
-              Dismiss
             </button>
           </div>
         </div>
@@ -395,21 +408,51 @@ export default function PassengerTrackRidePage() {
             </div>
 
             {/* ── Verification / Safety ──────────────────────────── */}
-            <div className="ptr-safety-card">
-              <div className="ptr-safety-icon">
-                <ShieldCheck size={22} color="#10b981" />
+            {isPlateVerified ? (
+              <div className="ptr-safety-card">
+                <div className="ptr-safety-icon">
+                  <ShieldCheck size={22} color="#10b981" />
+                </div>
+                <div className="ptr-safety-content">
+                  <p className="ptr-safety-title">Plate Verified — Waiting for pickup</p>
+                  <p className="ptr-safety-desc">Your driver and vehicle details are verified.</p>
+                </div>
               </div>
-              <div className="ptr-safety-content">
-                <p className="ptr-safety-title">Plate Verified — Waiting for pickup</p>
-                <p className="ptr-safety-desc">Your driver and vehicle details are verified.</p>
+            ) : (
+              <div className="ptr-safety-card" style={{ background: '#fef2f2', borderColor: '#fecaca' }}>
+                <div className="ptr-safety-icon" style={{ background: '#fee2e2' }}>
+                  <AlertCircle size={22} color="#ef4444" />
+                </div>
+                <div className="ptr-safety-content" style={{ flex: 1 }}>
+                  <p className="ptr-safety-title" style={{ color: '#b91c1c' }}>Verify Vehicle Plate</p>
+                  <p className="ptr-safety-desc">Confirm plate ({plate}) matches before pickup.</p>
+                </div>
+                <button
+                  className="ptr-verify-btn"
+                  onClick={handleVerifyPlate}
+                  disabled={verifying}
+                  style={{
+                    width: 'auto',
+                    height: '40px',
+                    padding: '0 16px',
+                    fontSize: '0.9rem',
+                    background: '#ef4444',
+                    flexShrink: 0
+                  }}
+                >
+                  {verifying ? 'Verifying...' : 'Verify'}
+                </button>
               </div>
-            </div>
+            )}
 
-            {/* ── Legacy Action Logic (Hidden but kept for state) ── */}
-            <div style={{ display: 'none' }}>
-              {(isDroppedOff || isCompleted) && (
-                <button onClick={() => navigate(`/rides/${id}/payment-rating`)}>Continue</button>
-              )}
+            {/* ── Payment Fallback CTA ── */}
+            <div style={{ display: showDropoffPopup ? 'block' : 'none', marginTop: '16px' }}>
+              <button 
+                className="ptr-continue-btn"
+                onClick={() => navigate(`/rides/${id}/payment-rating`)}
+              >
+                Complete Payment & Rating
+              </button>
             </div>
           </>
         )}

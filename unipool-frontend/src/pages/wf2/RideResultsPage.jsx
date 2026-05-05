@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, MapPin, Navigation, Zap, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, MapPin, Navigation, Zap, Clock, Calendar, Bell } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../api/rides.api';
+import { activeSearchesApi, subscriptionsApi } from '../../api/notifications.api';
 import BottomNav from '../../layouts/BottomNav';
 import RideCard from '../../components/wf2/RideCard';
 import { MOCK_RIDES } from '../../utils/mockRides';
@@ -12,15 +13,63 @@ import './RideResultsPage.css';
 export default function RideResultsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [rides, setRides] = useState([]);
+  const [activeSearchId, setActiveSearchId] = useState(null);
+  const [subscribing, setSubscribing] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   // Original filters from previous page
   const originalFilters = location.state?.filters || {};
 
   // Stabilize originalFilters for useEffect
   const filterKey = JSON.stringify(originalFilters);
+
+  useEffect(() => {
+    if (!originalFilters.pickupLocation || !originalFilters.dropoffLocation) return;
+
+    let currentSearchId = null;
+    let pingInterval = null;
+
+    const setupActiveSearch = async () => {
+      try {
+        const payload = {
+          pickupLocation: originalFilters.pickupLocation,
+          dropoffLocation: originalFilters.dropoffLocation,
+          pickupCoords: originalFilters.pickupCoords,
+          dropoffCoords: originalFilters.dropoffCoords,
+          targetSlot: originalFilters.targetSlot
+        };
+        const res = await activeSearchesApi.create(payload);
+        currentSearchId = res.data?.id || res.data?.data?.id || res.id;
+
+        if (currentSearchId) {
+          setActiveSearchId(currentSearchId);
+
+          pingInterval = setInterval(async () => {
+            try {
+              await activeSearchesApi.ping(currentSearchId);
+            } catch (err) {
+              console.warn('Failed to ping active search:', err);
+            }
+          }, 30000);
+        }
+      } catch (err) {
+        console.warn('Failed to create active search:', err);
+      }
+    };
+
+    setupActiveSearch();
+
+    return () => {
+      if (pingInterval) clearInterval(pingInterval);
+      if (currentSearchId) {
+        activeSearchesApi.deactivate(currentSearchId).catch(err => {
+          console.warn('Failed to deactivate active search:', err);
+        });
+      }
+    };
+  }, [filterKey]);
 
   useEffect(() => {
     const fetchRides = async () => {
@@ -33,14 +82,14 @@ export default function RideResultsPage() {
       try {
         setLoading(true);
         const params = {
-            pickup: originalFilters.pickupLocation,
-            dropoff: originalFilters.dropoffLocation,
-            pickupLat: originalFilters.pickupCoords?.lat,
-            pickupLng: originalFilters.pickupCoords?.lng,
-            dropoffLat: originalFilters.dropoffCoords?.lat,
-            dropoffLng: originalFilters.dropoffCoords?.lng,
-            targetSlot: originalFilters.targetSlot,
-            /* Do NOT filter by rideType — show both INSTANT and SCHEDULED rides */
+          pickup: originalFilters.pickupLocation,
+          dropoff: originalFilters.dropoffLocation,
+          pickupLat: originalFilters.pickupCoords?.lat,
+          pickupLng: originalFilters.pickupCoords?.lng,
+          dropoffLat: originalFilters.dropoffCoords?.lat,
+          dropoffLng: originalFilters.dropoffCoords?.lng,
+          targetSlot: originalFilters.targetSlot,
+          /* Do NOT filter by rideType — show both INSTANT and SCHEDULED rides */
         };
         const res = await ridesApi.searchRides(params);
         setRides(res.data || []);
@@ -58,6 +107,22 @@ export default function RideResultsPage() {
 
   const handleRideClick = (ride) => {
     navigate(`/rides/${ride.id}/preview`);
+  };
+
+  const handleSubscribe = async () => {
+    try {
+      setSubscribing(true);
+      await subscriptionsApi.create({
+        pickupLocation: originalFilters.pickupLocation,
+        dropoffLocation: originalFilters.dropoffLocation,
+        channel: 'EMAIL',
+      });
+      showSuccess('Route alert saved! You will be notified when rides are published.');
+    } catch (err) {
+      showError(err.message || 'Failed to save route alert.');
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   if (loading) {
@@ -125,7 +190,30 @@ export default function RideResultsPage() {
                 <RideCard key={ride.id} ride={ride} onAction={handleRideClick} />
               ))
             ) : (
-              <div className="empty-section-msg">No scheduled rides found for this route.</div>
+              <div className="empty-section-msg" style={{ flexDirection: 'column', gap: '12px' }}>
+                <span>No scheduled rides found for this route.</span>
+                <button
+                  onClick={handleSubscribe}
+                  disabled={subscribing}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: '#10B981',
+                    color: 'white',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: 500,
+                    fontSize: '14px',
+                    cursor: subscribing ? 'not-allowed' : 'pointer',
+                    opacity: subscribing ? 0.7 : 1
+                  }}
+                >
+                  <Bell size={16} />
+                  {subscribing ? 'Saving alert...' : 'Notify me when available'}
+                </button>
+              </div>
             )}
           </div>
         </section>

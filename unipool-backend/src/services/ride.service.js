@@ -16,6 +16,8 @@ const createRide = async (driverId, data) => {
         genderPreference = 'ANY',
         confirmedStops,
         selectedRouteOptionNumber,
+        startCoords,
+        destinationCoords,
     } = data;
 
     if (
@@ -93,6 +95,8 @@ const createRide = async (driverId, data) => {
     const intelligence = await buildRideIntelligence({
         startLocation,
         destinationLocation,
+        startCoords,
+        destinationCoords,
         seatsTotal: seatCount,
         rideType: normalizedRideType,
         departureTime,
