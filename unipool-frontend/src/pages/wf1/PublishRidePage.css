@@ -17,11 +17,7 @@
   padding-bottom: 40px;
   /* Reduced from 80px */
 
-  /* Robust Full-Width Expansion */
-  position: relative;
-  left: calc(-1 * var(--space-md));
-  width: calc(100% + (2 * var(--space-md)));
-  margin-top: calc(-1 * var(--space-md));
+
 }
 
 /* ── Header Styles ── */

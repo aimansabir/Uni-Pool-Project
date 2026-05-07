@@ -167,6 +167,34 @@ const getLiveEtaMinutes = async (fromLat, fromLng, toLat, toLng, ride) => {
   return getFallbackEtaMinutes(fromLat, fromLng, toLat, toLng, ride);
 };
 
+/** Clamp ETA: null/NaN/Infinity/negative/> MAX → null */
+const MAX_ETA_MINUTES = 240;
+const clampEta = (eta) => {
+  const v = toFiniteNumber(eta);
+  if (v == null || v < 0 || v > MAX_ETA_MINUTES) return null;
+  return Math.round(v);
+};
+
+/** Extract destination coordinates from ride data */
+const getDestinationCoords = (ride) => {
+  // 1. Last coordinate from routeGeometry
+  const coords = ride.routeGeometry?.coordinates;
+  if (coords && coords.length >= 2) {
+    const last = coords[coords.length - 1]; // [lng, lat]
+    if (hasCoords(last[1], last[0])) {
+      return { lat: last[1], lng: last[0] };
+    }
+  }
+  // 2. Last ride stop with lat/lng
+  if (ride.stops && ride.stops.length > 0) {
+    const lastStop = ride.stops[ride.stops.length - 1];
+    if (hasCoords(lastStop.lat, lastStop.lng)) {
+      return { lat: lastStop.lat, lng: lastStop.lng };
+    }
+  }
+  return null;
+};
+
 // ─── Start Ride ─────────────────────────────────────────────────────
 
 const startRide = async (rideId, driverId) => {
@@ -451,15 +479,15 @@ const getTrackingData = async (rideId, userId) => {
       try {
         if (canUseDriverLocation && (br.participantStatus === 'BOOKED' || !br.participantStatus) &&
             hasCoords(br.pickupLat, br.pickupLng)) {
-          etaToPickupMinutes = await getLiveEtaMinutes(
+          etaToPickupMinutes = clampEta(await getLiveEtaMinutes(
             driverLat, driverLng, br.pickupLat, br.pickupLng, ride
-          );
+          ));
         }
         if (canUseDriverLocation && br.participantStatus === 'PICKED_UP' &&
             hasCoords(br.dropoffLat, br.dropoffLng)) {
-          etaToDropoffMinutes = await getLiveEtaMinutes(
+          etaToDropoffMinutes = clampEta(await getLiveEtaMinutes(
             driverLat, driverLng, br.dropoffLat, br.dropoffLng, ride
-          );
+          ));
         }
       } catch { /* OSRM failure — return null for this booking */ }
 
@@ -487,31 +515,90 @@ const getTrackingData = async (rideId, userId) => {
     })
   );
 
-  // ── nextStopEtaMinutes for driver ────────────────────────────────
+  // ── nextWaypoint + nextStopEtaMinutes for driver ─────────────────
   let nextStopEtaMinutes = null;
+  let nextWaypoint = null;
+  const destCoords = getDestinationCoords(ride);
+
   try {
     if (canUseDriverLocation) {
-      // First priority: next BOOKED pickup
+      // Priority A: first BOOKED passenger pickup
       const nextBooked = enrichedBookings.find(
         (b) => (b.participantStatus === 'BOOKED' || !b.participantStatus) && hasCoords(b.pickupLat, b.pickupLng)
       );
       if (nextBooked) {
         nextStopEtaMinutes = nextBooked.etaToPickupMinutes;
+        nextWaypoint = {
+          type: 'PICKUP',
+          bookingRequestId: nextBooked.id,
+          passengerName: nextBooked.passenger?.fullName || 'Passenger',
+          label: `ETA to pickup: ${nextBooked.passenger?.fullName || 'Passenger'}`,
+          lat: nextBooked.pickupLat,
+          lng: nextBooked.pickupLng,
+          etaMinutes: nextBooked.etaToPickupMinutes,
+        };
       } else {
-        // Fallback: next PICKED_UP dropoff
+        // Priority B: first PICKED_UP passenger dropoff
         const nextDropoff = enrichedBookings.find(
-          (b) => b.participantStatus === 'PICKED_UP' && hasCoords(b.dropoffLat, b.dropoffLng)
+          (b) => b.participantStatus === 'PICKED_UP'
         );
         if (nextDropoff) {
-          nextStopEtaMinutes = nextDropoff.etaToDropoffMinutes;
+          if (hasCoords(nextDropoff.dropoffLat, nextDropoff.dropoffLng)) {
+            nextStopEtaMinutes = nextDropoff.etaToDropoffMinutes;
+            nextWaypoint = {
+              type: 'DROPOFF',
+              bookingRequestId: nextDropoff.id,
+              passengerName: nextDropoff.passenger?.fullName || 'Passenger',
+              label: `ETA to drop-off: ${nextDropoff.passenger?.fullName || 'Passenger'}`,
+              lat: nextDropoff.dropoffLat,
+              lng: nextDropoff.dropoffLng,
+              etaMinutes: nextDropoff.etaToDropoffMinutes,
+            };
+          } else if (destCoords) {
+            // Passenger has no selected drop stop → use destination
+            const destEta = clampEta(await getLiveEtaMinutes(
+              driverLat, driverLng, destCoords.lat, destCoords.lng, ride
+            ));
+            nextStopEtaMinutes = destEta;
+            nextWaypoint = {
+              type: 'DESTINATION',
+              bookingRequestId: null,
+              passengerName: null,
+              label: 'ETA to destination',
+              lat: destCoords.lat,
+              lng: destCoords.lng,
+              etaMinutes: destEta,
+            };
+          }
+        } else if (destCoords) {
+          // Priority C: no actionable passengers → destination
+          const destEta = clampEta(await getLiveEtaMinutes(
+            driverLat, driverLng, destCoords.lat, destCoords.lng, ride
+          ));
+          nextStopEtaMinutes = destEta;
+          nextWaypoint = {
+            type: 'DESTINATION',
+            bookingRequestId: null,
+            passengerName: null,
+            label: 'ETA to destination',
+            lat: destCoords.lat,
+            lng: destCoords.lng,
+            etaMinutes: destEta,
+          };
         }
       }
     }
   } catch { /* OSRM failure — return null */ }
 
+  // Clamp viewer ETA as well
+  etaToPickupMin = clampEta(etaToPickupMin);
+  etaToDropoffMin = clampEta(etaToDropoffMin);
+
   if (estimatedArrivalMinutes == null && isDriver) {
     estimatedArrivalMinutes = nextStopEtaMinutes;
   }
+  estimatedArrivalMinutes = clampEta(estimatedArrivalMinutes);
+  nextStopEtaMinutes = clampEta(nextStopEtaMinutes);
 
   return {
     rideId: ride.id,
@@ -530,6 +617,7 @@ const getTrackingData = async (rideId, userId) => {
     etaToDropoffMin,
     estimatedArrivalMinutes,
     nextStopEtaMinutes,
+    nextWaypoint,
     stops: ride.stops,
     startedAt: ride.startedAt,
     departureTime: ride.departureTime,

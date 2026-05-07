@@ -90,12 +90,6 @@
   z-index: 3;
   margin-top: -60px;
 
-  /* Bleed horizontally like the header */
-  margin-left: calc(-1 * var(--space-md));
-  margin-right: calc(-1 * var(--space-md));
-  width: calc(100% + (2 * var(--space-md)));
-  padding: 0;
-  /* Removing any internal padding that might restrict the card */
 }
 
 .find-card {

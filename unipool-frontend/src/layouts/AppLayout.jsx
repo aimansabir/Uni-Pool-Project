@@ -7,9 +7,13 @@ export default function AppLayout() {
   const location = useLocation();
 
   // Pages where we hide the bottom nav for immersive experience
-  const hideNav = ['/verify', '/chat', '/preview'].some((p) =>
-    location.pathname.includes(p) || location.pathname.startsWith(p)
-  );
+  const hideNav =
+    location.pathname.includes('/preview') ||
+    location.pathname.includes('/live') ||
+    location.pathname.includes('/track') ||
+    location.pathname.startsWith('/active-ride') ||
+    location.pathname.startsWith('/chat') ||
+    location.pathname === '/verify';
 
   const hideHeader = location.pathname === '/rides/publish' ||
     location.pathname === '/dashboard' ||
@@ -26,7 +30,7 @@ export default function AppLayout() {
     location.pathname.includes('/vehicles');
 
   const isChat = location.pathname.startsWith('/chat');
-  const isFullWidth = location.pathname === '/financials' || 
+  const isFullWidth = location.pathname === '/financials' ||
     location.pathname.includes('/preview') ||
     location.pathname.startsWith('/active-ride') ||
     location.pathname.includes('/live') ||

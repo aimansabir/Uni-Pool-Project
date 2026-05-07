@@ -1,7 +1,7 @@
 .financials-page {
   background-color: #F8FAFC;
   /* Cleaner background */
-  min-height: 100vh;
+  min-height: auto;
   padding-bottom: 90px;
   /* Space for BottomNav */
 }

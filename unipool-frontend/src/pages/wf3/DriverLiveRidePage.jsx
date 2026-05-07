@@ -63,13 +63,6 @@ function FitBounds({ positions }) {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 
-const toFiniteNumber = (value) => {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-};
-
-const hasCoords = (lat, lng) => toFiniteNumber(lat) != null && toFiniteNumber(lng) != null;
-
 export default function DriverLiveRidePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -207,25 +200,11 @@ export default function DriverLiveRidePage() {
   /* ── Derived ───────────────────────────────────────────────────── */
 
   const passengers = tracking?.bookingRequests || [];
-  const etaMins = tracking?.nextStopEtaMinutes ?? tracking?.estimatedArrivalMinutes ?? null;
+  const nw = tracking?.nextWaypoint || null;
   const googleMapsUrl = navData?.navigationLink || null;
   const driverLocationFresh = tracking?.driverLocationFresh;
-  const driverLat = toFiniteNumber(tracking?.currentLat);
-  const driverLng = toFiniteNumber(tracking?.currentLng);
-  const hasDriverLoc = tracking?.hasDriverLocation ?? hasCoords(driverLat, driverLng);
-  const waitingForLiveLocation =
-    !hasDriverLoc ||
-    tracking?.locationStale === true ||
-    driverLocationFresh === false;
-  const liveEtaMins = waitingForLiveLocation
-    ? null
-    : etaMins;
-  const locationStatusText = locationError
-    ? locationError
-    : waitingForLiveLocation
-      ? 'Waiting for live location.'
-      : 'Location sharing active.';
-  const driverPos = hasCoords(driverLat, driverLng) ? [driverLat, driverLng] : null;
+  const hasDriverLoc = tracking?.currentLat && tracking?.currentLng;
+  const driverPos = hasDriverLoc ? [tracking.currentLat, tracking.currentLng] : null;
 
   const polylinePositions = ride.routeGeometry?.coordinates?.map(c => [c[1], c[0]]) || [];
   const startPoint = polylinePositions[0];
@@ -233,11 +212,11 @@ export default function DriverLiveRidePage() {
 
   // Status-aware markers: BOOKED→orange pickup, PICKED_UP→red dropoff, DROPPED_OFF→hidden
   const pickupMarkers = passengers
-    .filter(b => hasCoords(b.pickupLat, b.pickupLng) && (b.participantStatus === 'BOOKED' || !b.participantStatus))
+    .filter(b => b.pickupLat && b.pickupLng && (b.participantStatus === 'BOOKED' || !b.participantStatus))
     .map(b => ({ lat: b.pickupLat, lng: b.pickupLng, name: b.pickupStopName || 'Pickup stop', id: b.id, kind: 'pickup' }));
 
   const dropoffMarkers = passengers
-    .filter(b => hasCoords(b.dropoffLat, b.dropoffLng) && b.participantStatus === 'PICKED_UP')
+    .filter(b => b.dropoffLat && b.dropoffLng && b.participantStatus === 'PICKED_UP')
     .map(b => ({ lat: b.dropoffLat, lng: b.dropoffLng, name: b.dropoffStopName || 'Drop-off stop', id: b.id, kind: 'dropoff' }));
 
   const allPoints = [
@@ -312,122 +291,136 @@ export default function DriverLiveRidePage() {
         </div>
 
         <div className="dlr-bottom-sheet">
-        <div className="dlr-sheet-handle" />
+          <div className="dlr-sheet-handle" />
 
-        {/* Route pill */}
-        <div className="dlr-route-pill">
-          <MapPin size={16} color="#10b981" />
-          <span className="route-label">{shortStart} → {shortDest}</span>
-        </div>
-
-        {/* ETA row */}
-        <div className="dlr-eta-row">
-          <Navigation size={16} color="#f59e0b" fill="#f59e0b" />
-          <span className="dlr-live-eta">ETA to next stop: <strong>{liveEtaMins == null ? 'Waiting for live location' : `${liveEtaMins} mins`}</strong></span>
-        </div>
-
-        <div className={`dlr-location-status ${waitingForLiveLocation || locationError ? 'is-waiting' : 'is-live'}`}>
-          {waitingForLiveLocation || locationError ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
-          <span>{locationStatusText}</span>
-        </div>
-
-        {/* Passenger waypoints */}
-        <h3 className="dlr-section-heading">Pickup Waypoints</h3>
-
-        {passengers.length === 0 && (
-          <div className="dlr-empty-passengers">
-            <User size={36} strokeWidth={1.2} /><p>No passengers on this ride</p>
+          {/* Route pill */}
+          <div className="dlr-route-pill">
+            <MapPin size={16} color="#10b981" />
+            <span className="route-label">{shortStart} → {shortDest}</span>
           </div>
-        )}
 
-        {passengers.map((b) => {
-          const status = b.participantStatus;
-          const isBooked = !status || status === 'BOOKED';
-          const isPickedUp = status === 'PICKED_UP';
-          const isNoShow = status === 'NO_SHOW';
-          const isDroppedOff = status === 'DROPPED_OFF';
-          const busy = loadingAction === b.id;
+          {/* ETA row */}
+          <div className="dlr-eta-row">
+            <Navigation size={16} color="#f59e0b" fill="#f59e0b" />
+            {nw?.etaMinutes != null ? (
+              <span>{nw.label}: <strong>{nw.etaMinutes} min{nw.etaMinutes !== 1 ? 's' : ''}</strong></span>
+            ) : ride?.durationMin ? (
+              <span>Est. journey time: <strong>~{ride.durationMin} mins</strong></span>
+            ) : !hasDriverLoc ? (
+              <span style={{ color: '#9ca3af' }}>Waiting for live location…</span>
+            ) : (
+              <span style={{ color: '#9ca3af' }}>Calculating ETA…</span>
+            )}
+          </div>
 
-          return (
-            <div key={b.id} className={`dlr-pax-card ${isNoShow ? 'dlr-pax-noshow' : ''} ${isDroppedOff ? 'dlr-pax-done' : ''}`}>
-              <div className="dlr-pax-row">
-                <img
-                  src={b.passenger?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.passenger?.fullName || 'U')}&background=random&size=96`}
-                  alt="" className="dlr-pax-avatar"
-                />
-                <div className="dlr-pax-meta">
-                  <h4>{b.passenger?.fullName || 'Passenger'}</h4>
-                  <p><MapPin size={13} /> {isPickedUp ? (b.dropoffStopName || 'Drop-off stop') : (b.pickupStopName || 'Pickup stop')}</p>
-                  {isBooked && b.etaToPickupMinutes != null && (
-                    <p className="dlr-pax-eta"><Clock size={12} /> ETA to pickup: <strong>{b.etaToPickupMinutes} min</strong></p>
-                  )}
-                  {isPickedUp && b.etaToDropoffMinutes != null && (
-                    <p className="dlr-pax-eta"><Clock size={12} /> ETA to drop-off: <strong>{b.etaToDropoffMinutes} min</strong></p>
-                  )}
-                  {isDroppedOff && <p className="dlr-pax-eta dlr-eta-done">Dropped off ✓</p>}
-                  {isNoShow && <p className="dlr-pax-eta dlr-eta-noshow">No-show</p>}
-                </div>
-                {isNoShow && <span className="dlr-badge dlr-badge-noshow">No Show</span>}
-                {isDroppedOff && <span className="dlr-badge dlr-badge-dropped">Dropped Off</span>}
-                {isPickedUp && <span className="dlr-badge dlr-badge-pickedup">In Vehicle</span>}
-              </div>
-
-              {isBooked && (
-                <div className="dlr-pax-actions">
-                  <button className="dlr-action-btn dlr-btn-arrived" disabled={busy}
-                    onClick={() => handlePassengerAction('arrived', b.id)}>
-                    Arrived at Stop
-                  </button>
-                  <button className="dlr-action-btn dlr-btn-pickup" disabled={busy}
-                    onClick={() => handlePassengerAction('pickup', b.id)}>
-                    Passenger Picked Up
-                  </button>
-                  <button className="dlr-action-btn dlr-btn-noshow" disabled={busy}
-                    onClick={() => setShowConfirm({ type: 'noshow', id: b.id })}>
-                    Mark No-Show
-                  </button>
-                </div>
-              )}
-
-              {isPickedUp && (
-                <div className="dlr-pax-actions">
-                  <button className="dlr-action-btn dlr-btn-dropoff" disabled={busy} onClick={() => handlePassengerAction('dropoff', b.id)}>
-                    Drop Off Passenger
-                  </button>
-                </div>
-              )}
+          {/* Stale location / GPS warning */}
+          {(locationError || driverLocationFresh === false) && (
+            <div className="dlr-location-warning">
+              <AlertCircle size={14} />
+              <span>{locationError || 'Waiting for fresh driver location — enable GPS for live ETA'}</span>
             </div>
-          );
-        })}
+          )}
 
-        {/* End Journey — inside the sheet, always visible */}
-        <button
-          className="dlr-end-journey-btn"
-          onClick={() => setShowConfirm({ type: 'complete', id })}
-          disabled={actionLoading}
-        >
-          End Journey
-        </button>
-      </div>
+          {/* Passenger waypoints */}
+          <h3 className="dlr-section-heading">Pickup Waypoints</h3>
 
-      {/* Confirm dialogs */}
-      <ConfirmDialog
-        isOpen={!!showConfirm}
-        title={showConfirm?.type === 'noshow' ? 'Confirm No-Show' : 'End Journey?'}
-        message={
-          showConfirm?.type === 'noshow'
-            ? 'Are you sure this passenger is a no-show? This cannot be undone.'
-            : 'Are you sure you want to end this journey? Make sure all passengers have been dropped off.'
-        }
-        confirmText={showConfirm?.type === 'noshow' ? 'Confirm No-Show' : 'End Journey'}
-        onConfirm={() => {
-          if (showConfirm.type === 'noshow') handlePassengerAction('noshow', showConfirm.id);
-          else handleEndJourney();
-        }}
-        onCancel={() => setShowConfirm(null)}
-        variant={showConfirm?.type === 'noshow' ? 'danger' : 'primary'}
-        isLoading={actionLoading}
-      />
+          {passengers.length === 0 && (
+            <div className="dlr-empty-passengers">
+              <User size={36} strokeWidth={1.2} /><p>No passengers on this ride</p>
+            </div>
+          )}
+
+          {passengers.map((b) => {
+            const status = b.participantStatus;
+            const isBooked = !status || status === 'BOOKED';
+            const isPickedUp = status === 'PICKED_UP';
+            const isNoShow = status === 'NO_SHOW';
+            const isDroppedOff = status === 'DROPPED_OFF';
+            const busy = loadingAction === b.id;
+
+            return (
+              <div key={b.id} className={`dlr-pax-card ${isNoShow ? 'dlr-pax-noshow' : ''} ${isDroppedOff ? 'dlr-pax-done' : ''}`}>
+                <div className="dlr-pax-row">
+                  <img
+                    src={b.passenger?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.passenger?.fullName || 'U')}&background=random&size=96`}
+                    alt="" className="dlr-pax-avatar"
+                  />
+                  <div className="dlr-pax-meta">
+                    <h4>{b.passenger?.fullName || 'Passenger'}</h4>
+                    <p><MapPin size={13} /> {isPickedUp ? (b.dropoffStopName || 'Drop-off stop') : (b.pickupStopName || 'Pickup stop')}</p>
+                    {isBooked && b.etaToPickupMinutes != null && (
+                      <p className="dlr-pax-eta"><Clock size={12} /> ETA to pickup: <strong>{b.etaToPickupMinutes} min</strong></p>
+                    )}
+                    {isPickedUp && b.etaToDropoffMinutes != null && (
+                      <p className="dlr-pax-eta"><Clock size={12} /> ETA to drop-off: <strong>{b.etaToDropoffMinutes} min</strong></p>
+                    )}
+                    {isPickedUp && b.etaToDropoffMinutes == null && !b.dropoffLat && (
+                      <p className="dlr-pax-eta"><Clock size={12} /> Drop-off: Destination</p>
+                    )}
+                    {isDroppedOff && <p className="dlr-pax-eta dlr-eta-done">Dropped off ✓</p>}
+                    {isNoShow && <p className="dlr-pax-eta dlr-eta-noshow">No-show</p>}
+                  </div>
+                  {isNoShow && <span className="dlr-badge dlr-badge-noshow">No Show</span>}
+                  {isDroppedOff && <span className="dlr-badge dlr-badge-dropped">Dropped Off</span>}
+                  {isPickedUp && <span className="dlr-badge dlr-badge-pickedup">In Vehicle</span>}
+                </div>
+
+                {isBooked && (
+                  <div className="dlr-pax-actions">
+                    <button className="dlr-action-btn dlr-btn-arrived" disabled={busy}
+                      onClick={() => handlePassengerAction('arrived', b.id)}>
+                      Arrived at Stop
+                    </button>
+                    <button className="dlr-action-btn dlr-btn-pickup" disabled={busy}
+                      onClick={() => handlePassengerAction('pickup', b.id)}>
+                      Passenger Picked Up
+                    </button>
+                    <button className="dlr-action-btn dlr-btn-noshow" disabled={busy}
+                      onClick={() => setShowConfirm({ type: 'noshow', id: b.id })}>
+                      Mark No-Show
+                    </button>
+                  </div>
+                )}
+
+                {isPickedUp && (
+                  <div className="dlr-pax-actions">
+                    <button className="dlr-action-btn dlr-btn-dropoff" disabled={busy} onClick={() => handlePassengerAction('dropoff', b.id)}>
+                      Drop Off Passenger
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* End Journey — inside the sheet, always visible */}
+          <button
+            className="dlr-end-journey-btn"
+            onClick={() => setShowConfirm({ type: 'complete', id })}
+            disabled={actionLoading}
+          >
+            End Journey
+          </button>
+        </div>
+
+        {/* Confirm dialogs */}
+        <ConfirmDialog
+          isOpen={!!showConfirm}
+          title={showConfirm?.type === 'noshow' ? 'Confirm No-Show' : 'End Journey?'}
+          message={
+            showConfirm?.type === 'noshow'
+              ? 'Are you sure this passenger is a no-show? This cannot be undone.'
+              : 'Are you sure you want to end this journey? Make sure all passengers have been dropped off.'
+          }
+          confirmText={showConfirm?.type === 'noshow' ? 'Confirm No-Show' : 'End Journey'}
+          onConfirm={() => {
+            if (showConfirm.type === 'noshow') handlePassengerAction('noshow', showConfirm.id);
+            else handleEndJourney();
+          }}
+          onCancel={() => setShowConfirm(null)}
+          variant={showConfirm?.type === 'noshow' ? 'danger' : 'primary'}
+          isLoading={actionLoading}
+        />
       </div>
     </div>
   );

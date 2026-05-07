@@ -117,8 +117,8 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    min-height: 80vh;
-    padding-bottom: 120px;
+    min-height: 45vh;
+    padding-bottom: 100px;
     /* Taller sheet so button never feels cramped */
 }
 
