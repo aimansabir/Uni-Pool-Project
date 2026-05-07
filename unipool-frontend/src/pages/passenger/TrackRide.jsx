@@ -81,6 +81,7 @@ export default function TrackRide() {
           carMake={vehicle?.make || 'Honda Civic'}
           carColor={vehicle?.color || 'Black'}
           plateNumber={vehicle?.registrationNumber || 'ABC-123'}
+          avatarUrl={driver?.avatarUrl}
         />
         
         <div style={{ marginTop: '20px', paddingLeft: '16px', borderLeft: '2px solid #E8941F' }}>

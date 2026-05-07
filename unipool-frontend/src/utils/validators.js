@@ -54,6 +54,21 @@ export function validateRegisterForm(data) {
     errors.gender = 'Gender is required.';
   }
 
+  // Phone: optional, but if provided must be exactly 10 digits
+  if (data.phone && data.phone.trim()) {
+    const phoneDigits = data.phone.trim().replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      errors.phone = 'Phone number must be exactly 10 digits.';
+    }
+  }
+
+  // ERP: optional, but if provided must be exactly 5 digits
+  if (data.studentErp && data.studentErp.trim()) {
+    if (!/^\d{5}$/.test(data.studentErp.trim())) {
+      errors.studentErp = 'Student ERP must be exactly 5 digits.';
+    }
+  }
+
   return errors;
 }
 

@@ -8,7 +8,11 @@ const { success, error } = require('../utils/response');
 // POST /api/vehicles
 router.post('/', authenticate, async (req, res) => {
     try {
-        const vehicle = await vehicleService.createVehicle(req.user.id, req.body);
+        const payload = {
+            ...req.body,
+            ownerFullName: req.body.ownerFullName || req.user.fullName
+        };
+        const vehicle = await vehicleService.createVehicle(req.user.id, payload);
         return success(res, vehicle, 201, 'Vehicle added.');
     } catch (err) {
         return error(res, err.message, 400);

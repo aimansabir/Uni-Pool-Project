@@ -61,7 +61,7 @@ export default function ActiveRideOverview() {
           <div className="ride-card" key={stop.id || i}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
               <div className="driver-avatar" style={{ width: 40, height: 40 }}>
-                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(stop.passengerName || 'Passenger')}`} alt="" />
+                <img src={stop.passenger?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(stop.passengerName || 'Passenger')}`} alt="" />
               </div>
               <div>
                 <h4 style={{ margin: '0 0 4px' }}>{stop.passengerName || 'Passenger'}</h4>

@@ -61,6 +61,7 @@ const mapRideCard = (ride) => {
       fullName: ride.driver.fullName,
       gender: ride.driver.gender,
       trustScore: ride.driver.trustScore,
+      avatarUrl: ride.driver.avatarUrl,
     },
     vehicle: ride.vehicle
       ? {
@@ -251,6 +252,7 @@ const searchRides = async ({
           fullName: true,
           gender: true,
           trustScore: true,
+          avatarUrl: true,
         },
       },
       vehicle: {
@@ -356,6 +358,7 @@ const getRidePreview = async (rideId) => {
           gender: true,
           trustScore: true,
           phone: true,
+          avatarUrl: true,
         },
       },
       vehicle: {

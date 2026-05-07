@@ -359,6 +359,7 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
           id: true,
           fullName: true,
           gender: true,
+          avatarUrl: true,
         },
       },
       ride: {
@@ -791,6 +792,7 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           id: true,
           fullName: true,
           gender: true,
+          avatarUrl: true,
         },
       },
       ride: {

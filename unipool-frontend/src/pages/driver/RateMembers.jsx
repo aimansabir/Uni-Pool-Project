@@ -66,7 +66,7 @@ export default function RateMembers() {
               {isSubmitted && <span style={{ position: 'absolute', top: 16, right: 16, color: '#27ae60' }}>✔️ Submitted</span>}
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
                 <div className="driver-avatar" style={{ width: 48, height: 48 }}>
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(stop.passenger?.fullName || 'P')}`} alt="" />
+                  <img src={stop.passenger?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(stop.passenger?.fullName || 'P')}`} alt="" />
                 </div>
                 <div>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>{stop.passenger?.fullName || 'Passenger'}</h3>

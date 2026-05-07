@@ -104,15 +104,15 @@ model User {
   avatarUrl  String?
 
   // Keep WF1/WF2 base trustScore + verification flags
-  trustScore     Float   @default(100)
+  trustScore     Float   @default(0)
   isVerified     Boolean @default(false)
   genderVerified Boolean @default(false)
   isDriver       Boolean @default(false)
 
   // WF3 additive trust/reputation fields
-  punctualityScore     Float? @default(100)
-  safetyScore          Float? @default(100)
-  behaviorScore        Float? @default(100)
+  punctualityScore     Float?
+  safetyScore          Float?
+  behaviorScore        Float?
   totalRatingsReceived Int    @default(0)
 
   createdAt DateTime @default(now())
@@ -158,6 +158,7 @@ model Vehicle {
   ownerName          String?
   registrationNumber String  @unique
   imageUrl           String?
+  isActive           Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,7 +242,6 @@ model RouteSubscription {
   destinationKey      String?
   startLocation       String
   destinationLocation String
-  targetSlot          String?
   channel             NotificationChannel @default(EMAIL)
   isActive            Boolean             @default(true)
 

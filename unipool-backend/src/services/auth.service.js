@@ -10,6 +10,30 @@ const register = async ({ fullName, ibaEmail, password, phone, studentErp, gende
     throw err;
   }
 
+  // Phone validation: optional, but if provided must be exactly 10 digits
+  let normalizedPhone = null;
+  if (phone && phone.trim()) {
+    const digits = phone.trim().replace(/\D/g, '');
+    if (digits.length !== 10 || /[^0-9]/.test(phone.trim().replace(/^\+92/, ''))) {
+      const err = new Error('Phone number must be exactly 10 digits.');
+      err.statusCode = 400;
+      throw err;
+    }
+    normalizedPhone = `+92${digits}`;
+  }
+
+  // ERP validation: optional, but if provided must be exactly 5 digits
+  let normalizedErp = studentErp || null;
+  if (studentErp && studentErp.trim()) {
+    const erpDigits = studentErp.trim();
+    if (!/^\d{5}$/.test(erpDigits)) {
+      const err = new Error('Student ERP must be exactly 5 digits.');
+      err.statusCode = 400;
+      throw err;
+    }
+    normalizedErp = erpDigits;
+  }
+
   const normalizedEmail = ibaEmail.trim().toLowerCase();
 
   if (
@@ -50,8 +74,8 @@ const register = async ({ fullName, ibaEmail, password, phone, studentErp, gende
     update: {
       fullName,
       password: hashedPassword,
-      phone,
-      studentErp,
+      phone: normalizedPhone,
+      studentErp: normalizedErp,
       gender,
       verificationCode: otp,
       expiresAt: expires,
@@ -60,8 +84,8 @@ const register = async ({ fullName, ibaEmail, password, phone, studentErp, gende
       fullName,
       ibaEmail: normalizedEmail,
       password: hashedPassword,
-      phone,
-      studentErp,
+      phone: normalizedPhone,
+      studentErp: normalizedErp,
       gender,
       verificationCode: otp,
       expiresAt: expires,
@@ -140,12 +164,15 @@ const login = async ({ ibaEmail, password }) => {
       id: user.id,
       fullName: user.fullName,
       ibaEmail: user.ibaEmail,
+      phone: user.phone,
+      studentErp: user.studentErp,
       gender: user.gender,
       role: user.role,
       trustScore: user.trustScore,
       isVerified: user.isVerified,
       genderVerified: user.genderVerified,
       isDriver: user.isDriver,
+      avatarUrl: user.avatarUrl,
       vehicles: user.vehicles,
     },
   };
@@ -292,7 +319,24 @@ const updateProfile = async (userId, data) => {
 
   const updateData = {};
   if (fullName !== undefined) updateData.fullName = fullName;
-  if (phone !== undefined) updateData.phone = phone;
+
+  // Phone validation: optional, but if provided must be exactly 10 digits
+  if (phone !== undefined) {
+    if (!phone || !phone.trim()) {
+      updateData.phone = null;
+    } else {
+      const digits = phone.trim().replace(/\D/g, '');
+      // If it already has +92 prefix stored, strip it for digit count
+      const rawDigits = phone.trim().replace(/^\+92/, '').replace(/\D/g, '');
+      if (rawDigits.length !== 10) {
+        const err = new Error('Phone number must be exactly 10 digits.');
+        err.statusCode = 400;
+        throw err;
+      }
+      updateData.phone = `+92${rawDigits}`;
+    }
+  }
+
   if (gender !== undefined) {
     updateData.gender = gender;
     // Auto-verify gender for female users (demo-safe approach)
@@ -305,14 +349,20 @@ const updateProfile = async (userId, data) => {
     if (studentErp === '' || studentErp === null) {
       updateData.studentErp = null; // Store as NULL to avoid empty string unique constraint
     } else {
+      const erpDigits = studentErp.trim();
+      if (!/^\d{5}$/.test(erpDigits)) {
+        const err = new Error('Student ERP must be exactly 5 digits.');
+        err.statusCode = 400;
+        throw err;
+      }
       // Check for uniqueness
-      const existing = await prisma.user.findUnique({ where: { studentErp } });
+      const existing = await prisma.user.findUnique({ where: { studentErp: erpDigits } });
       if (existing && existing.id !== userId) {
         const err = new Error('This Student ERP is already in use.');
         err.statusCode = 409;
         throw err;
       }
-      updateData.studentErp = studentErp;
+      updateData.studentErp = erpDigits;
     }
   }
 

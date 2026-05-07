@@ -89,7 +89,11 @@ export default function MessagesPage() {
                   })}
                 >
                   <div className="msg-card-avatar">
-                    {conv.otherUser?.fullName?.[0]?.toUpperCase() || '?'}
+                    {conv.otherUser?.avatarUrl ? (
+                      <img src={conv.otherUser.avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      conv.otherUser?.fullName?.[0]?.toUpperCase() || '?'
+                    )}
                     <div className="msg-card-status-dot" />
                   </div>
 

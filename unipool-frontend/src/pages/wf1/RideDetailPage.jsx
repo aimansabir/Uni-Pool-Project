@@ -249,7 +249,7 @@ export default function RideDetailPage() {
                         <div className="d-passenger-info-row">
                           <div className="d-passenger-avatar-box">
                             <img
-                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
+                              src={passenger.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
                               alt="Avatar"
                               className="d-passenger-avatar"
                             />
@@ -353,7 +353,7 @@ export default function RideDetailPage() {
           <div className="d-passenger-info-row">
             <div className="d-passenger-avatar-box">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
+                src={passenger.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(passenger.fullName || 'User')}&background=random`}
                 alt="Avatar"
                 className="d-passenger-avatar"
               />

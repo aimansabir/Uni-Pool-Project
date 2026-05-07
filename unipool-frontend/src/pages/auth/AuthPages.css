@@ -172,6 +172,21 @@
   padding-left: 2px;
 }
 
+/* ── Phone +92 Prefix ──────────────────────────────── */
+.auth-input__prefix {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  padding-left: 6px;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.auth-input__field--with-prefix {
+  padding-left: 6px;
+}
+
 /* ── Forgot Password ────────────────────────────────── */
 .auth-page__forgot {
   text-align: right;

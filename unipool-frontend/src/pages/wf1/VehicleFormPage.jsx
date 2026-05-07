@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { vehiclesApi } from '../../api/vehicles.api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import './VehicleFormPage.css';
@@ -11,6 +12,7 @@ export default function VehicleFormPage() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -29,8 +31,10 @@ export default function VehicleFormPage() {
   useEffect(() => {
     if (isEdit) {
       fetchVehicle();
+    } else if (user) {
+      setForm(f => ({ ...f, ownerFullName: user.fullName || '' }));
     }
-  }, [id]);
+  }, [id, user]);
 
   const fetchVehicle = async () => {
     try {
@@ -90,14 +94,21 @@ export default function VehicleFormPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!form.ownerFullName.trim() || !form.make.trim() || !form.model.trim() || !form.registrationNumber.trim() || !form.color.trim()) {
-      showError('Please fill in all required fields');
-      return;
+    const newErrors = {};
+    if (!form.ownerFullName?.trim()) newErrors.ownerFullName = 'Owner name is required';
+    if (!form.make?.trim()) newErrors.make = 'Make is required';
+    if (!form.model?.trim()) newErrors.model = 'Model is required';
+    if (!form.color?.trim()) newErrors.color = 'Color is required';
+    if (!form.registrationNumber?.trim()) {
+      newErrors.registrationNumber = 'Registration number is required';
+    } else if (!/^[A-Z0-9]+-[A-Z0-9]+$/.test(form.registrationNumber)) {
+      newErrors.registrationNumber = 'Invalid format. Example: ABC-123';
     }
+    if (!form.imageUrl) newErrors.imageUrl = 'Vehicle photo is required';
 
-    if (!form.imageUrl) {
-      showError('Please upload a vehicle photo');
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showError('Please fix the errors before saving');
       return;
     }
 
@@ -175,10 +186,10 @@ export default function VehicleFormPage() {
           
           {/* Owner Full Name */}
           <div className="field-group">
-            <label className="field-label">Owner Full Name</label>
-            <div className={`vehicle-input-card ${errors.ownerFullName ? 'error' : ''}`}>
+            <label className="field-label">Owner Full Name <span style={{fontSize: '0.8rem', color: '#9CA3AF', fontWeight: 'normal'}}>(Registered as your profile name)</span></label>
+            <div className={`vehicle-input-card disabled ${errors.ownerFullName ? 'error' : ''}`} style={{backgroundColor: '#F3F4F6'}}>
               <div className="input-card__icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFB946" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
@@ -187,11 +198,12 @@ export default function VehicleFormPage() {
                 name="ownerFullName"
                 placeholder="Enter owner full name"
                 value={form.ownerFullName}
-                onChange={handleChange}
+                readOnly
                 className="input-card__field"
-                required
+                style={{color: '#6B7280'}}
               />
             </div>
+            {errors.ownerFullName && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.5rem'}}>{errors.ownerFullName}</div>}
           </div>
 
           {/* Car Brand */}
@@ -212,9 +224,9 @@ export default function VehicleFormPage() {
                 value={form.make}
                 onChange={handleChange}
                 className="input-card__field"
-                required
               />
             </div>
+            {errors.make && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.5rem'}}>{errors.make}</div>}
           </div>
 
           {/* Car Model */}
@@ -233,14 +245,14 @@ export default function VehicleFormPage() {
                 value={form.model}
                 onChange={handleChange}
                 className="input-card__field"
-                required
               />
             </div>
+            {errors.model && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.5rem'}}>{errors.model}</div>}
           </div>
 
           {/* Registration Number */}
           <div className="field-group">
-            <label className="field-label">Registration Number</label>
+            <label className="field-label">Registration Number <span style={{fontSize: '0.8rem', color: '#9CA3AF', fontWeight: 'normal'}}>(Example: ABC-123)</span></label>
             <div className={`vehicle-input-card ${errors.registrationNumber ? 'error' : ''}`}>
               <div className="input-card__icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFB946" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -254,9 +266,9 @@ export default function VehicleFormPage() {
                 value={form.registrationNumber}
                 onChange={handleChange}
                 className="input-card__field"
-                required
               />
             </div>
+            {errors.registrationNumber && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.5rem'}}>{errors.registrationNumber}</div>}
           </div>
 
           {/* Car Color */}
@@ -275,7 +287,6 @@ export default function VehicleFormPage() {
                   value={form.color}
                   onChange={handleChange}
                   className="input-card__field"
-                  required
                 />
                 <div className="color-preview-box" onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}>
                   <div 
@@ -310,6 +321,7 @@ export default function VehicleFormPage() {
                 </div>
               )}
             </div>
+            {errors.color && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.5rem'}}>{errors.color}</div>}
           </div>
 
           {/* Upload Section */}
@@ -346,6 +358,7 @@ export default function VehicleFormPage() {
                 </span>
               </div>
             </div>
+            {errors.imageUrl && <div style={{color: '#EF4444', fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center'}}>{errors.imageUrl}</div>}
           </div>
 
           <div className="form-actions-stack">

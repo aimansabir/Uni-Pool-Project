@@ -357,37 +357,44 @@ export default function PublishRidePage() {
   const handlePublish = async (e) => {
     e.preventDefault();
 
-    if (locationStatus !== 'granted') {
-      showError('Please enable your location to publish a ride.');
-      navigate('/enable-location', { state: { from: '/rides/publish' } });
-      return;
-    }
+    // Prevent any re-entry — button is already disabled by the `publishing` state
+    if (publishing) return;
 
-    const validationErrors = {};
-    if (!form.startLocation) validationErrors.startLocation = 'Please select a starting location';
-    if (!form.destinationLocation) validationErrors.destinationLocation = 'Please select a drop-off location';
-    if (!form.vehicleId) validationErrors.vehicleId = 'Please select a vehicle first';
-
-    if (form.rideType === 'SCHEDULED') {
-      if (!scheduling.dateType) validationErrors.dateType = 'Please select a date';
-      if (scheduling.mode === 'slot' && !scheduling.selectedSlot) {
-        validationErrors.selectedSlot = 'Please select a class slot';
-      }
-      if (scheduling.mode === 'exact' && !scheduling.exactTime) {
-        validationErrors.exactTime = 'Please select an exact time';
-      }
-    } else if (!form.rideType) {
-      validationErrors.rideType = 'Please select ride type';
-    }
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      showError('Please fix the errors in the form');
-      return;
-    }
-
+    // Lock the button immediately on first click
     setPublishing(true);
+
     try {
+      if (locationStatus !== 'granted') {
+        showError('Please enable your location to publish a ride.');
+        setPublishing(false);
+        navigate('/enable-location', { state: { from: '/rides/publish' } });
+        return;
+      }
+
+      const validationErrors = {};
+      if (!form.startLocation) validationErrors.startLocation = 'Please select a starting location';
+      if (!form.destinationLocation) validationErrors.destinationLocation = 'Please select a drop-off location';
+      if (!form.vehicleId) validationErrors.vehicleId = 'Please select a vehicle first';
+
+      if (form.rideType === 'SCHEDULED') {
+        if (!scheduling.dateType) validationErrors.dateType = 'Please select a date';
+        if (scheduling.mode === 'slot' && !scheduling.selectedSlot) {
+          validationErrors.selectedSlot = 'Please select a class slot';
+        }
+        if (scheduling.mode === 'exact' && !scheduling.exactTime) {
+          validationErrors.exactTime = 'Please select an exact time';
+        }
+      } else if (!form.rideType) {
+        validationErrors.rideType = 'Please select ride type';
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        showError('Please fix the errors in the form');
+        setPublishing(false);
+        return;
+      }
+
       // Build confirmedStops from selected landmark indexes
       const builtStops = selectedLandmarks
         .filter((_, i) => confirmedStopIndexes.has(i))
@@ -415,9 +422,10 @@ export default function PublishRidePage() {
       const res = await ridesApi.publish(payload);
       showSuccess('Ride published successfully!');
       navigate(`/rides/${res.data.id}/confirmed`, { state: { ride: res.data } });
+      // Do not reset publishing — we are navigating away
     } catch (err) {
-      showError(err.message);
-    } finally {
+      showError(err.message || 'Failed to publish ride. Please try again.');
+      // Re-enable button only on failure so user can retry
       setPublishing(false);
     }
   };

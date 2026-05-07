@@ -318,7 +318,7 @@ export default function PassengerTrackRidePage() {
             <div className="ptr-main-card">
               <div className="ptr-driver-info-box">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(driver.fullName || 'D')}&background=random&size=112`}
+                  src={driver.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(driver.fullName || 'D')}&background=random&size=112`}
                   alt="" className="ptr-driver-avatar"
                 />
                 <div className="ptr-driver-meta">

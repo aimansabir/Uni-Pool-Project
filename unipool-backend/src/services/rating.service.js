@@ -485,7 +485,7 @@ const recalculateUserTrustScore = async (userId) => {
 
   const trustScore = scores.length > 0
     ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
-    : 100;
+    : 0;
 
   await prisma.user.update({
     where: { id: userId },
@@ -519,7 +519,7 @@ const getUserTrustScore = async (userId) => {
     throw createError('User not found.', 404);
   }
 
-  const tScore = user.trustScore ?? 100;
+  const tScore = user.trustScore ?? 0;
 
   return {
     id: user.id,

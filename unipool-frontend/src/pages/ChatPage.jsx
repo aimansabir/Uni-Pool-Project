@@ -161,7 +161,11 @@ export default function ChatPage() {
         </button>
         <div className="chat-header__info">
           <div className="chat-header__avatar">
-            {otherUser?.fullName?.[0]?.toUpperCase() || '?'}
+            {otherUser?.avatarUrl ? (
+              <img src={otherUser.avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              otherUser?.fullName?.[0]?.toUpperCase() || '?'
+            )}
           </div>
           <div className="chat-header__text">
             <h2 className="chat-header__name">{otherUser?.fullName || 'Chat'}</h2>

@@ -334,7 +334,7 @@ export default function DriverLiveRidePage() {
             <div key={b.id} className={`dlr-pax-card ${isNoShow ? 'dlr-pax-noshow' : ''} ${isDroppedOff ? 'dlr-pax-done' : ''}`}>
               <div className="dlr-pax-row">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(b.passenger?.fullName || 'U')}&background=random&size=96`}
+                  src={b.passenger?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(b.passenger?.fullName || 'U')}&background=random&size=96`}
                   alt="" className="dlr-pax-avatar"
                 />
                 <div className="dlr-pax-meta">

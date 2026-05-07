@@ -20,7 +20,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
-    phone: user?.phone || '',
+    phone: (user?.phone || '').replace(/^\+92/, ''),
     studentErp: user?.studentErp || '',
     gender: user?.gender || 'male',
     avatarUrl: user?.avatarUrl || ''
@@ -77,14 +77,8 @@ export default function ProfilePage() {
     }
 
     if (name === 'phone') {
-      formattedValue = value.replace(/[^\d+]/g, '');
-      if (formattedValue.startsWith('+92')) {
-        formattedValue = formattedValue.slice(0, 13);
-      } else if (formattedValue.startsWith('0')) {
-        formattedValue = formattedValue.slice(0, 11);
-      } else {
-        formattedValue = formattedValue.slice(0, 11);
-      }
+      // Digits only, max 10 (user types local number after +92 prefix)
+      formattedValue = value.replace(/\D/g, '').slice(0, 10);
     }
 
     setFormData({ ...formData, [name]: formattedValue });
@@ -237,13 +231,18 @@ export default function ProfilePage() {
         <div className="profile-page__info-row">
           <span className="profile-page__info-label">Phone</span>
           {isEditing ? (
-            <input
-              className="profile-edit-input"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              placeholder="03xx-xxxxxxx"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+              <span className="profile-phone-prefix">+92</span>
+              <input
+                className="profile-edit-input"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="3XXXXXXXXX"
+                maxLength={10}
+                style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+              />
+            </div>
           ) : (
             <span className="profile-page__info-value">{user?.phone || '—'}</span>
           )}

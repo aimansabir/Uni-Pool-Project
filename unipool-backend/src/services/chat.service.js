@@ -108,7 +108,7 @@ const listConversations = async (currentUserId) => {
       const otherUserId = conv.driverId === currentUserId ? conv.passengerId : conv.driverId;
       const otherUser = await prisma.user.findUnique({
         where: { id: otherUserId },
-        select: { id: true, fullName: true, gender: true },
+        select: { id: true, fullName: true, gender: true, avatarUrl: true },
       });
 
       // Count unread messages not sent by current user

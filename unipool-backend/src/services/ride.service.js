@@ -148,39 +148,100 @@ const createRide = async (driverId, data) => {
         isConfirmed: true,
     }));
 
-    const ride = await prisma.ride.create({
-        data: {
-            driverId,
-            vehicleId,
-            startLocation,
-            destinationLocation,
-            departureTime: intelligence.departureTime,
-            targetSlot: targetSlot ?? null,
-            rideType: intelligence.rideType,
-            seatsTotal: seatCount,
-            seatsAvailable: seatCount,
-            farePerSeat: requestedFare,
-            genderPreference: normalizedGenderPreference,
-            status: 'PUBLISHED',
-            isUrgent: intelligence.isUrgent,
-            routeKey: intelligence.routeKey,
-            destinationKey: intelligence.destinationKey,
-            routeGeometry: intelligence.routeGeometry,
-            distanceKm: intelligence.distanceKm,
-            durationMin: intelligence.durationMin,
-            suggestedFarePerSeat: intelligence.fareSuggestion.suggestedFarePerSeat,
-            fareCap: intelligence.fareSuggestion.fareCap,
-            mappingProvider: intelligence.mappingProvider,
-            stops: {
-                create: stopSource,
+    // ── Duplicate ride guard (inside transaction to prevent race conditions) ──
+    const ride = await prisma.$transaction(async (tx) => {
+
+        if (normalizedRideType === 'INSTANT') {
+            // Block if another PUBLISHED/IN_PROGRESS instant ride for same driver+vehicle exists within ±30 min
+            const windowStart = new Date(Date.now() - 30 * 60 * 1000);
+            const windowEnd   = new Date(Date.now() + 30 * 60 * 1000);
+            const existingInstant = await tx.ride.findFirst({
+                where: {
+                    driverId,
+                    vehicleId,
+                    rideType: 'INSTANT',
+                    status: { in: ['PUBLISHED', 'IN_PROGRESS'] },
+                    departureTime: { gte: windowStart, lte: windowEnd },
+                },
+                select: { id: true },
+            });
+            if (existingInstant) {
+                const err = new Error('You already have a ride with this vehicle for this slot/time.');
+                err.statusCode = 400;
+                throw err;
+            }
+        } else {
+            // SCHEDULED: block on same driver + vehicle + same calendar date + same targetSlot (if provided)
+            // OR on same departureTime within a ±5 minute window when no targetSlot
+            const resolvedDeparture = new Date(intelligence.departureTime);
+            const dayStart = new Date(resolvedDeparture);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(resolvedDeparture);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const duplicateWhere = {
+                driverId,
+                vehicleId,
+                status: { in: ['PUBLISHED', 'IN_PROGRESS'] },
+                departureTime: { gte: dayStart, lte: dayEnd },
+            };
+
+            if (targetSlot) {
+                duplicateWhere.targetSlot = targetSlot;
+            } else {
+                // Exact time mode: block within ±5 min window
+                duplicateWhere.departureTime = {
+                    gte: new Date(resolvedDeparture.getTime() - 5 * 60 * 1000),
+                    lte: new Date(resolvedDeparture.getTime() + 5 * 60 * 1000),
+                };
+            }
+
+            const existingScheduled = await tx.ride.findFirst({
+                where: duplicateWhere,
+                select: { id: true },
+            });
+            if (existingScheduled) {
+                const err = new Error('You already have a ride with this vehicle for this slot/time.');
+                err.statusCode = 400;
+                throw err;
+            }
+        }
+
+        // All clear — create the ride
+        return tx.ride.create({
+            data: {
+                driverId,
+                vehicleId,
+                startLocation,
+                destinationLocation,
+                departureTime: intelligence.departureTime,
+                targetSlot: targetSlot ?? null,
+                rideType: intelligence.rideType,
+                seatsTotal: seatCount,
+                seatsAvailable: seatCount,
+                farePerSeat: requestedFare,
+                genderPreference: normalizedGenderPreference,
+                status: 'PUBLISHED',
+                isUrgent: intelligence.isUrgent,
+                routeKey: intelligence.routeKey,
+                destinationKey: intelligence.destinationKey,
+                routeGeometry: intelligence.routeGeometry,
+                distanceKm: intelligence.distanceKm,
+                durationMin: intelligence.durationMin,
+                suggestedFarePerSeat: intelligence.fareSuggestion.suggestedFarePerSeat,
+                fareCap: intelligence.fareSuggestion.fareCap,
+                mappingProvider: intelligence.mappingProvider,
+                stops: {
+                    create: stopSource,
+                },
             },
-        },
-        include: {
-            vehicle: true,
-            stops: {
-                orderBy: { sequence: 'asc' },
+            include: {
+                vehicle: true,
+                stops: {
+                    orderBy: { sequence: 'asc' },
+                },
             },
-        },
+        });
     });
 
     await dispatchRideNotifications(ride);
@@ -234,7 +295,7 @@ const getRideById = async (rideId, userId) => {
         where: { id: rideId },
         include: {
             driver: {
-                select: { id: true, fullName: true, trustScore: true, phone: true }
+                select: { id: true, fullName: true, trustScore: true, phone: true, avatarUrl: true }
             },
             vehicle: true,
             stops: {

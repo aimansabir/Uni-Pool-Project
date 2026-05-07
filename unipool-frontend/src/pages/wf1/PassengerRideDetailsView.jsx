@@ -193,7 +193,7 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
           <div className="p-driver-content">
             <div className="p-driver-info">
               <img 
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(driver.fullName || 'Driver')}&background=random&size=100`} 
+                src={driver.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(driver.fullName || 'Driver')}&background=random&size=100`} 
                 alt="Driver" 
                 className="p-driver-avatar"
               />

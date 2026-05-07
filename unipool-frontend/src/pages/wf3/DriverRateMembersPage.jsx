@@ -155,7 +155,7 @@ export default function DriverRateMembersPage() {
                 <div key={booking.id} className="drm-card">
                   <div className="drm-card-header">
                     <img
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(pax.fullName || 'P')}&background=random&size=100`}
+                      src={pax.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(pax.fullName || 'P')}&background=random&size=100`}
                       alt="Avatar"
                       className="drm-avatar"
                     />
