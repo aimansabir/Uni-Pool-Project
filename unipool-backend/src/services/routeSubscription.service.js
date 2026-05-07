@@ -2,14 +2,16 @@ const prisma = require('../lib/prisma');
 const { buildRouteKey, buildDestinationKey } = require('../utils/routekey');
 
 const upsertRouteSubscription = async (userId, data) => {
-    const { startLocation, destinationLocation, channel = 'EMAIL' } = data;
+    const startLocation = data.startLocation || data.pickupLocation || data.pickup || data.start;
+    const destinationLocation = data.destinationLocation || data.dropoffLocation || data.dropoff || data.destination;
+    const channel = data.channel || 'EMAIL';
 
     if (!startLocation || !destinationLocation) {
-        throw new Error('startLocation and destinationLocation are required.');
+        throw new Error('startLocation (pickup) and destinationLocation (dropoff) are required.');
     }
 
-    const routeKey = buildRouteKey(startLocation, destinationLocation);
-    const destinationKey = buildDestinationKey(destinationLocation);
+    const routeKey = data.routeKey || buildRouteKey(startLocation, destinationLocation);
+    const destinationKey = data.destinationKey || buildDestinationKey(destinationLocation);
 
     return prisma.routeSubscription.upsert({
         where: {

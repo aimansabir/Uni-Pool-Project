@@ -18,12 +18,12 @@ const FARE_PER_KM_PKR = Number(process.env.FARE_PER_KM_PKR || 18);
 const FARE_MAX_MULTIPLIER = Number(process.env.FARE_MAX_MULTIPLIER || 1.25);
 
 const LOCATION_ALIASES = {
-    'Maskan Gate': 'Maskan Chowrangi, Karachi, Pakistan',
-    'Maskan Chowrangi': 'Maskan Chowrangi, Karachi, Pakistan',
-    'IBA City Campus': 'Institute of Business Administration City Campus, Karachi, Pakistan',
-    'City Campus': 'Institute of Business Administration City Campus, Karachi, Pakistan',
-    'IBA Main Campus': 'Institute of Business Administration Main Campus, Karachi, Pakistan',
-    'Main Campus': 'Institute of Business Administration Main Campus, Karachi, Pakistan',
+    'Maskan Gate': 'Maskan Chowrangi, Karachi',
+    'Maskan Chowrangi': 'Maskan Chowrangi, Karachi',
+    'IBA City Campus': 'IBA City Campus Karachi',
+    'City Campus': 'IBA City Campus Karachi',
+    'IBA Main Campus': 'Institute of Business Administration Karachi Main Campus',
+    'Main Campus': 'Institute of Business Administration Karachi Main Campus',
 };
 
 const roundToNearest10 = (value) => Math.ceil(value / 10) * 10;
@@ -67,15 +67,30 @@ const geocodeSingleAttempt = async (query) => {
 const geocodeLocation = async (query) => {
     const normalized = normalizeLocationQuery(query);
 
-    const attempts = [
-        normalized,
-        `${normalized}, Karachi`,
-        `${normalized}, Karachi, Pakistan`,
-    ].filter((value, index, arr) => value && arr.indexOf(value) === index);
+    const attempts = [normalized];
+    
+    // If normalization changed the query, add the original query as a fallback
+    if (normalized !== query) {
+        attempts.push(query);
+    }
+
+    // Generate extended attempts (Karachi/Pakistan suffixes)
+    const baseAttempts = [...attempts];
+    for (const base of baseAttempts) {
+        if (!base.toLowerCase().includes('karachi')) {
+            attempts.push(`${base}, Karachi`);
+            attempts.push(`${base}, Karachi, Pakistan`);
+        } else if (!base.toLowerCase().includes('pakistan')) {
+            attempts.push(`${base}, Pakistan`);
+        }
+    }
+
+    // Filter unique attempts
+    const uniqueAttempts = [...new Set(attempts)];
 
     let lastError = null;
 
-    for (const attempt of attempts) {
+    for (const attempt of uniqueAttempts) {
         try {
             return await geocodeSingleAttempt(attempt);
         } catch (err) {
@@ -142,12 +157,24 @@ const extractRoadHighlights = (route) => {
     const seen = new Set();
     const highlights = [];
 
+    // Filter to keep only readable English names (ASCII characters mainly)
+    // We want to avoid Urdu scripts or very cryptic names
+    const isReadable = (text) => {
+        if (!text) return false;
+        // Basic check for Urdu/Arabic characters range: \u0600-\u06FF
+        const hasUrdu = /[\u0600-\u06FF]/.test(text);
+        if (hasUrdu) return false;
+        // Check if it has at least some alphabetic characters
+        return /[a-zA-Z]/.test(text);
+    };
+
     for (const leg of route.legs || []) {
         for (const step of leg.steps || []) {
             const name = String(step.name || '').trim();
 
             if (!name) continue;
             if (name.length < 4) continue;
+            if (!isReadable(name)) continue;
             if (seen.has(name.toLowerCase())) continue;
 
             seen.add(name.toLowerCase());
@@ -165,6 +192,8 @@ const extractRoadHighlights = (route) => {
 const buildRideIntelligence = async ({
     startLocation,
     destinationLocation,
+    startCoords,
+    destinationCoords,
     seatsTotal,
     rideType,
     departureTime,
@@ -173,8 +202,20 @@ const buildRideIntelligence = async ({
         throw new Error('startLocation and destinationLocation are required.');
     }
 
-    const start = await geocodeLocation(startLocation);
-    const destination = await geocodeLocation(destinationLocation);
+    // Prioritize coords from frontend if available
+    let start;
+    if (startCoords && startCoords.lat && startCoords.lng) {
+        start = { label: startLocation, lat: Number(startCoords.lat), lng: Number(startCoords.lng) };
+    } else {
+        start = await geocodeLocation(startLocation);
+    }
+
+    let destination;
+    if (destinationCoords && destinationCoords.lat && destinationCoords.lng) {
+        destination = { label: destinationLocation, lat: Number(destinationCoords.lat), lng: Number(destinationCoords.lng) };
+    } else {
+        destination = await geocodeLocation(destinationLocation);
+    }
 
     const routes = await fetchRoutes(start, destination);
 
@@ -205,10 +246,13 @@ const buildRideIntelligence = async ({
         const durationMin = Math.ceil(route.duration / 60);
         const suggestedLandmarks = detectLandmarksAlongRoute(route.geometry.coordinates);
         const roadHighlights = extractRoadHighlights(route);
+        
+        const routeLabel = index === 0 ? 'Recommended route' : `Alternative route ${index}`;
 
         return {
             optionNumber: index + 1,
             isPrimary: index === 0,
+            routeLabel,
             distanceKm,
             durationMin,
             roadHighlights,

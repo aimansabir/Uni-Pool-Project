@@ -1,0 +1,269 @@
+.booking-confirmed-page {
+  min-height: 90vh;
+  min-height: 90dvh;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 100px;
+  position: relative;
+  overflow-y: auto;
+}
+
+/* Header Nav */
+.bc-header-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+.bc-header-back {
+  background: #F1F5F9;
+  border: none;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bc-header-back:active {
+  transform: scale(0.9);
+}
+
+.bc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 32px;
+  text-align: center;
+}
+
+/* Status Icon */
+.bc-status-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: bcPulseIn 0.6s ease-out;
+}
+
+.bc-status-icon.scheduled {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+}
+
+.bc-status-icon.instant {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+}
+
+@keyframes bcPulseIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Title */
+.bc-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 8px;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+}
+
+.bc-subtitle {
+  font-size: 0.95rem;
+  color: #6B7280;
+  margin: 0 0 24px;
+  font-weight: 500;
+}
+
+/* Date */
+.bc-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #F59E0B;
+  margin-bottom: 24px;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 8px 16px;
+  border-radius: 50px;
+}
+
+/* Route Card */
+.bc-route-card {
+  width: 100%;
+  max-width: 360px;
+  background: #f0f9ff;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.bc-route-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 1rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.bc-route-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bc-route-dot.start {
+  background: #10B981;
+}
+
+.bc-route-dot.end {
+  background: #EF4444;
+}
+
+.bc-route-connector {
+  width: 2px;
+  height: 20px;
+  background: #dadcde;
+  margin: 4px 0 4px 4px;
+  border-radius: 1px;
+}
+
+/* Fare Box */
+.bc-fare-box {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+
+.bc-fare-label {
+  font-size: 0.88rem;
+  color: #83878e;
+  font-weight: 500;
+}
+
+.bc-fare-amount {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #F59E0B;
+}
+
+/* Track Button */
+.bc-track-btn {
+  width: 100%;
+  max-width: 340px;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #000000;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.bc-track-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+}
+
+/* Message Button */
+.bc-msg-btn {
+  width: 100%;
+  max-width: 340px;
+  padding: 14px;
+  border: 2px solid #6366F1;
+  border-radius: 14px;
+  background: transparent;
+  color: #6366F1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  transition: background 0.2s;
+}
+
+.bc-msg-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* Cancel Button */
+.bc-cancel-btn {
+  width: 100%;
+  max-width: 340px;
+  padding: 14px;
+  border: 2px solid #EF4444;
+  border-radius: 14px;
+  background: transparent;
+  color: #EF4444;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: 16px;
+}
+
+.bc-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.bc-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Info Note */
+.bc-info-note {
+  font-size: 0.82rem;
+  color: #6B7280;
+  max-width: 280px;
+  line-height: 1.5;
+}

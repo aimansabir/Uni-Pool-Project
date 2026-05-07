@@ -1,0 +1,19 @@
+.map-panel-wrapper {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+  position: relative;
+  /* Required for leaflet to sit nicely */
+  z-index: 1; 
+}
+
+.car-marker-icon {
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+  transition: all 0.3s ease;
+}
+
+/* Hide leaflet attribution to keep it clean on mobile */
+.leaflet-control-container .leaflet-bottom.leaflet-right {
+  display: none;
+}

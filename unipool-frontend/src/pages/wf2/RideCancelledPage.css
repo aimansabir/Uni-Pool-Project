@@ -1,0 +1,104 @@
+.ride-cancelled-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #DC2626 0%, #991B1B 50%, #7F1D1D 100%);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px;
+  position: relative;
+}
+
+.rc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px 32px;
+  text-align: center;
+}
+
+/* Warning Icon */
+.rc-icon-wrap {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  color: #FCD34D;
+  animation: rcShake 0.6s ease-out;
+  border: 3px solid rgba(252, 211, 77, 0.3);
+}
+
+@keyframes rcShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 70% { transform: translateX(-6px); }
+  30%, 60%, 80% { transform: translateX(6px); }
+}
+
+/* Title */
+.rc-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 16px;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+
+/* Message */
+.rc-message {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.65;
+  max-width: 320px;
+  margin: 0 0 36px;
+  font-weight: 500;
+}
+
+/* Action Button */
+.rc-action-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  color: #DC2626;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.rc-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Secondary */
+.rc-secondary-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.rc-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Override bottom nav on red page */
+.ride-cancelled-page .bottom-nav {
+  background: rgba(127, 29, 29, 0.95);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}

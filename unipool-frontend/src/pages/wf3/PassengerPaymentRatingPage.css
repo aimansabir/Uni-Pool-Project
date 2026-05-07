@@ -1,0 +1,375 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Passenger Payment & Rating Page – Premium Mobile Design
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ppr-page {
+  min-height: 100%;
+  background: linear-gradient(180deg, #fdfcf7 0%, #f9f6ee 100%);
+  padding-bottom: 100px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.ppr-container {
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* ── Success banner ──────────────────────────────────────────────── */
+
+.ppr-banner {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 36px 24px 28px;
+  text-align: center;
+  color: #fff;
+  position: relative;
+}
+
+.ppr-banner-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  backdrop-filter: blur(8px);
+}
+
+.ppr-banner h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.ppr-banner p {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ── Content area ────────────────────────────────────────────────── */
+
+.ppr-content {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Card base ───────────────────────────────────────────────────── */
+
+.ppr-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f3f4f6;
+}
+
+.ppr-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin: 0 0 14px;
+}
+
+/* ── Payment due card ────────────────────────────────────────────── */
+
+.ppr-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 16px;
+}
+
+.ppr-amount span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.ppr-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.ppr-detail-row + .ppr-detail-row {
+  border-top: 1px solid #f9fafb;
+}
+
+.ppr-detail-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #6b7280;
+}
+
+.ppr-detail-label {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.ppr-detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* ── Payment method selector ─────────────────────────────────────── */
+
+.ppr-methods {
+  display: flex;
+  gap: 10px;
+}
+
+.ppr-method-btn {
+  flex: 1;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.ppr-method-btn.active {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.ppr-method-icon {
+  font-size: 1.5rem;
+}
+
+.ppr-method-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.ppr-method-btn.active .ppr-method-label {
+  color: #92400e;
+}
+
+/* ── Star rating ─────────────────────────────────────────────────── */
+
+.ppr-rating-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ppr-rating-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.ppr-stars {
+  display: flex;
+  gap: 6px;
+}
+
+.ppr-star {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  color: #d1d5db;
+}
+
+.ppr-star.filled {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.ppr-star:active {
+  transform: scale(0.9);
+}
+
+/* ── Comment ─────────────────────────────────────────────────────── */
+
+.ppr-comment {
+  width: 100%;
+  min-height: 80px;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  padding: 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  color: #1f2937;
+}
+
+.ppr-comment:focus {
+  border-color: #f59e0b;
+}
+
+.ppr-comment::placeholder {
+  color: #d1d5db;
+}
+
+/* ── Submit button ───────────────────────────────────────────────── */
+
+.ppr-submit-btn {
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #111827;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.ppr-submit-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.ppr-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Already submitted ───────────────────────────────────────────── */
+
+.ppr-done-card {
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.ppr-done-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ppr-done-card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 6px;
+}
+
+.ppr-done-card p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 20px;
+}
+
+.ppr-home-btn {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: #f3f4f6;
+  color: #1f2937;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ppr-home-btn:active {
+  background: #e5e7eb;
+}
+
+/* ── Waiting state ───────────────────────────────────────────────── */
+
+.ppr-waiting {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.ppr-waiting-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fffbeb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ppr-waiting h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 6px;
+}
+
+.ppr-waiting p {
+  font-size: 0.88rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Error card ──────────────────────────────────────────────────── */
+
+.ppr-error-card {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.ppr-error-card h3 {
+  font-size: 1.1rem;
+  margin: 16px 0 6px;
+  color: #1f2937;
+}
+
+.ppr-error-card p {
+  font-size: 0.88rem;
+  color: #6b7280;
+  margin: 0 0 20px;
+}
+
+/* ── Animations ──────────────────────────────────────────────────── */
+
+.ppr-fade-in {
+  animation: pprFadeIn 0.4s ease-out;
+}
+
+@keyframes pprFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

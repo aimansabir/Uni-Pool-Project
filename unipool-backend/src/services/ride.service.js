@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { buildRideIntelligence } = require('./mapping.service');
+const { buildRideIntelligence, computeFareSuggestion } = require('./mapping.service');
 const { dispatchRideNotifications } = require('./notification.service');
 const { emitToUser } = require('../lib/sseHub');
 
@@ -15,6 +15,9 @@ const createRide = async (driverId, data) => {
         farePerSeat,
         genderPreference = 'ANY',
         confirmedStops,
+        selectedRouteOptionNumber,
+        startCoords,
+        destinationCoords,
     } = data;
 
     if (
@@ -65,6 +68,55 @@ const createRide = async (driverId, data) => {
         throw err;
     }
 
+    // ── Departure time and target slot guard for SCHEDULED rides ──
+    if (normalizedRideType === 'SCHEDULED') {
+        if (!departureTime) {
+            const err = new Error('Departure time is required for scheduled rides.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const dep = new Date(departureTime);
+        if (isNaN(dep.getTime())) {
+            const err = new Error('Invalid departure time.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (dep < new Date()) {
+            const err = new Error('Departure time cannot be in the past.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (targetSlot) {
+            const match = targetSlot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (match) {
+                let hours = parseInt(match[1], 10);
+                const minutes = parseInt(match[2], 10);
+                const period = match[3] ? match[3].toUpperCase() : null;
+
+                if (period === 'PM' && hours < 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+
+                const slotStart = new Date(dep);
+                slotStart.setHours(hours, minutes, 0, 0);
+
+                if (slotStart < new Date()) {
+                    const err = new Error('This class slot has already started. Please choose a later slot.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                if (dep >= slotStart) {
+                    const err = new Error('Departure time must be before the selected class slot starts.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+            }
+        }
+    }
+
     const normalizedGenderPreference = String(genderPreference).toUpperCase();
 
     if (!['ANY', 'FEMALES_ONLY'].includes(normalizedGenderPreference)) {
@@ -92,10 +144,26 @@ const createRide = async (driverId, data) => {
     const intelligence = await buildRideIntelligence({
         startLocation,
         destinationLocation,
+        startCoords,
+        destinationCoords,
         seatsTotal: seatCount,
         rideType: normalizedRideType,
         departureTime,
     });
+
+    // If driver selected a specific route option, override intelligence with that option's values
+    if (selectedRouteOptionNumber != null && intelligence.routeOptions) {
+        const chosen = intelligence.routeOptions.find(
+            (opt) => opt.optionNumber === Number(selectedRouteOptionNumber)
+        );
+        if (chosen) {
+            intelligence.routeGeometry = chosen.routeGeometry;
+            intelligence.distanceKm = chosen.distanceKm;
+            intelligence.durationMin = chosen.durationMin;
+            intelligence.suggestedLandmarks = chosen.suggestedLandmarks;
+            intelligence.fareSuggestion = computeFareSuggestion(chosen.distanceKm, seatCount);
+        }
+    }
 
     const requestedFare =
         farePerSeat != null
@@ -129,39 +197,100 @@ const createRide = async (driverId, data) => {
         isConfirmed: true,
     }));
 
-    const ride = await prisma.ride.create({
-        data: {
-            driverId,
-            vehicleId,
-            startLocation,
-            destinationLocation,
-            departureTime: intelligence.departureTime,
-            targetSlot: targetSlot ?? null,
-            rideType: intelligence.rideType,
-            seatsTotal: seatCount,
-            seatsAvailable: seatCount,
-            farePerSeat: requestedFare,
-            genderPreference: normalizedGenderPreference,
-            status: 'PUBLISHED',
-            isUrgent: intelligence.isUrgent,
-            routeKey: intelligence.routeKey,
-            destinationKey: intelligence.destinationKey,
-            routeGeometry: intelligence.routeGeometry,
-            distanceKm: intelligence.distanceKm,
-            durationMin: intelligence.durationMin,
-            suggestedFarePerSeat: intelligence.fareSuggestion.suggestedFarePerSeat,
-            fareCap: intelligence.fareSuggestion.fareCap,
-            mappingProvider: intelligence.mappingProvider,
-            stops: {
-                create: stopSource,
+    // ── Duplicate ride guard (inside transaction to prevent race conditions) ──
+    const ride = await prisma.$transaction(async (tx) => {
+
+        if (normalizedRideType === 'INSTANT') {
+            // Block if another PUBLISHED/IN_PROGRESS instant ride for same driver+vehicle exists within ±30 min
+            const windowStart = new Date(Date.now() - 30 * 60 * 1000);
+            const windowEnd = new Date(Date.now() + 30 * 60 * 1000);
+            const existingInstant = await tx.ride.findFirst({
+                where: {
+                    driverId,
+                    vehicleId,
+                    rideType: 'INSTANT',
+                    status: { in: ['PUBLISHED', 'IN_PROGRESS'] },
+                    departureTime: { gte: windowStart, lte: windowEnd },
+                },
+                select: { id: true },
+            });
+            if (existingInstant) {
+                const err = new Error('You already have a ride with this vehicle for this slot/time.');
+                err.statusCode = 400;
+                throw err;
+            }
+        } else {
+            // SCHEDULED: block on same driver + vehicle + same calendar date + same targetSlot (if provided)
+            // OR on same departureTime within a ±5 minute window when no targetSlot
+            const resolvedDeparture = new Date(intelligence.departureTime);
+            const dayStart = new Date(resolvedDeparture);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(resolvedDeparture);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const duplicateWhere = {
+                driverId,
+                vehicleId,
+                status: { in: ['PUBLISHED', 'IN_PROGRESS'] },
+                departureTime: { gte: dayStart, lte: dayEnd },
+            };
+
+            if (targetSlot) {
+                duplicateWhere.targetSlot = targetSlot;
+            } else {
+                // Exact time mode: block within ±5 min window
+                duplicateWhere.departureTime = {
+                    gte: new Date(resolvedDeparture.getTime() - 5 * 60 * 1000),
+                    lte: new Date(resolvedDeparture.getTime() + 5 * 60 * 1000),
+                };
+            }
+
+            const existingScheduled = await tx.ride.findFirst({
+                where: duplicateWhere,
+                select: { id: true },
+            });
+            if (existingScheduled) {
+                const err = new Error('You already have a ride with this vehicle for this slot/time.');
+                err.statusCode = 400;
+                throw err;
+            }
+        }
+
+        // All clear — create the ride
+        return tx.ride.create({
+            data: {
+                driverId,
+                vehicleId,
+                startLocation,
+                destinationLocation,
+                departureTime: intelligence.departureTime,
+                targetSlot: targetSlot ?? null,
+                rideType: intelligence.rideType,
+                seatsTotal: seatCount,
+                seatsAvailable: seatCount,
+                farePerSeat: requestedFare,
+                genderPreference: normalizedGenderPreference,
+                status: 'PUBLISHED',
+                isUrgent: intelligence.isUrgent,
+                routeKey: intelligence.routeKey,
+                destinationKey: intelligence.destinationKey,
+                routeGeometry: intelligence.routeGeometry,
+                distanceKm: intelligence.distanceKm,
+                durationMin: intelligence.durationMin,
+                suggestedFarePerSeat: intelligence.fareSuggestion.suggestedFarePerSeat,
+                fareCap: intelligence.fareSuggestion.fareCap,
+                mappingProvider: intelligence.mappingProvider,
+                stops: {
+                    create: stopSource,
+                },
             },
-        },
-        include: {
-            vehicle: true,
-            stops: {
-                orderBy: { sequence: 'asc' },
+            include: {
+                vehicle: true,
+                stops: {
+                    orderBy: { sequence: 'asc' },
+                },
             },
-        },
+        });
     });
 
     await dispatchRideNotifications(ride);
@@ -169,26 +298,73 @@ const createRide = async (driverId, data) => {
     return ride;
 };
 
-const getMyRides = async (driverId) => {
-    return prisma.ride.findMany({
-        where: { driverId },
+const getMyRides = async (userId) => {
+    // Return only rides offered/published by this user as driver
+    const rides = await prisma.ride.findMany({
+        where: {
+            driverId: userId,
+        },
         include: {
             vehicle: true,
             stops: {
                 orderBy: { sequence: 'asc' },
             },
+            bookingRequests: {
+                where: { status: 'ACCEPTED' },
+                select: {
+                    id: true,
+                    passengerId: true,
+                    participantStatus: true,
+                },
+            },
         },
         orderBy: { createdAt: 'desc' },
     });
+
+    // Add a role flag so frontend knows if user is driver or passenger
+    return rides.map(ride => ({
+        ...ride,
+        userRole: 'DRIVER',
+    }));
 };
 
-const getRideById = async (rideId, driverId) => {
+
+const getRideById = async (rideId, userId) => {
     const ride = await prisma.ride.findUnique({
         where: { id: rideId },
         include: {
+            driver: {
+                select: { id: true, fullName: true, trustScore: true, phone: true, avatarUrl: true }
+            },
             vehicle: true,
             stops: {
                 orderBy: { sequence: 'asc' },
+            },
+            bookingRequests: {
+                where: {
+                    OR: [
+                        { status: 'ACCEPTED' },
+                        { passengerId: userId }
+                    ]
+                },
+                include: {
+                    passenger: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            gender: true,
+                            phone: true,
+                            avatarUrl: true
+                        }
+                    },
+                    payment: true,
+                    ratings: {
+                        where: {
+                            raterId: userId,
+                            ratingType: 'DRIVER_TO_PASSENGER'
+                        }
+                    }
+                },
             },
         },
     });
@@ -197,12 +373,41 @@ const getRideById = async (rideId, driverId) => {
         throw new Error('Ride not found.');
     }
 
-    if (ride.driverId !== driverId) {
+    const isDriver = ride.driverId === userId;
+    const isPassenger = ride.bookingRequests.some(br => br.passengerId === userId);
+
+    if (!isDriver && !isPassenger) {
         throw new Error('Unauthorized.');
     }
 
-    return ride;
+    // Enhance booking requests with summary flags for frontend convenience
+    const enhancedBookings = ride.bookingRequests.map(br => {
+        const pStatus = br.payment?.status;
+        const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || br.payment?.paidAt != null;
+        const ratingCompleted = br.ratings && br.ratings.length > 0;
+
+        let settlementCompleted = paymentCompleted;
+        if (br.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+            settlementCompleted = true;
+        }
+
+        return {
+            ...br,
+            paymentStatus: pStatus || null,
+            paymentPaidAt: br.payment?.paidAt || null,
+            paymentCompleted,
+            ratingCompleted,
+            settlementCompleted
+        };
+    });
+
+    return {
+        ...ride,
+        bookingRequests: enhancedBookings,
+        userRole: isDriver ? 'DRIVER' : 'PASSENGER',
+    };
 };
+
 
 const updateRide = async (rideId, driverId, data) => {
     const existingRide = await prisma.ride.findUnique({
@@ -290,6 +495,21 @@ const updateRide = async (rideId, driverId, data) => {
             rideType: nextRideType,
             departureTime: data.departureTime ?? existingRide.departureTime,
         });
+
+        // If driver selected a specific route option, override refreshed values
+        if (data.selectedRouteOptionNumber != null && refreshed.routeOptions) {
+            const chosen = refreshed.routeOptions.find(
+                (opt) => opt.optionNumber === Number(data.selectedRouteOptionNumber)
+            );
+            if (chosen) {
+                refreshed.routeGeometry = chosen.routeGeometry;
+                refreshed.distanceKm = chosen.distanceKm;
+                refreshed.durationMin = chosen.durationMin;
+                refreshed.suggestedLandmarks = chosen.suggestedLandmarks;
+                const nextSeats = data.seatsTotal ?? existingRide.seatsTotal;
+                refreshed.fareSuggestion = computeFareSuggestion(chosen.distanceKm, nextSeats);
+            }
+        }
     }
 
     const updateData = {
@@ -461,11 +681,12 @@ const deleteRide = async (rideId, driverId) => {
 
         if (ride.rideType === 'INSTANT') {
             for (const passengerId of passengerIds) {
-                emitToUser(passengerId, 'ride-cancelled', {
+                emitToUser(passengerId, 'instant-cancelled-critical', {
                     rideId: ride.id,
-                    title: 'Ride Cancelled',
-                    message:
-                        'Your instant ride has been cancelled. Please book an alternative immediately.',
+                    title: 'Instant Ride Cancelled',
+                    message: 'Your instant ride has been cancelled by the driver. Do not wait at the pickup — please find an alternative immediately.',
+                    startLocation: ride.startLocation,
+                    destinationLocation: ride.destinationLocation,
                     severity: 'critical',
                     presentation: 'FULL_SCREEN',
                 });
@@ -494,10 +715,151 @@ const deleteRide = async (rideId, driverId) => {
     });
 };
 
+const getDashboardStats = async (userId) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const earnedPayments = await prisma.ridePayment.aggregate({
+        where: {
+            driverId: userId,
+            status: 'PAID',
+            paidAt: { gte: startOfMonth, lte: endOfMonth }
+        },
+        _sum: { amount: true }
+    });
+
+    const splitPayments = await prisma.ridePayment.aggregate({
+        where: {
+            passengerId: userId,
+            paidAt: { gte: startOfMonth, lte: endOfMonth }
+        },
+        _sum: { amount: true }
+    });
+
+    const pendingReceivablesAgg = await prisma.ridePayment.aggregate({
+        where: { driverId: userId, status: 'PENDING' },
+        _sum: { amount: true }
+    });
+
+    const pendingPayablesAgg = await prisma.ridePayment.aggregate({
+        where: { passengerId: userId, status: 'PENDING', paidAt: null },
+        _sum: { amount: true }
+    });
+
+    let earned = earnedPayments._sum.amount || 0;
+    let split = splitPayments._sum.amount || 0;
+    let pendingReceivables = pendingReceivablesAgg._sum.amount || 0;
+    let pendingPayables = pendingPayablesAgg._sum.amount || 0;
+
+    // 2. Recent Activities (Include ALL activities: published, pending, completed, cancelled)
+    const recentDriverRides = await prisma.ride.findMany({
+        where: { driverId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+        include: { stops: true, payments: true }
+    });
+
+    const recentPassengerBookings = await prisma.bookingRequest.findMany({
+        where: { passengerId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+        include: { ride: { include: { stops: true } }, payment: true }
+    });
+
+    const formatDate = (date) => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formatTime = (date) => date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    let activities = [
+        ...recentDriverRides.map(r => {
+            const firstStop = r.stops?.[0]?.stopName || r.startLocation;
+            const lastStop = r.stops?.[r.stops.length - 1]?.stopName || r.destinationLocation;
+
+            let displayStatus = r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase();
+            let displayAmount = r.farePerSeat;
+
+            if (r.status === 'COMPLETED') {
+                const paidTotal = r.payments?.filter(p => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0) || 0;
+                const anyPending = r.payments?.some(p => p.status === 'PENDING');
+
+                if (paidTotal > 0) {
+                    displayStatus = 'Payment Confirmed';
+                    displayAmount = paidTotal;
+                } else if (anyPending) {
+                    displayStatus = 'Pending Payment';
+                    displayAmount = 0;
+                } else {
+                    displayAmount = 0;
+                }
+            }
+
+            return {
+                id: r.id,
+                role: 'Driver',
+                date: r.completedAt ? formatDate(new Date(r.completedAt)) : formatDate(new Date(r.updatedAt)),
+                time: r.completedAt ? formatTime(new Date(r.completedAt)) : formatTime(new Date(r.updatedAt)),
+                rawDate: r.completedAt || r.updatedAt,
+                from: firstStop,
+                to: lastStop,
+                amount: displayAmount,
+                status: displayStatus
+            };
+        }),
+        ...recentPassengerBookings.map(b => {
+            const r = b.ride;
+            let displayStatus = b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase();
+            let displayAmount = b.requestedSeats * r.farePerSeat;
+
+            if (r.status === 'COMPLETED' && b.participantStatus !== 'NO_SHOW') {
+                if (b.payment?.status === 'PAID' || b.payment?.paidAt) {
+                    displayStatus = 'Paid';
+                    displayAmount = b.payment.amount;
+                } else if (b.payment) {
+                    displayStatus = 'Pending Payment';
+                    displayAmount = 0;
+                } else {
+                    displayAmount = 0;
+                }
+            } else if (b.participantStatus === 'NO_SHOW') {
+                displayStatus = 'No Show';
+                displayAmount = 0;
+            }
+
+            return {
+                id: b.id,
+                role: 'Passenger',
+                date: r.completedAt ? formatDate(new Date(r.completedAt)) : formatDate(new Date(r.updatedAt)),
+                time: r.completedAt ? formatTime(new Date(r.completedAt)) : formatTime(new Date(r.updatedAt)),
+                rawDate: r.completedAt || r.updatedAt,
+                from: b.pickupStopName || r.startLocation,
+                to: b.dropoffStopName || r.destinationLocation,
+                amount: displayAmount,
+                status: displayStatus
+            };
+        })
+    ];
+
+    activities.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+    activities = activities.slice(0, 3).map(a => {
+        const { rawDate, ...rest } = a;
+        return rest;
+    });
+
+    return {
+        earned,
+        split,
+        total: earned + split,
+        pendingReceivables,
+        pendingPayables,
+        recentActivities: activities
+    };
+};
+
 module.exports = {
     createRide,
     getMyRides,
     getRideById,
     updateRide,
     deleteRide,
+    getDashboardStats,
 };

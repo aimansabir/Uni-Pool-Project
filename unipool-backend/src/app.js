@@ -13,6 +13,7 @@ const routeSubscriptionRoutes = require('./routes/routeSubscription.routes');
 // Workflow 2 routes
 const searchRoutes = require('./routes/search.routes');
 const bookingRequestRoutes = require('./routes/bookingRequest.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Workflow 3 routes
 const rideExecutionRoutes = require('./routes/rideExecution.routes');
@@ -22,7 +23,8 @@ const ratingRoutes = require('./routes/rating.routes');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health check
 app.get('/', (req, res) => {
@@ -40,6 +42,7 @@ app.use('/api/route-subscriptions', routeSubscriptionRoutes);
 // Mount routes — Workflow 2
 app.use('/api/search', searchRoutes);
 app.use('/api/booking-requests', bookingRequestRoutes);
+app.use('/api/conversations', chatRoutes);
 
 // Mount routes — Workflow 3
 app.use('/api/ride-execution', rideExecutionRoutes);

@@ -1,0 +1,56 @@
+.driver-page-container, .passenger-page-container {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 70px);
+  padding-bottom: 90px;
+}
+
+.header-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-nav h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.ride-summary-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.ride-summary-card .label {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 4px 0;
+}
+
+.ride-summary-card .value {
+  margin: 0;
+  font-size: 16px;
+}
+
+.sticky-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background: white;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+  z-index: 100;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bottom-actions {
+  display: flex;
+  gap: 12px;
+}

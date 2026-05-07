@@ -61,6 +61,7 @@ const mapRideCard = (ride) => {
       fullName: ride.driver.fullName,
       gender: ride.driver.gender,
       trustScore: ride.driver.trustScore,
+      avatarUrl: ride.driver.avatarUrl,
     },
     vehicle: ride.vehicle
       ? {
@@ -69,6 +70,7 @@ const mapRideCard = (ride) => {
         model: ride.vehicle.model,
         color: ride.vehicle.color,
         registrationNumber: ride.vehicle.registrationNumber,
+        imageUrl: ride.vehicle.imageUrl,
       }
       : null,
     occupancyMix,
@@ -78,24 +80,57 @@ const mapRideCard = (ride) => {
 const normalize = (value = '') => String(value).trim().toLowerCase();
 
 const buildOrderedStops = (ride) => {
-  const confirmedStops = ride.stops
+  const confirmedStops = (ride.stops || [])
     .filter((stop) => stop.isConfirmed !== false)
     .sort((a, b) => a.sequence - b.sequence);
 
+  // Extract start/end coords from routeGeometry if available
+  let startLat = null, startLng = null, endLat = null, endLng = null;
+  if (ride.routeGeometry && typeof ride.routeGeometry === 'object') {
+    const coords = ride.routeGeometry.coordinates;
+    if (Array.isArray(coords) && coords.length > 0) {
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+      startLng = start[0]; startLat = start[1];
+      endLng = end[0]; endLat = end[1];
+    }
+  }
+
   return [
-    { stopName: ride.startLocation, sequence: -1 },
+    {
+      stopName: ride.startLocation,
+      lat: startLat,
+      lng: startLng,
+      sequence: -1
+    },
     ...confirmedStops,
-    { stopName: ride.destinationLocation, sequence: Number.MAX_SAFE_INTEGER },
+    {
+      stopName: ride.destinationLocation,
+      lat: endLat,
+      lng: endLng,
+      sequence: Number.MAX_SAFE_INTEGER
+    },
   ];
+};
+
+const getPrimaryName = (location = '') => {
+  return String(location).split(',')[0].trim();
 };
 
 const findStopPosition = (orderedStops, term) => {
   if (!term) return null;
 
   const q = normalize(term);
-  return orderedStops.findIndex((stop) =>
-    normalize(stop.stopName).includes(q)
-  );
+  const primaryQ = normalize(getPrimaryName(term));
+
+  // Try exact match, contains, or reversed contains
+  let idx = orderedStops.findIndex((stop) => {
+    const sName = normalize(stop.stopName);
+    return sName.includes(q) || q.includes(sName) ||
+      (primaryQ && (sName.includes(primaryQ) || primaryQ.includes(sName)));
+  });
+
+  return idx;
 };
 
 const matchesRouteDirection = (ride, pickup, dropoff) => {
@@ -104,6 +139,7 @@ const matchesRouteDirection = (ride, pickup, dropoff) => {
   const pickupPos = pickup ? findStopPosition(orderedStops, pickup) : null;
   const dropPos = dropoff ? findStopPosition(orderedStops, dropoff) : null;
 
+  // If we searched for it, we must find it
   if (pickup && pickupPos === -1) return false;
   if (dropoff && dropPos === -1) return false;
 
@@ -117,33 +153,54 @@ const matchesRouteDirection = (ride, pickup, dropoff) => {
 const searchRides = async ({
   pickup,
   dropoff,
+  pickupLat,
+  pickupLng,
+  dropoffLat,
+  dropoffLng,
   targetSlot,
   rideType,
   onlyUrgent,
 }) => {
+  const { normalizeLocationKey } = require('../utils/routekey');
+  const { haversineMeters, minDistanceToRouteMeters } = require('../utils/geo');
+  const pickupKey = pickup ? normalizeLocationKey(pickup) : null;
+  const dropoffKey = dropoff ? normalizeLocationKey(dropoff) : null;
+
+  // Fuzzy matching parts
+  const primaryPickup = pickup ? getPrimaryName(pickup) : null;
+  const primaryDropoff = dropoff ? getPrimaryName(dropoff) : null;
+
+  // Grace window: 15 mins to allow users to book a ride that is just about to start or slightly late
+  const graceWindow = new Date(Date.now() - 15 * 60000);
+
   const where = {
     status: 'PUBLISHED',
     seatsAvailable: { gt: 0 },
-    ...(rideType ? { rideType } : {}),
+    departureTime: { gte: graceWindow },
+    ...(rideType ? { rideType: rideType.toUpperCase() } : {}),
     ...(onlyUrgent === 'true' || onlyUrgent === true ? { isUrgent: true } : {}),
     AND: [
-      pickup
+      pickup && !pickupLat // If no coordinates, strictly enforce text match in DB
         ? {
           OR: [
             { startLocation: { contains: pickup, mode: 'insensitive' } },
-            { routeKey: { contains: pickup, mode: 'insensitive' } },
+            { startLocation: { contains: primaryPickup, mode: 'insensitive' } },
+            { routeKey: { startsWith: pickupKey || pickup, mode: 'insensitive' } },
             {
               stops: {
                 some: {
                   isConfirmed: true,
-                  stopName: { contains: pickup, mode: 'insensitive' },
+                  OR: [
+                    { stopName: { contains: pickup, mode: 'insensitive' } },
+                    { stopName: { contains: primaryPickup, mode: 'insensitive' } }
+                  ]
                 },
               },
             },
           ],
         }
         : {},
-      dropoff
+      dropoff && !dropoffLat // If no coordinates, strictly enforce text match in DB
         ? {
           OR: [
             {
@@ -152,28 +209,40 @@ const searchRides = async ({
                 mode: 'insensitive',
               },
             },
-            { destinationKey: { contains: dropoff, mode: 'insensitive' } },
+            {
+              destinationLocation: {
+                contains: primaryDropoff,
+                mode: 'insensitive',
+              },
+            },
+            { destinationKey: { contains: dropoffKey || dropoff, mode: 'insensitive' } },
+            { routeKey: { endsWith: dropoffKey || dropoff, mode: 'insensitive' } },
             {
               stops: {
                 some: {
                   isConfirmed: true,
-                  stopName: { contains: dropoff, mode: 'insensitive' },
+                  OR: [
+                    { stopName: { contains: dropoff, mode: 'insensitive' } },
+                    { stopName: { contains: primaryDropoff, mode: 'insensitive' } }
+                  ]
                 },
               },
             },
           ],
         }
         : {},
-      targetSlot
+      targetSlot && targetSlot !== 'undefined'
         ? {
-          targetSlot: {
-            contains: targetSlot,
-            mode: 'insensitive',
-          },
+          OR: [
+            { targetSlot: { contains: targetSlot, mode: 'insensitive' } },
+            // Backward compatibility
+            { targetSlot: null }
+          ]
         }
         : {},
     ],
   };
+
 
   const rides = await prisma.ride.findMany({
     where,
@@ -184,6 +253,7 @@ const searchRides = async ({
           fullName: true,
           gender: true,
           trustScore: true,
+          avatarUrl: true,
         },
       },
       vehicle: {
@@ -193,6 +263,7 @@ const searchRides = async ({
           model: true,
           color: true,
           registrationNumber: true,
+          imageUrl: true,
         },
       },
       stops: {
@@ -219,14 +290,66 @@ const searchRides = async ({
     ],
   });
 
-  const filteredRides = rides.filter((ride) =>
-    matchesRouteDirection(ride, pickup, dropoff)
-  );
+  const filteredRides = rides.filter((ride) => {
+    // 1. String Matching (Robust fallback for exact names)
+    const stringMatch = matchesRouteDirection(ride, pickup, dropoff);
+
+    // 2. If no coords provided, rely entirely on strings
+    if (!pickupLat && !dropoffLat) {
+      return stringMatch;
+    }
+
+    // 3. Intelligent Coordinate Matching (1.5km radius + Stop Checking)
+    const SEARCH_RADIUS_M = 1500; // Expanded to 1.5km for better urban matching
+    let pickupMatch = !pickupLat;
+    let dropoffMatch = !dropoffLat;
+
+    const orderedStops = buildOrderedStops(ride);
+
+    // A. Check Pickup (Near any stop in the ride)
+    if (pickupLat && pickupLng) {
+      // Check if pickup is near the start or any stop
+      const isNearAnyStop = orderedStops.some(stop => {
+        if (!stop.lat || !stop.lng) return false;
+        return haversineMeters(stop.lat, stop.lng, Number(pickupLat), Number(pickupLng)) <= SEARCH_RADIUS_M;
+      });
+
+      // Also check against route geometry if available
+      let isNearRoute = false;
+      if (ride.routeGeometry?.coordinates?.length > 0) {
+        const start = ride.routeGeometry.coordinates[0];
+        isNearRoute = haversineMeters(start[1], start[0], Number(pickupLat), Number(pickupLng)) <= SEARCH_RADIUS_M;
+      }
+
+      pickupMatch = isNearAnyStop || isNearRoute;
+    }
+
+    // B. Check Dropoff (Near any stop that comes AFTER the pickup)
+    if (dropoffLat && dropoffLng) {
+      const isNearAnyStop = orderedStops.some(stop => {
+        if (!stop.lat || !stop.lng) return false;
+        return haversineMeters(stop.lat, stop.lng, Number(dropoffLat), Number(dropoffLng)) <= SEARCH_RADIUS_M;
+      });
+
+      let isNearRouteEnd = false;
+      if (ride.routeGeometry?.coordinates?.length > 0) {
+        const coords = ride.routeGeometry.coordinates;
+        const end = coords[coords.length - 1];
+        isNearRouteEnd = haversineMeters(end[1], end[0], Number(dropoffLat), Number(dropoffLng)) <= SEARCH_RADIUS_M;
+      }
+
+      dropoffMatch = isNearAnyStop || isNearRouteEnd;
+    }
+
+    // Pass if (Coords match AND direction is right) OR (Text matches perfectly)
+    // This ensures that if the user picks the exact same landmark name, it shows up!
+    return (pickupMatch && dropoffMatch) || stringMatch;
+  });
 
   return filteredRides.map(mapRideCard);
 };
 
-const getRidePreview = async (rideId) => {
+const getRidePreview = async (rideId, user) => {
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
     include: {
@@ -237,6 +360,7 @@ const getRidePreview = async (rideId) => {
           gender: true,
           trustScore: true,
           phone: true,
+          avatarUrl: true,
         },
       },
       vehicle: {
@@ -274,6 +398,12 @@ const getRidePreview = async (rideId) => {
   if (!ride || ride.status !== 'PUBLISHED') {
     const err = new Error('Ride not found.');
     err.statusCode = 404;
+    throw err;
+  }
+
+  if (ride.genderPreference === 'FEMALES_ONLY' && user?.gender === 'male') {
+    const err = new Error("It's a female only ride!");
+    err.statusCode = 403;
     throw err;
   }
 

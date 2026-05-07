@@ -21,6 +21,7 @@ const getRideForBookingChecks = async (rideId) => {
           model: true,
           color: true,
           registrationNumber: true,
+          imageUrl: true,
         },
       },
       stops: {
@@ -87,8 +88,14 @@ const createBookingRequest = async ({
   }
 
   const seats = Number(requestedSeats ?? 1);
-  if (!Number.isInteger(seats) || seats !== 1) {
-    const err = new Error('Only one seat per booking request is allowed in this version.');
+  if (Number.isNaN(seats) || seats <= 0) {
+    const err = new Error('Please select a valid number of seats.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (seats > 1) {
+    const err = new Error('Only one seat per booking request is currently supported.');
     err.statusCode = 400;
     throw err;
   }
@@ -127,7 +134,7 @@ const createBookingRequest = async ({
     ride.genderPreference === 'FEMALES_ONLY' &&
     passenger.gender === 'male'
   ) {
-    const err = new Error('Male passengers cannot join a females-only ride.');
+    const err = new Error("It's a female only ride!");
     err.statusCode = 403;
     throw err;
   }
@@ -163,7 +170,7 @@ const createBookingRequest = async ({
           dropStopId: dropStopId || null,
           requestedSeats: seats,
           note: note || null,
-          status: 'PENDING',
+          status: ride.rideType === 'INSTANT' ? 'ACCEPTED' : 'PENDING',
         },
         include: {
           passenger: {
@@ -184,6 +191,7 @@ const createBookingRequest = async ({
               seatsAvailable: true,
               farePerSeat: true,
               isUrgent: true,
+              genderPreference: true,
             },
           },
           pickupStop: true,
@@ -192,6 +200,21 @@ const createBookingRequest = async ({
       });
 
       const isInstantRide = request.ride.rideType === 'INSTANT';
+
+      // If instant, decrement seats immediately
+      if (isInstantRide) {
+        if (request.ride.seatsAvailable < request.requestedSeats) {
+          throw new Error('This ride just became full.');
+        }
+        await tx.ride.update({
+          where: { id: rideId },
+          data: {
+            seatsAvailable: {
+              decrement: request.requestedSeats,
+            },
+          },
+        });
+      }
 
       const driverNotification = await tx.notification.create({
         data: {
@@ -265,7 +288,7 @@ const createBookingRequest = async ({
 };
 
 const listMyBookingRequests = async (passengerId) => {
-  return prisma.bookingRequest.findMany({
+  const requests = await prisma.bookingRequest.findMany({
     where: {
       passengerId,
     },
@@ -286,16 +309,46 @@ const listMyBookingRequests = async (passengerId) => {
               model: true,
               color: true,
               registrationNumber: true,
+              imageUrl: true,
             },
           },
         },
       },
       pickupStop: true,
       dropStop: true,
+      payment: true,
+      ratings: {
+        where: {
+          raterId: passengerId,
+          ratingType: 'PASSENGER_TO_DRIVER'
+        }
+      }
     },
     orderBy: {
       createdAt: 'desc',
     },
+  });
+
+  return requests.map(req => {
+    const pStatus = req.payment?.status;
+    const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || req.payment?.paidAt != null;
+    const ratingCompleted = req.ratings && req.ratings.length > 0;
+    
+    let settlementCompleted = paymentCompleted; // Front-end payment page blocks rating if paidAt exists
+    if (req.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+      settlementCompleted = true;
+    }
+
+    // Strip ratings array from payload if desired, but keeping it is fine.
+    // Adding computed fields for frontend
+    return {
+      ...req,
+      paymentStatus: pStatus || null,
+      paymentPaidAt: req.payment?.paidAt || null,
+      paymentCompleted,
+      ratingCompleted,
+      settlementCompleted
+    };
   });
 };
 
@@ -308,6 +361,7 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
           id: true,
           fullName: true,
           gender: true,
+          avatarUrl: true,
         },
       },
       ride: {
@@ -326,6 +380,7 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
               model: true,
               color: true,
               registrationNumber: true,
+              imageUrl: true,
             },
           },
           stops: {
@@ -335,6 +390,13 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
       },
       pickupStop: true,
       dropStop: true,
+      payment: true,
+      ratings: {
+        where: {
+          raterId: currentUserId,
+          ratingType: 'PASSENGER_TO_DRIVER'
+        }
+      }
     },
   });
 
@@ -353,7 +415,23 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
     throw err;
   }
 
-  return bookingRequest;
+  const pStatus = bookingRequest.payment?.status;
+  const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || bookingRequest.payment?.paidAt != null;
+  const ratingCompleted = bookingRequest.ratings && bookingRequest.ratings.length > 0;
+  
+  let settlementCompleted = paymentCompleted; // Match list behavior
+  if (bookingRequest.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
+    settlementCompleted = true;
+  }
+
+  return {
+    ...bookingRequest,
+    paymentStatus: pStatus || null,
+    paymentPaidAt: bookingRequest.payment?.paidAt || null,
+    paymentCompleted,
+    ratingCompleted,
+    settlementCompleted
+  };
 };
 
 const respondToBookingRequest = async ({
@@ -477,6 +555,7 @@ const respondToBookingRequest = async ({
                 model: true,
                 color: true,
                 registrationNumber: true,
+                imageUrl: true,
               },
             },
           },
@@ -701,6 +780,22 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
     );
   }
 
+  // If rideId is provided, verify it exists and belongs to the driver
+  if (rideId) {
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { id: true, driverId: true },
+    });
+
+    if (!ride) {
+      throw createError('Ride not found.', 404);
+    }
+
+    if (ride.driverId !== driverId) {
+      throw createError('You are not authorized to view requests for this ride.', 403);
+    }
+  }
+
   return prisma.bookingRequest.findMany({
     where: {
       ride: {
@@ -717,6 +812,8 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           id: true,
           fullName: true,
           gender: true,
+          avatarUrl: true,
+          trustScore: true,
         },
       },
       ride: {
@@ -729,6 +826,16 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           status: true,
           isUrgent: true,
           seatsAvailable: true,
+          vehicle: {
+            select: {
+              id: true,
+              make: true,
+              model: true,
+              color: true,
+              registrationNumber: true,
+              imageUrl: true,
+            },
+          },
         },
       },
       pickupStop: true,

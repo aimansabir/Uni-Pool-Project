@@ -1,0 +1,583 @@
+/* ═══════════════════════════════════════════════════════════════════
+   NotificationStream.css — Notification overlays & alerts
+   All overlays use fixed positioning constrained to the app-shell
+   phone frame (393px × 852px) via calc + CSS vars.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Shared phone-frame constraints ──────────────────── */
+/* On desktop: center within the viewport, match the phone mock  */
+/* On mobile: full screen                                        */
+
+/* ── INSTANT RIDE AVAILABLE MODAL (yellow, dismissible) ──────── */
+.urgent-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.urgent-alert-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+}
+
+.urgent-alert-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #f1f3f5;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.urgent-alert-close:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+.urgent-alert-icon {
+  background: #FEF3C7;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.urgent-alert-icon.pulse {
+  animation: urgentPulse 2s infinite;
+}
+
+@keyframes urgentPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 14px rgba(245, 158, 11, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.urgent-alert-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 20px;
+  line-height: 1.3;
+}
+
+.urgent-alert-route {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  background: #f8f9fa;
+  padding: 14px;
+  border-radius: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.alert-route-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+  text-align: left;
+  word-break: break-word;
+}
+
+.alert-route-item svg {
+  color: #6366f1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.alert-route-divider {
+  width: 2px;
+  height: 10px;
+  background: #e5e7eb;
+  margin-left: 7px;
+}
+
+.urgent-alert-details {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.alert-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alert-detail .label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.alert-detail .value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+}
+
+.urgent-alert-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 10px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   CRITICAL INSTANT CANCELLATION — FULL RED SCREEN
+   Matches the design: red bg, "🚨 URGENT: Ride Cancelled!" header,
+   yellow ⚠ triangle, "Back to Live Feed" button
+   ═══════════════════════════════════════════════════════════════════ */
+.critical-cancel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #E74C3C;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  box-sizing: border-box;
+  animation: criticalFadeIn 0.25s ease;
+}
+
+@keyframes criticalFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.critical-cancel-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+}
+
+.critical-cancel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.critical-cancel-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.critical-cancel-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.critical-cancel-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  text-align: center;
+  max-width: 300px;
+  line-height: 1.6;
+  margin: 0 0 32px;
+  word-break: break-word;
+}
+
+.critical-cancel-warning-icon {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+
+.critical-cancel-warning-icon svg {
+  width: 80px;
+  height: 80px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.critical-cancel-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 280px;
+  gap: 12px;
+}
+
+.critical-cancel-btn-primary {
+  padding: 14px 24px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.critical-cancel-btn-primary:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.critical-cancel-btn-secondary {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROUTE ALERT — Push Banner (inside phone frame)
+   ═══════════════════════════════════════════════════════════════════ */
+.route-alert-banner {
+  position: fixed;
+  bottom: 90px;
+  /* Center within the phone frame */
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--app-max-width, 393px) - 32px);
+  max-width: calc(100vw - 32px);
+  z-index: 50001;
+  background: linear-gradient(135deg, #1E3A5F 0%, #2D5F8A 100%);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  animation: slideUpBanner 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+@keyframes slideUpBanner {
+  from {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.route-alert-banner__icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.route-alert-banner__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-alert-banner__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-alert-banner__subtitle {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-alert-banner__close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROUTE ALERT — Premium Bottom-Sheet Modal
+   ═══════════════════════════════════════════════════════════════════ */
+.route-alert-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 99997;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeOverlay 0.2s ease;
+}
+
+@keyframes fadeOverlay {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.route-alert-modal {
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 22px 36px;
+  box-sizing: border-box;
+  animation: slideUpModal 0.3s cubic-bezier(0.34, 1.1, 0.64, 1);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.route-alert-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.route-alert-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.route-alert-modal__close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.route-alert-modal__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111;
+  margin: 0 0 18px;
+  line-height: 1.2;
+}
+
+.route-alert-modal__route {
+  background: #F8FAFC;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.route-alert-modal__route-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #333;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.route-alert-modal__route-row svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.route-alert-modal__route-divider {
+  width: 2px;
+  height: 10px;
+  background: #e5e7eb;
+  margin-left: 7px;
+}
+
+.route-alert-modal__details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.route-alert-modal__detail-card {
+  background: #F8FAFC;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.route-alert-modal__detail-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.route-alert-modal__detail-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+.route-alert-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* FIX: keep notification overlays inside the phone frame on desktop */
+@media (min-width: 500px) {
+
+  .critical-cancel-overlay,
+  .urgent-alert-overlay,
+  .route-alert-modal-overlay {
+    position: fixed !important;
+    top: calc(50vh - var(--app-height) / 2) !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+
+    width: var(--app-max-width) !important;
+    height: var(--app-height) !important;
+    max-width: var(--app-max-width) !important;
+    max-height: var(--app-height) !important;
+
+    border-radius: 40px !important;
+    overflow: hidden !important;
+  }
+
+  .route-alert-banner {
+    bottom: calc(50vh - var(--app-height) / 2 + var(--nav-height, 76px) + 16px) !important;
+  }
+}
+
+/* Mobile real phone: use actual full screen */
+@media (max-width: 499px) {
+
+  .critical-cancel-overlay,
+  .urgent-alert-overlay,
+  .route-alert-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  .route-alert-banner {
+    bottom: calc(var(--nav-height, 76px) + 16px) !important;
+  }
+}

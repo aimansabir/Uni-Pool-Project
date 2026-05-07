@@ -15,6 +15,15 @@ router.post('/intelligence/preview', authenticate, async (req, res) => {
     }
 });
 
+router.get('/dashboard/stats', authenticate, async (req, res) => {
+    try {
+        const stats = await rideService.getDashboardStats(req.user.id);
+        return success(res, stats);
+    } catch (err) {
+        return error(res, err.message, 500);
+    }
+});
+
 router.post('/', authenticate, async (req, res) => {
     try {
         const ride = await rideService.createRide(req.user.id, req.body);

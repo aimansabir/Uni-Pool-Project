@@ -1,0 +1,359 @@
+.premium-vehicle-page {
+  background: linear-gradient(135deg, #FFF7ED 0%, #F9FAFB 40%, #F9FAFB 100%);
+  padding: 16px 20px 40px;
+  /* Reduced bottom padding */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  overflow-x: hidden;
+  margin-bottom: 100px;
+}
+
+/* Subtle decorative dot pattern if needed or just the gradient */
+.premium-vehicle-page::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 185, 70, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Section Header ── */
+.vehicle-section-header {
+  margin-bottom: 24px;
+}
+
+.vehicle-header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.vehicle-back-btn {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.vehicle-back-btn:active {
+  transform: scale(0.9);
+}
+
+.vehicle-header-text {
+  flex: 1;
+  text-align: left;
+}
+
+.vehicle-section-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #c58320;
+  margin: 0;
+}
+
+.vehicle-section-subtitle {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 2px 0 0;
+  font-weight: 500;
+}
+
+/* ── Form Layout ── */
+.premium-vehicle-content {
+  width: 100%;
+}
+
+.premium-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* Tightened spacing */
+  width: 100%;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1F2937;
+  /* Darker labels */
+  padding-left: 4px;
+}
+
+/* ── Input Card ── */
+.vehicle-input-card {
+  background: white;
+  border-radius: 16px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #F3F4F6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  height: 54px;
+  /* Reduced height */
+  width: 100%;
+}
+
+.vehicle-input-card:focus-within {
+  border-color: #FFB946;
+  box-shadow: 0 4px 12px rgba(255, 185, 70, 0.1);
+}
+
+.vehicle-input-card.error {
+  border-color: #EF4444;
+  background: #FEF2F2;
+}
+
+.input-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+}
+
+.input-card__field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  /* Darker input text */
+  outline: none;
+  width: 100%;
+}
+
+.input-card__field::placeholder {
+  color: #9CA3AF;
+  /* Lighter placeholder */
+  font-weight: 500;
+}
+
+/* ── Color Picker Hybrid ── */
+.color-picker-relative-group {
+  position: relative;
+  width: 100%;
+}
+
+.color-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  height: 100%;
+  padding-left: 8px;
+  border-left: 1px solid #F3F4F6;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #F9FAFB;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.color-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 100%;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #F3F4F6;
+}
+
+.color-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.color-option-btn:hover {
+  background: #F9FAFB;
+}
+
+.color-option-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #E5E7EB;
+}
+
+.color-option-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+/* ── Upload Card ── */
+.vehicle-upload-card {
+  background: white;
+  border-radius: 18px;
+  padding: 16px;
+  border: 2px dashed #D1D5DB;
+  /* Stronger dashed border */
+  margin-top: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.vehicle-upload-card:hover {
+  border-color: #FFB946;
+  background: #FFFBEB;
+}
+
+.upload-card__content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-card__icon-box {
+  width: 50px;
+  height: 50px;
+  background: #FFFBEB;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* For preview image */
+}
+
+.upload-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.upload-card__text-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upload-card__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.upload-card__subtitle {
+  font-size: 11px;
+  color: #6B7280;
+  font-weight: 600;
+}
+
+/* ── Actions Stack ── */
+.form-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+/* ── Save Button ── */
+.vehicle-save-btn {
+  background: #FFB946;
+  color: white;
+  border: none;
+  border-radius: 18px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 800;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(255, 185, 70, 0.4);
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.vehicle-save-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 10px rgba(255, 185, 70, 0.3);
+}
+
+.vehicle-save-btn:disabled {
+  background: #E5E7EB;
+  color: #9CA3AF;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── Delete Button ── */
+.vehicle-delete-btn {
+  background: #FEE2E2;
+  color: #EF4444;
+  border: none;
+  border-radius: 18px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vehicle-delete-btn:hover {
+  background: #FECACA;
+}
+
+.vehicle-delete-btn:active {
+  transform: translateY(2px);
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

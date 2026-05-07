@@ -1,0 +1,346 @@
+/* ── Profile Page Premium Compact ───────────────────── */
+.profile-page {
+  padding: 12px 0 100px;
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+.profile-page__screen-title {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #0f172a;
+}
+
+/* ── Hero Card ──────────────────────────────────────── */
+.profile-page__header {
+  position: relative;
+  margin: 0 16px 16px;
+  padding: 18px 18px 18px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+  border: 1px solid #eef2f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.profile-page__header::before,
+.profile-page__header::after {
+  content: "";
+  position: absolute;
+  width: 84px;
+  height: 92px;
+  opacity: 0.28;
+  background-image: radial-gradient(circle, #f7d8a0 1.7px, transparent 1.7px);
+  background-size: 14px 14px;
+  pointer-events: none;
+}
+
+.profile-page__header::before {
+  left: 16px;
+  top: 72px;
+}
+
+.profile-page__header::after {
+  right: 16px;
+  top: 72px;
+}
+
+/* gray icon-only edit button */
+.btn-edit-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-edit-toggle:active {
+  transform: scale(0.96);
+}
+
+.avatar-container {
+  position: relative;
+  margin: 8px 0 12px;
+}
+
+.profile-page__avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8b43c 0%, #f59e0b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  /* bigger K */
+  font-weight: 800;
+  color: #ffffff;
+  border: 5px solid #ffffff;
+  box-shadow: 0 14px 28px rgba(245, 158, 11, 0.16);
+  overflow: hidden;
+}
+
+.profile-page__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* smaller camera button */
+.avatar-edit-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 36px;
+  height: 36px;
+  background: #0f172a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+}
+
+.profile-page__name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #0f172a;
+}
+
+.profile-name-input {
+  width: 80%;
+  padding: 2px 0 4px;
+  border: none;
+  border-bottom: 2px solid #f59e0b;
+  background: transparent;
+  text-align: center;
+  outline: none;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.profile-page__email {
+  margin: 6px 0 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #7c8798;
+  text-align: center;
+}
+
+.profile-page__badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.profile-badge--verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  background: #dff7ea;
+  color: #16a34a;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+/* ── Info Card ──────────────────────────────────────── */
+.profile-page__card {
+  margin: 0 16px 16px;
+  padding: 4px 18px;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.profile-page__info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.profile-page__info-row:last-child {
+  border-bottom: none;
+}
+
+.profile-page__info-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-page__info-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff7eb;
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-page__info-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #667085;
+}
+
+.profile-page__info-value {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: right;
+}
+
+.profile-page__info-value--accent {
+  color: #f59e0b;
+}
+
+/* ── Inputs ─────────────────────────────────────────── */
+.profile-edit-input {
+  min-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: right;
+  outline: none;
+}
+
+.gender-segmented-control {
+  display: flex;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.gender-segment {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.gender-segment.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Action Buttons ─────────────────────────────────── */
+.profile-page__actions {
+  padding: 0 16px;
+}
+
+.profile-btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.profile-btn-group button,
+.profile-action-btn {
+  height: 54px;
+  /* Reduced from 74px */
+  border-radius: 16px;
+  /* Slightly tighter radius */
+  border: 1.5px solid #f59e0b;
+  background: #fffcf5;
+  /* Soft amber tint */
+  color: #e58a13;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.05);
+  transition: all 0.2s;
+}
+
+.profile-btn-group button:active,
+.profile-action-btn:active {
+  transform: scale(0.96);
+  background: #fff3db;
+}
+
+.profile-action-btn__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-action-btn__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8b43c 0%, #f59e0b 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-action-btn__arrow {
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* keep logout button as it is */
+
+/* ── Phone Prefix in Edit Mode ─────────────────────── */
+.profile-phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 10px 0 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #667085;
+  background: #f8fafc;
+  border-radius: 12px 0 0 12px;
+  white-space: nowrap;
+  user-select: none;
+}
