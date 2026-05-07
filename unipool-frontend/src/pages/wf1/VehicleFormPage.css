@@ -1,11 +1,13 @@
 .premium-vehicle-page {
   background: linear-gradient(135deg, #FFF7ED 0%, #F9FAFB 40%, #F9FAFB 100%);
-  padding: 16px 20px 40px; /* Reduced bottom padding */
+  padding: 16px 20px 40px;
+  /* Reduced bottom padding */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   position: relative;
   overflow-x: hidden;
+  margin-bottom: 100px;
 }
 
 /* Subtle decorative dot pattern if needed or just the gradient */
@@ -46,7 +48,7 @@
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .vehicle-back-btn:active {
@@ -252,7 +254,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* For preview image */
+  overflow: hidden;
+  /* For preview image */
 }
 
 .upload-preview-img {
