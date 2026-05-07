@@ -203,7 +203,7 @@ const createRide = async (driverId, data) => {
         if (normalizedRideType === 'INSTANT') {
             // Block if another PUBLISHED/IN_PROGRESS instant ride for same driver+vehicle exists within ±30 min
             const windowStart = new Date(Date.now() - 30 * 60 * 1000);
-            const windowEnd   = new Date(Date.now() + 30 * 60 * 1000);
+            const windowEnd = new Date(Date.now() + 30 * 60 * 1000);
             const existingInstant = await tx.ride.findFirst({
                 where: {
                     driverId,
@@ -299,20 +299,10 @@ const createRide = async (driverId, data) => {
 };
 
 const getMyRides = async (userId) => {
-    // Return rides where user is the driver OR has an accepted booking as passenger
+    // Return only rides offered/published by this user as driver
     const rides = await prisma.ride.findMany({
         where: {
-            OR: [
-                { driverId: userId },
-                {
-                    bookingRequests: {
-                        some: {
-                            passengerId: userId,
-                            status: 'ACCEPTED',
-                        },
-                    },
-                },
-            ],
+            driverId: userId,
         },
         include: {
             vehicle: true,
@@ -334,7 +324,7 @@ const getMyRides = async (userId) => {
     // Add a role flag so frontend knows if user is driver or passenger
     return rides.map(ride => ({
         ...ride,
-        userRole: ride.driverId === userId ? 'DRIVER' : 'PASSENGER',
+        userRole: 'DRIVER',
     }));
 };
 
@@ -395,12 +385,12 @@ const getRideById = async (rideId, userId) => {
         const pStatus = br.payment?.status;
         const paymentCompleted = pStatus === 'PAID' || pStatus === 'WAIVED' || br.payment?.paidAt != null;
         const ratingCompleted = br.ratings && br.ratings.length > 0;
-        
+
         let settlementCompleted = paymentCompleted;
         if (br.participantStatus === 'NO_SHOW' || pStatus === 'WAIVED') {
             settlementCompleted = true;
         }
-        
+
         return {
             ...br,
             paymentStatus: pStatus || null,
@@ -784,14 +774,14 @@ const getDashboardStats = async (userId) => {
         ...recentDriverRides.map(r => {
             const firstStop = r.stops?.[0]?.stopName || r.startLocation;
             const lastStop = r.stops?.[r.stops.length - 1]?.stopName || r.destinationLocation;
-            
+
             let displayStatus = r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase();
-            let displayAmount = r.farePerSeat; 
+            let displayAmount = r.farePerSeat;
 
             if (r.status === 'COMPLETED') {
                 const paidTotal = r.payments?.filter(p => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0) || 0;
                 const anyPending = r.payments?.some(p => p.status === 'PENDING');
-                
+
                 if (paidTotal > 0) {
                     displayStatus = 'Payment Confirmed';
                     displayAmount = paidTotal;
@@ -826,7 +816,7 @@ const getDashboardStats = async (userId) => {
                     displayAmount = b.payment.amount;
                 } else if (b.payment) {
                     displayStatus = 'Pending Payment';
-                    displayAmount = 0; 
+                    displayAmount = 0;
                 } else {
                     displayAmount = 0;
                 }
