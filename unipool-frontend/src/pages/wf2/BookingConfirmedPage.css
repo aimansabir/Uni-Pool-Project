@@ -4,7 +4,7 @@
   background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
   display: flex;
   flex-direction: column;
-  padding-bottom: 10px;
+  padding-bottom: 100px;
   position: relative;
   overflow-y: auto;
 }

@@ -39,7 +39,7 @@
 .dashboard {
   background-color: var(--color-bg-secondary);
   min-height: auto;
-  padding-bottom: 40px;
+  padding-bottom: 100px;
   /* Space for Bottom Nav */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
