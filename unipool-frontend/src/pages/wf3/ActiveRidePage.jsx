@@ -45,7 +45,7 @@ export default function ActiveRidePage() {
       const res = await ridesApi.getById(targetId);
       const rideData = res.data;
 
-      
+
       const isInstant = rideData && rideData.rideType === 'INSTANT';
       const isLiveOrInstant = rideData && (rideData.status === 'IN_PROGRESS' || (rideData.status === 'PUBLISHED' && isInstant));
 
@@ -129,8 +129,17 @@ export default function ActiveRidePage() {
   if (loading) return <FullPageSpinner />;
   if (error) return (
     <div className="wf3-container fade-in">
+      <button
+        type="button"
+        className="wf3-back-btn"
+        onClick={() => navigate(-1)}
+        aria-label="Go back"
+      >
+        <ChevronLeft size={22} />
+      </button>
+
       <div className="wf3-content">
-        <EmptyState 
+        <EmptyState
           icon={
             <div className="empty-state__icon-wrapper">
               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -161,21 +170,21 @@ export default function ActiveRidePage() {
   return (
     <div className="wf3-container fade-in">
       <div className="wf3-content">
-      <div className="wf3-card">
-        <div className="ride-summary">
-          <div className="route-display">
-            <div className="route-node"><MapPin size={16} color="#10b981" /><span>{ride.startLocation}</span></div>
-            <div className="route-line-vertical" />
-            <div className="route-node"><MapPin size={16} color="#ef4444" /><span>{ride.destinationLocation}</span></div>
+        <div className="wf3-card">
+          <div className="ride-summary">
+            <div className="route-display">
+              <div className="route-node"><MapPin size={16} color="#10b981" /><span>{ride.startLocation}</span></div>
+              <div className="route-line-vertical" />
+              <div className="route-node"><MapPin size={16} color="#ef4444" /><span>{ride.destinationLocation}</span></div>
+            </div>
+            <div className="ride-status-badge">Status: <strong>{ride.status}</strong></div>
           </div>
-          <div className="ride-status-badge">Status: <strong>{ride.status}</strong></div>
         </div>
-      </div>
-      {/* Content omitted for brevity in placeholder */}
-      <div className="wf3-placeholder">
-        <h2 className="wf3-placeholder__title">Live Tracking View</h2>
-        <p className="wf3-placeholder__subtitle">You are viewing the {isDriver ? 'driver' : 'passenger'} live tracking screen.</p>
-      </div>
+        {/* Content omitted for brevity in placeholder */}
+        <div className="wf3-placeholder">
+          <h2 className="wf3-placeholder__title">Live Tracking View</h2>
+          <p className="wf3-placeholder__subtitle">You are viewing the {isDriver ? 'driver' : 'passenger'} live tracking screen.</p>
+        </div>
       </div>
     </div>
   );
