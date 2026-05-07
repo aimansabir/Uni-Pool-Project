@@ -21,6 +21,7 @@ const getRideForBookingChecks = async (rideId) => {
           model: true,
           color: true,
           registrationNumber: true,
+          imageUrl: true,
         },
       },
       stops: {
@@ -133,7 +134,7 @@ const createBookingRequest = async ({
     ride.genderPreference === 'FEMALES_ONLY' &&
     passenger.gender === 'male'
   ) {
-    const err = new Error('Male passengers cannot join a females-only ride.');
+    const err = new Error("It's a female only ride!");
     err.statusCode = 403;
     throw err;
   }
@@ -308,6 +309,7 @@ const listMyBookingRequests = async (passengerId) => {
               model: true,
               color: true,
               registrationNumber: true,
+              imageUrl: true,
             },
           },
         },
@@ -378,6 +380,7 @@ const getBookingRequestById = async (bookingRequestId, currentUserId) => {
               model: true,
               color: true,
               registrationNumber: true,
+              imageUrl: true,
             },
           },
           stops: {
@@ -552,6 +555,7 @@ const respondToBookingRequest = async ({
                 model: true,
                 color: true,
                 registrationNumber: true,
+                imageUrl: true,
               },
             },
           },
@@ -805,6 +809,16 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           status: true,
           isUrgent: true,
           seatsAvailable: true,
+        },
+      },
+      vehicle: {
+        select: {
+          id: true,
+          make: true,
+          model: true,
+          color: true,
+          registrationNumber: true,
+          imageUrl: true,
         },
       },
       pickupStop: true,

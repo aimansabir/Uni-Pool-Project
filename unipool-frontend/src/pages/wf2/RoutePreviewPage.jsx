@@ -295,7 +295,12 @@ export default function RoutePreviewPage() {
                         </div>
                         <div className="driver-meta">
                             <h3 className="driver-name">{ride.driver?.fullName}</h3>
-                            <span className="driver-role-badge">Driver</span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span className="driver-role-badge">Driver</span>
+                                {ride.genderPreference === 'FEMALES_ONLY' && (
+                                    <span className="driver-role-badge" style={{ background: '#FDF2F8', color: '#DB2777' }}>Females Only</span>
+                                )}
+                            </div>
                             <div className="driver-rating">
                                 <Star size={16} fill="#FDBA2E" color="#FDBA2E" />
                                 <span className="rating-val">
@@ -340,6 +345,27 @@ export default function RoutePreviewPage() {
                                 </div>
                             </div>
                         </div>
+                        {ride.vehicle && (
+                            <div className="preview-detail-item">
+                                <div className="detail-icon-box" style={{ background: 'transparent' }}>
+                                    {ride.vehicle.imageUrl ? (
+                                        <img src={ride.vehicle.imageUrl} alt="Car" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '8px' }} />
+                                    ) : (
+                                        <div style={{ width: '36px', height: '36px', background: '#F3F4F6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a2 2 0 00-1.6-.8H9.3a2 2 0 00-1.6.8L5 11l-5.16.86a1 1 0 00-.84.99V16h3m14 0a2 2 0 11-4 0m4 0a2 2 0 10-4 0m-10 0a2 2 0 11-4 0m4 0a2 2 0 10-4 0"/></svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="detail-label" style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span>Vehicle</span>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>{ride.vehicle.registrationNumber}</span>
+                                </span>
+                                <span className="detail-value" style={{ textAlign: 'right' }}>
+                                    {ride.vehicle.make} <br />
+                                    <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{ride.vehicle.color}</span>
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* ── Pickup / Drop-off Selection ── */}

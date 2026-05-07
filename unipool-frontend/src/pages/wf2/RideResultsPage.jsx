@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, Navigation, Zap, Clock, Calendar, Bell } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../api/rides.api';
 import { activeSearchesApi, subscriptionsApi } from '../../api/notifications.api';
@@ -17,6 +18,7 @@ export default function RideResultsPage() {
   const [rides, setRides] = useState([]);
   const [activeSearchId, setActiveSearchId] = useState(null);
   const [subscribing, setSubscribing] = useState(false);
+  const { user } = useAuth();
   const { showSuccess, showError } = useToast();
 
   // Original filters from previous page
@@ -121,6 +123,10 @@ export default function RideResultsPage() {
   }, [filterKey, showError]);
 
   const handleRideClick = (ride) => {
+    if (ride.genderPreference === 'FEMALES_ONLY' && user?.gender === 'male') {
+      showError("It's a female only ride!");
+      return;
+    }
     navigate(`/rides/${ride.id}/preview`);
   };
 

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLocation as useGeoLocation } from '../../context/LocationContext';
 import { ridesApi } from '../../api/rides.api';
 
 // Assets
@@ -135,6 +136,18 @@ const ActivityCard = ({ role, date, time, from, to, amount, status }) => {
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { status: locationStatus } = useGeoLocation();
+
+  // Location-gated navigation: if location not granted and not skipped,
+  // redirect to EnableLocationPage with the intended destination.
+  const locationSkipped = sessionStorage.getItem('unipool_location_skipped') === 'true';
+  const navigateWithLocationGuard = useCallback((destination) => {
+    if (locationStatus === 'granted' || locationSkipped) {
+      navigate(destination);
+    } else {
+      navigate('/enable-location', { state: { from: destination } });
+    }
+  }, [locationStatus, locationSkipped, navigate]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({ earned: 0, split: 0, total: 0, pendingReceivables: 0, pendingPayables: 0, recentActivities: [] });
@@ -192,7 +205,7 @@ export default function DashboardPage() {
         {/* 2. Main Action Cards Row */}
         <div className="dashboard__main-actions">
           {/* Offer a Ride Card */}
-          <div className="card--action card--offer" onClick={() => navigate('/vehicles')}>
+          <div className="card--action card--offer" onClick={() => navigateWithLocationGuard('/vehicles')}>
             <div className="card__skyline" />
             <div className="card__icon-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -210,7 +223,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Find a Ride Card */}
-          <div className="card--action card--find" onClick={() => navigate('/rides/find')}>
+          <div className="card--action card--find" onClick={() => navigateWithLocationGuard('/rides/find')}>
             <div className="card--find__decoration" />
             <div className="card__icon-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

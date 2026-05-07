@@ -159,10 +159,15 @@ export default function BookingConfirmedPage() {
 
         {/* Vehicle Info if available */}
         {ride?.vehicle && (
-          <div className="bc-fare-box" style={{ marginTop: '12px', background: 'transparent', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <span className="bc-fare-label">Vehicle</span>
-            <span className="bc-fare-amount" style={{fontSize: '15px'}}>{ride.vehicle.make} {ride.vehicle.model} • {ride.vehicle.color}</span>
-            <span className="bc-fare-label" style={{marginTop: '4px'}}>{ride.vehicle.registrationNumber}</span>
+          <div className="bc-fare-box" style={{ marginTop: '12px', background: 'transparent', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {ride.vehicle.imageUrl && (
+              <img src={ride.vehicle.imageUrl} alt="Vehicle" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span className="bc-fare-label">Vehicle</span>
+              <span className="bc-fare-amount" style={{fontSize: '15px'}}>{ride.vehicle.make} {ride.vehicle.model} • {ride.vehicle.color}</span>
+              <span className="bc-fare-label" style={{marginTop: '4px'}}>{ride.vehicle.registrationNumber}</span>
+            </div>
           </div>
         )}
 

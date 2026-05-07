@@ -137,6 +137,23 @@ const startRide = async (rideId, driverId) => {
   if (ride.status !== 'PUBLISHED') {
     throw createError(`Ride cannot be started. Current status: ${ride.status}.`, 400);
   }
+
+  // ── Departure time guard (5-min early window allowed) ──
+  if (ride.departureTime) {
+    const now = new Date();
+    const departure = new Date(ride.departureTime);
+    const EARLY_GRACE_MS = 5 * 60 * 1000; // allow 5 min early
+    if (now < new Date(departure.getTime() - EARLY_GRACE_MS)) {
+      const timeStr = departure.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+      throw createError(
+        `You can start this ride at departure time (${timeStr}).`,
+        400
+      );
+    }
+  }
+
   if (ride.bookingRequests.length === 0) {
     throw createError('No accepted bookings. Cannot start ride.', 400);
   }

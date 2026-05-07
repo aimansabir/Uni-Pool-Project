@@ -80,6 +80,7 @@ export default function FindRidePage() {
   const [viewDate, setViewDate] = useState(new Date());
   const [activeMapInput, setActiveMapInput] = useState(null);
   const [errors, setErrors] = useState({});
+  const [leavingNow, setLeavingNow] = useState(prevFilters?.leavingNow || false);
 
   useEffect(() => {
     if (locationStatus === 'granted' && latitude && longitude && !form.pickupLocation) {
@@ -136,19 +137,47 @@ export default function FindRidePage() {
     const newErrors = {};
     if (!form.pickupLocation) newErrors.pickupLocation = 'Please select a pickup location';
     if (!form.dropoffLocation) newErrors.dropoffLocation = 'Please select a drop-off location';
-    if (!selectedDate) newErrors.selectedDate = 'Please select a date';
 
-    if (selectedDate) {
-      if (schedulingMode === 'slot' && !selectedSlot) {
-        newErrors.selectedSlot = 'Please select a class slot';
-      }
-      if (schedulingMode === 'exact' && !exactTime) {
-        newErrors.exactTime = 'Please select an exact time';
+    if (!leavingNow) {
+      if (!selectedDate) newErrors.selectedDate = 'Please select a date';
+
+      if (selectedDate) {
+        if (schedulingMode === 'slot' && !selectedSlot) {
+          newErrors.selectedSlot = 'Please select a class slot';
+        }
+        if (schedulingMode === 'exact' && !exactTime) {
+          newErrors.exactTime = 'Please select an exact time';
+        }
+        // Past exact time check
+        if (schedulingMode === 'exact' && exactTime && selectedDate === 'today') {
+          const [h, m] = exactTime.split(':');
+          const candidate = new Date();
+          candidate.setHours(parseInt(h), parseInt(m), 0, 0);
+          if (candidate <= new Date()) {
+            newErrors.exactTime = 'Search time cannot be in the past';
+          }
+        }
       }
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      return;
+    }
+
+    if (leavingNow) {
+      navigate('/rides/results', {
+        state: {
+          filters: {
+            ...form,
+            leavingNow: true,
+            date: 'today',
+            time: null,
+            mode: 'instant',
+            targetSlot: undefined
+          }
+        }
+      });
       return;
     }
 
@@ -282,7 +311,47 @@ export default function FindRidePage() {
 
           {/* Timing Section */}
           <div className="timing-selection-container">
-            <div className={`date-tabs ${errors.selectedDate ? 'has-error' : ''}`}>
+
+            {/* ── Leaving Now shortcut ── */}
+            <button
+              type="button"
+              className={`leaving-now-btn ${leavingNow ? 'active' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '14px',
+                border: leavingNow ? '2px solid #7C3AED' : '1.5px solid #E5E7EB',
+                background: leavingNow ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : '#F9FAFB',
+                color: leavingNow ? '#fff' : '#374151',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginBottom: '12px',
+                transition: 'all 0.2s ease',
+                boxShadow: leavingNow ? '0 4px 14px rgba(124,58,237,0.35)' : 'none',
+              }}
+              onClick={() => {
+                setLeavingNow(v => !v);
+                setErrors(prev => ({ ...prev, selectedDate: false }));
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Leaving Now
+              {leavingNow && (
+                <span style={{ marginLeft: 'auto', fontSize: '11px', opacity: 0.85, fontWeight: '400' }}>
+                  Searching instant &amp; nearby rides
+                </span>
+              )}
+            </button>
+
+            {!leavingNow && (
+              <>
+              <div className={`date-tabs ${errors.selectedDate ? 'has-error' : ''}`}>
               <button
                 type="button"
                 className={`date-tab ${selectedDate === 'today' ? 'active' : ''}`}
@@ -494,6 +563,8 @@ export default function FindRidePage() {
                     {errors.exactTime && <p className="field-error-text fade-in">{errors.exactTime}</p>}
                   </>
                 )}
+              </>
+            )}
               </>
             )}
           </div>

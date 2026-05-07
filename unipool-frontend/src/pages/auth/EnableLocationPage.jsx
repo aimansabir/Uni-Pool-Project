@@ -23,6 +23,7 @@ export default function EnableLocationPage() {
   };
 
   const handleSkip = () => {
+    sessionStorage.setItem('unipool_location_skipped', 'true');
     navigate(from, { replace: true });
   };
 

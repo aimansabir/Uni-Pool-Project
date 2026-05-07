@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { status: locationStatus } = useGeoLocation();
-  const { showSuccess, showError } = useToast();
+  const { showWelcomeToast, showError } = useToast();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -34,8 +34,8 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(form);
-      showSuccess('Welcome back!');
+      const userData = await login(form);
+      showWelcomeToast(userData?.fullName?.split(' ')[0]);
       
       if (locationStatus === 'granted') {
         navigate('/dashboard', { replace: true });

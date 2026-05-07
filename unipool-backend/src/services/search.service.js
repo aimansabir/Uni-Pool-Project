@@ -70,6 +70,7 @@ const mapRideCard = (ride) => {
         model: ride.vehicle.model,
         color: ride.vehicle.color,
         registrationNumber: ride.vehicle.registrationNumber,
+        imageUrl: ride.vehicle.imageUrl,
       }
       : null,
     occupancyMix,
@@ -262,6 +263,7 @@ const searchRides = async ({
           model: true,
           color: true,
           registrationNumber: true,
+          imageUrl: true,
         },
       },
       stops: {
@@ -347,7 +349,7 @@ const searchRides = async ({
   return filteredRides.map(mapRideCard);
 };
 
-const getRidePreview = async (rideId) => {
+const getRidePreview = async (rideId, user) => {
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
     include: {
@@ -396,6 +398,12 @@ const getRidePreview = async (rideId) => {
   if (!ride || ride.status !== 'PUBLISHED') {
     const err = new Error('Ride not found.');
     err.statusCode = 404;
+    throw err;
+  }
+
+  if (ride.genderPreference === 'FEMALES_ONLY' && user?.gender === 'male') {
+    const err = new Error("It's a female only ride!");
+    err.statusCode = 403;
     throw err;
   }
 

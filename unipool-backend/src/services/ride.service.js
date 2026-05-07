@@ -68,6 +68,55 @@ const createRide = async (driverId, data) => {
         throw err;
     }
 
+    // ── Departure time and target slot guard for SCHEDULED rides ──
+    if (normalizedRideType === 'SCHEDULED') {
+        if (!departureTime) {
+            const err = new Error('Departure time is required for scheduled rides.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const dep = new Date(departureTime);
+        if (isNaN(dep.getTime())) {
+            const err = new Error('Invalid departure time.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (dep < new Date()) {
+            const err = new Error('Departure time cannot be in the past.');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (targetSlot) {
+            const match = targetSlot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (match) {
+                let hours = parseInt(match[1], 10);
+                const minutes = parseInt(match[2], 10);
+                const period = match[3] ? match[3].toUpperCase() : null;
+
+                if (period === 'PM' && hours < 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+
+                const slotStart = new Date(dep);
+                slotStart.setHours(hours, minutes, 0, 0);
+
+                if (slotStart < new Date()) {
+                    const err = new Error('This class slot has already started. Please choose a later slot.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                if (dep >= slotStart) {
+                    const err = new Error('Departure time must be before the selected class slot starts.');
+                    err.statusCode = 400;
+                    throw err;
+                }
+            }
+        }
+    }
+
     const normalizedGenderPreference = String(genderPreference).toUpperCase();
 
     if (!['ANY', 'FEMALES_ONLY'].includes(normalizedGenderPreference)) {
@@ -642,11 +691,12 @@ const deleteRide = async (rideId, driverId) => {
 
         if (ride.rideType === 'INSTANT') {
             for (const passengerId of passengerIds) {
-                emitToUser(passengerId, 'ride-cancelled', {
+                emitToUser(passengerId, 'instant-cancelled-critical', {
                     rideId: ride.id,
-                    title: 'Ride Cancelled',
-                    message:
-                        'Your instant ride has been cancelled. Please book an alternative immediately.',
+                    title: 'Instant Ride Cancelled',
+                    message: 'Your instant ride has been cancelled by the driver. Do not wait at the pickup — please find an alternative immediately.',
+                    startLocation: ride.startLocation,
+                    destinationLocation: ride.destinationLocation,
                     severity: 'critical',
                     presentation: 'FULL_SCREEN',
                 });

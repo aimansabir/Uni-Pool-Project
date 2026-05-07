@@ -128,9 +128,50 @@ export default function PublishRidePage() {
     selectedSlot: null,
     customDate: '',
     exactTime: '',
+    slotDepartureTime: '', // actual departure time when slot mode is active
   });
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (scheduling.mode === 'slot' && scheduling.selectedSlot && scheduling.dateType) {
+      const slot = SLOTS.find(s => s.id === scheduling.selectedSlot);
+      if (slot) {
+        const [h, m] = slot.start.split(':');
+        let depH = parseInt(h) - 1;
+        let depM = parseInt(m);
+        if (depH < 0) depH += 24;
+        let defaultTimeStr = `${depH.toString().padStart(2, '0')}:${depM.toString().padStart(2, '0')}`;
+        
+        if (scheduling.dateType === 'today') {
+          const defaultDate = new Date();
+          defaultDate.setHours(depH, depM, 0, 0);
+          if (defaultDate < new Date()) {
+            // Round to nearest 5 mins from now
+            const coeff = 1000 * 60 * 5;
+            const roundedNow = new Date(Math.ceil((new Date().getTime()) / coeff) * coeff);
+            defaultTimeStr = `${roundedNow.getHours().toString().padStart(2, '0')}:${roundedNow.getMinutes().toString().padStart(2, '0')}`;
+          }
+        }
+
+        setScheduling(s => {
+          // If the computed default is different and we haven't manually set a valid one recently, update it
+          return { ...s, slotDepartureTime: defaultTimeStr };
+        });
+
+        // Compute form departureTime iso string
+        const baseDate = new Date();
+        if (scheduling.dateType === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
+        else if (scheduling.dateType === 'custom' && scheduling.customDate) {
+          const [y, mm, dd] = scheduling.customDate.split('-');
+          baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
+        }
+        const [dH, dM] = defaultTimeStr.split(':');
+        baseDate.setHours(parseInt(dH), parseInt(dM), 0, 0);
+        setForm(f => ({ ...f, departureTime: baseDate.toISOString() }));
+      }
+    }
+  }, [scheduling.selectedSlot, scheduling.dateType, scheduling.customDate, scheduling.mode]);
   const [suggestedFare, setSuggestedFare] = useState(0);
   const [fareCap, setFareCap] = useState(0);
   const [fetchingFare, setFetchingFare] = useState(false);
@@ -378,11 +419,44 @@ export default function PublishRidePage() {
 
       if (form.rideType === 'SCHEDULED') {
         if (!scheduling.dateType) validationErrors.dateType = 'Please select a date';
-        if (scheduling.mode === 'slot' && !scheduling.selectedSlot) {
-          validationErrors.selectedSlot = 'Please select a class slot';
+        if (scheduling.mode === 'slot') {
+          if (!scheduling.selectedSlot) {
+            validationErrors.selectedSlot = 'Please select a class slot';
+          }
+          if (!scheduling.slotDepartureTime) {
+            validationErrors.slotDepartureTime = 'Please enter your departure time';
+          } else if (scheduling.selectedSlot) {
+            const slotObj = SLOTS.find(s => s.id === scheduling.selectedSlot);
+            if (slotObj) {
+              const [sH, sM] = slotObj.start.split(':');
+              const [dH, dM] = scheduling.slotDepartureTime.split(':');
+              const sTime = parseInt(sH) * 60 + parseInt(sM);
+              const dTime = parseInt(dH) * 60 + parseInt(dM);
+              
+              if (dTime >= sTime) {
+                validationErrors.slotDepartureTime = 'Departure must be before class slot starts';
+              } else if (scheduling.dateType === 'today') {
+                const now = new Date();
+                const dDate = new Date();
+                dDate.setHours(parseInt(dH), parseInt(dM), 0, 0);
+                if (dDate < now) {
+                  validationErrors.slotDepartureTime = 'Departure time cannot be in the past';
+                }
+              }
+            }
+          }
         }
         if (scheduling.mode === 'exact' && !scheduling.exactTime) {
           validationErrors.exactTime = 'Please select an exact time';
+        }
+        // Past time check for exact mode on today
+        if (scheduling.mode === 'exact' && scheduling.exactTime && scheduling.dateType === 'today') {
+          const [h, m] = scheduling.exactTime.split(':');
+          const candidate = new Date();
+          candidate.setHours(parseInt(h), parseInt(m), 0, 0);
+          if (candidate <= new Date()) {
+            validationErrors.exactTime = 'Departure time cannot be in the past';
+          }
         }
       } else if (!form.rideType) {
         validationErrors.rideType = 'Please select ride type';
@@ -414,7 +488,13 @@ export default function PublishRidePage() {
         farePerSeat: Number(form.farePerSeat),
         departureTime: form.rideType === 'INSTANT'
           ? new Date(Date.now() + 10 * 60 * 1000).toISOString()
-          : new Date(form.departureTime || Date.now()).toISOString(),
+          : (() => {
+              // In slot mode, use the separate slotDepartureTime the driver entered
+              if (scheduling.mode === 'slot' && scheduling.slotDepartureTime) {
+                return form.departureTime; // already set by slotDepartureTime handler
+              }
+              return new Date(form.departureTime || Date.now()).toISOString();
+            })(),
         confirmedStops: builtStops,
         ...(selectedRouteOptionNumber ? { selectedRouteOptionNumber } : {}),
       };
@@ -671,15 +751,7 @@ export default function PublishRidePage() {
                             className={`slot-item ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''}`}
                             onClick={() => {
                               setScheduling(s => ({ ...s, selectedSlot: slot.id }));
-                              setErrors(prev => ({ ...prev, selectedSlot: false }));
-                              const baseDate = new Date();
-                              if (scheduling.dateType === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
-                              else if (scheduling.dateType === 'custom' && scheduling.customDate) {
-                                const [y, mm, dd] = scheduling.customDate.split('-');
-                                baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
-                              }
-                              baseDate.setHours(parseInt(h), parseInt(m), 0);
-                              setForm(f => ({ ...f, departureTime: baseDate.toISOString() }));
+                              setErrors(prev => ({ ...prev, selectedSlot: false, slotDepartureTime: false }));
                             }}
                           >
                             <div className="slot-item__icon">
@@ -705,6 +777,54 @@ export default function PublishRidePage() {
                       })}
                     </div>
                     {errors.selectedSlot && <p className="field-error-text fade-in">{errors.selectedSlot}</p>}
+
+                    {/* ── When are you leaving? (slot mode departure time) ── */}
+                    {scheduling.selectedSlot && (
+                      <div className="slot-departure-section fade-in" style={{ marginTop: '16px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                          <Clock size={14} strokeWidth={2.5} />
+                          When are you leaving?
+                          <span style={{ fontWeight: '400', color: '#6B7280', fontSize: '12px' }}>(Your actual departure time)</span>
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="time"
+                            value={scheduling.slotDepartureTime}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setScheduling(s => ({ ...s, slotDepartureTime: val }));
+                              setErrors(prev => ({ ...prev, slotDepartureTime: false }));
+                              if (val) {
+                                const baseDate = new Date();
+                                if (scheduling.dateType === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
+                                else if (scheduling.dateType === 'custom' && scheduling.customDate) {
+                                  const [y, mm, dd] = scheduling.customDate.split('-');
+                                  baseDate.setFullYear(parseInt(y), parseInt(mm) - 1, parseInt(dd));
+                                }
+                                const [h, m] = val.split(':');
+                                baseDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                                setForm(f => ({ ...f, departureTime: baseDate.toISOString() }));
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '10px 14px',
+                              borderRadius: '12px',
+                              border: errors.slotDepartureTime ? '1.5px solid #EF4444' : '1.5px solid #E5E7EB',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              color: '#111827',
+                              background: '#F9FAFB',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                        <p style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '5px' }}>
+                          Departure must be before your selected class slot starts.
+                        </p>
+                        {errors.slotDepartureTime && <p className="field-error-text fade-in">{errors.slotDepartureTime}</p>}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>

@@ -30,7 +30,7 @@ router.get('/rides', authenticate, async (req, res, next) => {
 
 router.get('/rides/:rideId/preview', authenticate, async (req, res, next) => {
   try {
-    const preview = await searchService.getRidePreview(req.params.rideId);
+    const preview = await searchService.getRidePreview(req.params.rideId, req.user);
 
     return res.status(200).json({
       success: true,

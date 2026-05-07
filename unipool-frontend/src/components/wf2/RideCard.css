@@ -57,6 +57,19 @@
   }
 }
 
+.v4-badge.female {
+  left: 12px;
+  right: auto;
+  background: linear-gradient(135deg, #EC4899, #BE185D);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+  animation: none;
+}
+
+.v4-badge.female.female-only-right {
+  left: auto;
+  right: 12px;
+}
+
 /* Header: Driver + Price */
 .v4-header {
   display: flex;

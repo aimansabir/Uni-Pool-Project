@@ -10,7 +10,6 @@ import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import VerifyPage from '../pages/auth/VerifyPage';
 import EnableLocationPage from '../pages/auth/EnableLocationPage';
-import { GlobalToaster } from '../context/ToastContext';
 
 // WF1 pages
 import DashboardPage from '../pages/wf1/DashboardPage';
@@ -51,10 +50,12 @@ import ChatPage from '../pages/ChatPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 import NotificationStream from '../components/NotificationStream';
+import { GlobalToaster } from '../context/ToastContext';
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <GlobalToaster />
       <NotificationStream />
       <Routes>
         {/* Splash — entry point */}

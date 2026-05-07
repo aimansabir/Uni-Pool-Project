@@ -54,6 +54,7 @@ export default function RideDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [requestLoadingId, setRequestLoadingId] = useState(null);
+  const [now, setNow] = useState(new Date());
 
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [showConfirmReject, setShowConfirmReject] = useState(null);
@@ -84,6 +85,12 @@ export default function RideDetailPage() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  // Tick every 30s so button enables when departure time arrives
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const handleRespond = async (requestId, status) => {
     setRequestLoadingId(requestId);
@@ -132,6 +139,14 @@ export default function RideDetailPage() {
 
   if (loading) return <FullPageSpinner />;
   if (!ride) return null;
+
+  // ── Departure time gate ──
+  const departureMs = ride?.departureTime ? new Date(ride.departureTime).getTime() : null;
+  const GRACE_MS = 5 * 60 * 1000; // 5-min early
+  const canStartRide = departureMs == null || (now.getTime() >= departureMs - GRACE_MS);
+  const startAvailableAt = departureMs
+    ? new Date(departureMs - GRACE_MS).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    : null;
 
   if (ride.userRole === 'PASSENGER') {
     const myBooking = ride.bookingRequests?.find(b => b.passengerId === user?.id);
@@ -551,10 +566,16 @@ export default function RideDetailPage() {
               <button
                 className="d-btn-main primary"
                 onClick={handleStartRide}
-                disabled={actionLoading}
+                disabled={actionLoading || !canStartRide}
+                title={!canStartRide ? `Start available at ${startAvailableAt}` : undefined}
               >
                 <Car size={20} /> Start Ride
               </button>
+              {!canStartRide && startAvailableAt && (
+                <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#9CA3AF', marginTop: '4px' }}>
+                  Start available at {startAvailableAt}
+                </p>
+              )}
               <button
                 className="d-btn-main danger-outline"
                 onClick={() => setShowConfirmCancel(true)}

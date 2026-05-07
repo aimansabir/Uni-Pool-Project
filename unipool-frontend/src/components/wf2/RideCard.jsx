@@ -40,6 +40,12 @@ export default function RideCard({ ride, onAction }) {
           <span>URGENT: LEAVING NOW</span>
         </div>
       )}
+      {ride.genderPreference === 'FEMALES_ONLY' && (
+        <div className={`v4-badge female ${!isInstant ? 'female-only-right' : ''}`}>
+          <User size={12} fill="#fff" color="#fff" />
+          <span>FEMALES ONLY</span>
+        </div>
+      )}
 
       {/* Main Row: Avatar + Info + Price */}
       <div className="v4-header">

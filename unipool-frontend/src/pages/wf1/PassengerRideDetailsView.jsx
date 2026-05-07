@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { formatDateTime, formatPKR } from '../../utils/formatters';
 import { bookingRequestsApi } from '../../api/bookingRequests.api';
+import { chatApi } from '../../api/chat.api';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import {
   ChevronLeft,
@@ -55,6 +56,18 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
     if (plate) {
       navigator.clipboard.writeText(plate);
       showSuccess('Plate number copied to clipboard');
+    }
+  };
+
+  const handleOpenChat = async () => {
+    if (!myBooking?.id) return;
+    try {
+      const res = await chatApi.openByBooking(myBooking.id);
+      navigate(`/chat/${res.data.id}`, {
+        state: { otherUser: ride?.driver, ride }
+      });
+    } catch (err) {
+      showError(err.message || 'Could not open chat');
     }
   };
 
@@ -210,16 +223,21 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
               </div>
             </div>
             
-            <div className="p-vehicle-info">
-              <div className="p-vehicle-name">
-                <Car size={16} /> {vehicleLabel || 'Standard Vehicle'}
+            <div className="p-vehicle-info" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {vehicle.imageUrl && (
+                <img src={vehicle.imageUrl} alt="Vehicle" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                <div className="p-vehicle-name">
+                  <Car size={16} /> {vehicleLabel || 'Standard Vehicle'}
+                </div>
+                <div className="p-vehicle-color">
+                  {vehicle.color || 'Silver'} • {vehicle.year || '2018'}
+                </div>
+                <button className="p-plate-btn" onClick={handleCopyPlate}>
+                  {vehicle.registrationNumber || 'ABC-123'} <Copy size={14} />
+                </button>
               </div>
-              <div className="p-vehicle-color">
-                {vehicle.color || 'Silver'} • {vehicle.year || '2018'}
-              </div>
-              <button className="p-plate-btn" onClick={handleCopyPlate}>
-                {vehicle.registrationNumber || 'ABC-123'} <Copy size={14} />
-              </button>
             </div>
           </div>
         </div>
@@ -247,7 +265,7 @@ export default function PassengerRideDetailsView({ ride, myBooking, onCancelSucc
           </div>
 
           <div className="p-actions">
-            <button className="p-action-btn primary" onClick={() => showSuccess('Messaging coming soon!')}>
+            <button className="p-action-btn primary" onClick={handleOpenChat}>
               <MessageSquare size={18} /> Message Driver
             </button>
             

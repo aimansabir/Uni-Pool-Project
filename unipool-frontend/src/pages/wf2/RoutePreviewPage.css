@@ -118,6 +118,7 @@
     flex-direction: column;
     gap: 24px;
     min-height: 80vh;
+    padding-bottom: 120px;
     /* Taller sheet so button never feels cramped */
 }
 
@@ -276,8 +277,11 @@
     box-shadow: 0 6px 16px rgba(251, 191, 36, 0.3);
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 8px;
+    margin-top: 16px;
     flex-shrink: 0;
+    position: sticky;
+    bottom: 24px;
+    z-index: 10;
 }
 
 .preview-request-btn:active {

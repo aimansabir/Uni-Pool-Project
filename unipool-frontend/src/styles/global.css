@@ -83,6 +83,30 @@ img {
   }
 }
 
+/* ── Toast Container — constrained to phone frame ────── */
+.unipool-toaster {
+  position: fixed !important;
+  top: 0 !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
+  width: var(--app-max-width);
+  max-width: 100vw;
+  padding: 14px 14px 0 14px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 50000 !important;
+}
+.unipool-toaster > div {
+  pointer-events: auto;
+}
+@media (min-width: 500px) {
+  .unipool-toaster {
+    /* Vertically offset to account for phone frame top border + rounded corners */
+    top: calc(50vh - var(--app-height) / 2 + 20px) !important;
+  }
+}
+
 /* ── Page Content Area ─────────────────────────────── */
 .page-content {
   padding: var(--space-md);
