@@ -966,30 +966,94 @@
   color: #92400E;
 }
 
-.route-option-card__highlights {
+.route-option-card__via-v2 {
+  background: var(--white);
+  border: 1px solid #F3F4F6;
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.via-v2__header {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.road-highlight-pill {
+.via-v2__label {
   font-size: 10px;
-  font-weight: 600;
-  color: #6B7280;
-  background: var(--white);
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid #E5E7EB;
-  white-space: nowrap;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.route-option-card.active .road-highlight-pill {
-  background: rgba(253, 186, 46, 0.08);
-  border-color: rgba(253, 186, 46, 0.3);
-  color: #92400E;
+.via-v2__roads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.via-v2__road-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.road-dot {
+  width: 5px;
+  height: 5px;
+  background: #D1D5DB;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.road-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.via-v2__difference-section {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1.5px dashed #F3F4F6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.difference-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.difference-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--primary-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.road-dot.unique {
+  background: var(--primary-orange);
+  box-shadow: 0 0 0 2px rgba(253, 186, 46, 0.1);
+}
+
+.road-name.unique {
+  color: #1F2937;
+  font-weight: 700;
+}
+
+.route-option-card.active .route-option-card__via-v2 {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(253, 186, 46, 0.2);
 }
 
 /* ── Suggested Stops Section ── */
@@ -1035,24 +1099,27 @@
 
 .stops-chips-grid {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
 .stop-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 12px;
+  padding: 14px 18px;
   background: var(--bg-light);
   border: 1.5px solid #E5E7EB;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #6B7280;
-  font-size: 12px;
+  color: #4B5563;
+  font-size: 14px;
   font-weight: 600;
   position: relative;
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
 }
 
 .stop-chip:hover {
@@ -1067,10 +1134,10 @@
 }
 
 .stop-chip__name {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.5;
+  word-break: break-word;
+  flex: 1;
+  text-align: left;
 }
 
 .stop-chip__check {

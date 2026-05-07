@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { bookingRequestsApi } from '../../api/bookingRequests.api';
 import { chatApi } from '../../api/chat.api';
@@ -40,11 +40,26 @@ function PassengerCard({ request, onRespond, responding, onOpenChat }) {
       {/* Passenger row */}
       <div className="ir-passenger-row">
         <div className="ir-avatar">
-          <Users size={22} color="#9CA3AF" />
+          {request.passenger?.avatarUrl ? (
+            <img 
+              src={request.passenger.avatarUrl} 
+              alt="" 
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+            />
+          ) : (
+            <Users size={22} color="#9CA3AF" />
+          )}
         </div>
         <div className="ir-passenger-info">
           <span className="ir-name">{request.passenger?.fullName || 'Passenger'}</span>
-          <span className="ir-gender" style={{ color: genderColor }}>{genderLabel}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="ir-gender" style={{ color: genderColor }}>{genderLabel}</span>
+            {request.passenger?.trustScore !== undefined && (
+              <span className="ir-trust-score">
+                ★ {(request.passenger.trustScore || 0).toFixed(1)}
+              </span>
+            )}
+          </div>
         </div>
         {isProcessed && (
           <div className={`ir-done-badge ${request.status.toLowerCase()}`}>
@@ -138,8 +153,12 @@ export default function IncomingRequestsPage() {
   const [filter, setFilter] = useState('PENDING');
   const [responding, setResponding] = useState(null);
 
+  const errorShownRef = useRef(false);
+
   useEffect(() => {
     fetchRequests();
+    // Reset the ref on unmount or on retry if needed
+    return () => { errorShownRef.current = false; };
   }, []);
 
   const fetchRequests = async () => {
@@ -147,9 +166,18 @@ export default function IncomingRequestsPage() {
       setLoading(true);
       const params = rideId ? { rideId } : {};
       const res = await bookingRequestsApi.getIncoming(params);
-      setRequests(res.data || []);
+      
+      // The API client returns response.data
+      // res is { success: true, message: ..., data: [] }
+      const incomingData = res.data || (Array.isArray(res) ? res : []);
+      setRequests(incomingData);
+      errorShownRef.current = false; // Reset on success
     } catch (err) {
-      showError('Failed to load incoming requests');
+      if (!errorShownRef.current) {
+        showError(err.message || 'Failed to load incoming requests');
+        errorShownRef.current = true;
+      }
+      console.error('Error fetching incoming requests:', err);
     } finally {
       setLoading(false);
     }

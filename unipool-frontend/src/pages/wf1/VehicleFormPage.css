@@ -25,20 +25,50 @@
 /* ── Section Header ── */
 .vehicle-section-header {
   margin-bottom: 24px;
-  padding-left: 4px;
+}
+
+.vehicle-header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.vehicle-back-btn {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.vehicle-back-btn:active {
+  transform: scale(0.9);
+}
+
+.vehicle-header-text {
+  flex: 1;
+  text-align: left;
 }
 
 .vehicle-section-title {
   font-size: 24px;
   font-weight: 900;
   color: #c58320;
-  margin: 0 0 4px 0;
+  margin: 0;
 }
 
 .vehicle-section-subtitle {
   font-size: 14px;
   color: #6B7280;
-  margin: 0;
+  margin: 2px 0 0;
   font-weight: 500;
 }
 

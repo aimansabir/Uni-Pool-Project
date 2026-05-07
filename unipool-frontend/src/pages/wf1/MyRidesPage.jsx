@@ -151,13 +151,9 @@ export default function MyRidesPage({ embedded = false }) {
 
                   {ride.vehicle && (
                     <div className="info-block">
-                      {ride.vehicle.imageUrl ? (
-                        <img src={ride.vehicle.imageUrl} alt="Car" style={{width: '28px', height: '28px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0}} />
-                      ) : (
-                        <div className="info-block__icon">
-                          <Car size={14} strokeWidth={2.5} />
-                        </div>
-                      )}
+                      <div className="info-block__icon">
+                        <Car size={14} strokeWidth={2.5} />
+                      </div>
                       <div className="info-block__content">
                         <span className="info-value">{ride.vehicle.make}</span>
                         <span className="info-label">{ride.vehicle.color}</span>

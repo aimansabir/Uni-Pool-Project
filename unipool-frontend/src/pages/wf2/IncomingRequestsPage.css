@@ -154,6 +154,14 @@
   margin-top: 2px;
   display: block;
 }
+.ir-trust-score {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #F59E0B;
+  background: #FFFBEB;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
 .ir-done-badge {
   display: flex;
   align-items: center;

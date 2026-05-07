@@ -20,14 +20,23 @@ export default function AppLayout() {
     location.pathname.includes('/preview') ||
     location.pathname.startsWith('/active-ride') ||
     location.pathname.includes('/live') ||
-    location.pathname.includes('/track');
+    location.pathname.includes('/track') ||
+    location.pathname.includes('/requests') ||
+    location.pathname.includes('/bookings') ||
+    location.pathname.includes('/vehicles');
 
   const isChat = location.pathname.startsWith('/chat');
   const isFullWidth = location.pathname === '/financials' || 
     location.pathname.includes('/preview') ||
     location.pathname.startsWith('/active-ride') ||
     location.pathname.includes('/live') ||
-    location.pathname.includes('/track');
+    location.pathname.includes('/track') ||
+    location.pathname.includes('/requests') ||
+    location.pathname.includes('/bookings') ||
+    location.pathname.includes('/vehicles') ||
+    location.pathname === '/rides/publish' ||
+    location.pathname === '/rides/find' ||
+    location.pathname === '/rides/results';
 
   const isImmersive = location.pathname.includes('/preview') ||
     location.pathname.startsWith('/active-ride') ||

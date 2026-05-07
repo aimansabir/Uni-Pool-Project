@@ -9,20 +9,49 @@
 /* ── Section Header ── */
 .vehicles-section-header {
   margin-bottom: 24px;
-  text-align: center;
+}
+
+.vehicles-header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.vehicles-back-btn {
+  background: #F1F5F9;
+  border: none;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.vehicles-back-btn:active {
+  transform: scale(0.9);
+}
+
+.vehicles-header-text {
+  flex: 1;
+  text-align: left;
 }
 
 .vehicles-section-title {
   font-size: 22px;
   font-weight: 800;
   color: #111827;
-  margin: 0 0 4px 0;
+  margin: 0;
 }
 
 .vehicles-section-subtitle {
   font-size: 14px;
   color: #6B7280;
-  margin: 0;
+  margin: 2px 0 0;
   font-weight: 500;
 }
 

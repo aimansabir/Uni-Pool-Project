@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { bookingRequestsApi } from '../../api/bookingRequests.api';
 import { chatApi } from '../../api/chat.api';
 import { useToast } from '../../context/ToastContext';
-import { CheckCircle, Calendar, Zap, MessageCircle, Info } from 'lucide-react';
+import { CheckCircle, Calendar, Zap, MessageCircle, Info, ChevronLeft } from 'lucide-react';
 import { FullPageSpinner } from '../../components/common/Spinner/Spinner';
 import './BookingConfirmedPage.css';
 
@@ -112,6 +112,13 @@ export default function BookingConfirmedPage() {
 
   return (
     <div className={`booking-confirmed-page fade-in ${isInstant ? 'instant-variant' : ''}`}>
+      {/* Navigation Header */}
+      <header className="bc-header-nav">
+        <button className="bc-header-back" onClick={() => navigate('/bookings')}>
+          <ChevronLeft size={24} />
+        </button>
+      </header>
+
       <div className="bc-content">
         {/* Status Icon */}
         <div className={`bc-status-icon ${isInstant && booking.status === 'ACCEPTED' ? 'instant' : 'scheduled'}`}>

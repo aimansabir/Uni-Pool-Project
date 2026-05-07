@@ -157,6 +157,28 @@
   color: #1f2937;
 }
 
+.dlr-location-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.dlr-location-status.is-live {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #047857;
+}
+
+.dlr-location-status.is-waiting {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
 /* ── Location warning ────────────────────────────────────────────── */
 
 .dlr-location-warning {

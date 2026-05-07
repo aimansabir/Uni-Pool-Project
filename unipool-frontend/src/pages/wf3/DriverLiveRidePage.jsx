@@ -63,6 +63,13 @@ function FitBounds({ positions }) {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 
+const toFiniteNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const hasCoords = (lat, lng) => toFiniteNumber(lat) != null && toFiniteNumber(lng) != null;
+
 export default function DriverLiveRidePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -200,11 +207,25 @@ export default function DriverLiveRidePage() {
   /* ── Derived ───────────────────────────────────────────────────── */
 
   const passengers = tracking?.bookingRequests || [];
-  const etaMins = tracking?.nextStopEtaMinutes ?? tracking?.estimatedArrivalMinutes ?? ride.durationMin ?? '—';
+  const etaMins = tracking?.nextStopEtaMinutes ?? tracking?.estimatedArrivalMinutes ?? null;
   const googleMapsUrl = navData?.navigationLink || null;
   const driverLocationFresh = tracking?.driverLocationFresh;
-  const hasDriverLoc = tracking?.currentLat && tracking?.currentLng;
-  const driverPos = hasDriverLoc ? [tracking.currentLat, tracking.currentLng] : null;
+  const driverLat = toFiniteNumber(tracking?.currentLat);
+  const driverLng = toFiniteNumber(tracking?.currentLng);
+  const hasDriverLoc = tracking?.hasDriverLocation ?? hasCoords(driverLat, driverLng);
+  const waitingForLiveLocation =
+    !hasDriverLoc ||
+    tracking?.locationStale === true ||
+    driverLocationFresh === false;
+  const liveEtaMins = waitingForLiveLocation
+    ? null
+    : etaMins;
+  const locationStatusText = locationError
+    ? locationError
+    : waitingForLiveLocation
+      ? 'Waiting for live location.'
+      : 'Location sharing active.';
+  const driverPos = hasCoords(driverLat, driverLng) ? [driverLat, driverLng] : null;
 
   const polylinePositions = ride.routeGeometry?.coordinates?.map(c => [c[1], c[0]]) || [];
   const startPoint = polylinePositions[0];
@@ -212,11 +233,11 @@ export default function DriverLiveRidePage() {
 
   // Status-aware markers: BOOKED→orange pickup, PICKED_UP→red dropoff, DROPPED_OFF→hidden
   const pickupMarkers = passengers
-    .filter(b => b.pickupLat && b.pickupLng && (b.participantStatus === 'BOOKED' || !b.participantStatus))
+    .filter(b => hasCoords(b.pickupLat, b.pickupLng) && (b.participantStatus === 'BOOKED' || !b.participantStatus))
     .map(b => ({ lat: b.pickupLat, lng: b.pickupLng, name: b.pickupStopName || 'Pickup stop', id: b.id, kind: 'pickup' }));
 
   const dropoffMarkers = passengers
-    .filter(b => b.dropoffLat && b.dropoffLng && b.participantStatus === 'PICKED_UP')
+    .filter(b => hasCoords(b.dropoffLat, b.dropoffLng) && b.participantStatus === 'PICKED_UP')
     .map(b => ({ lat: b.dropoffLat, lng: b.dropoffLng, name: b.dropoffStopName || 'Drop-off stop', id: b.id, kind: 'dropoff' }));
 
   const allPoints = [
@@ -302,16 +323,13 @@ export default function DriverLiveRidePage() {
         {/* ETA row */}
         <div className="dlr-eta-row">
           <Navigation size={16} color="#f59e0b" fill="#f59e0b" />
-          <span>ETA to next stop: <strong>{etaMins === '—' ? '—' : `${etaMins} mins`}</strong></span>
+          <span className="dlr-live-eta">ETA to next stop: <strong>{liveEtaMins == null ? 'Waiting for live location' : `${liveEtaMins} mins`}</strong></span>
         </div>
 
-        {/* Stale location / GPS warning */}
-        {(locationError || driverLocationFresh === false) && (
-          <div className="dlr-location-warning">
-            <AlertCircle size={14} />
-            <span>{locationError || 'Waiting for fresh driver location — enable GPS for live ETA'}</span>
-          </div>
-        )}
+        <div className={`dlr-location-status ${waitingForLiveLocation || locationError ? 'is-waiting' : 'is-live'}`}>
+          {waitingForLiveLocation || locationError ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+          <span>{locationStatusText}</span>
+        </div>
 
         {/* Passenger waypoints */}
         <h3 className="dlr-section-heading">Pickup Waypoints</h3>

@@ -780,6 +780,22 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
     );
   }
 
+  // If rideId is provided, verify it exists and belongs to the driver
+  if (rideId) {
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { id: true, driverId: true },
+    });
+
+    if (!ride) {
+      throw createError('Ride not found.', 404);
+    }
+
+    if (ride.driverId !== driverId) {
+      throw createError('You are not authorized to view requests for this ride.', 403);
+    }
+  }
+
   return prisma.bookingRequest.findMany({
     where: {
       ride: {
@@ -797,6 +813,7 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           fullName: true,
           gender: true,
           avatarUrl: true,
+          trustScore: true,
         },
       },
       ride: {
@@ -809,16 +826,16 @@ const listIncomingBookingRequests = async (driverId, query = {}) => {
           status: true,
           isUrgent: true,
           seatsAvailable: true,
-        },
-      },
-      vehicle: {
-        select: {
-          id: true,
-          make: true,
-          model: true,
-          color: true,
-          registrationNumber: true,
-          imageUrl: true,
+          vehicle: {
+            select: {
+              id: true,
+              make: true,
+              model: true,
+              color: true,
+              registrationNumber: true,
+              imageUrl: true,
+            },
+          },
         },
       },
       pickupStop: true,

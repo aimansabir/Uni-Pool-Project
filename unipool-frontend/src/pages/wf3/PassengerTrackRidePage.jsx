@@ -65,6 +65,51 @@ function FitBounds({ positions }) {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 
+const toFiniteNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const hasCoords = (lat, lng) => toFiniteNumber(lat) != null && toFiniteNumber(lng) != null;
+
+const getPassengerEtaMinutes = (trackingData, userId) => {
+  if (!trackingData) {
+    return null;
+  }
+
+  const hasDriverLocation =
+    trackingData.hasDriverLocation ?? hasCoords(trackingData.currentLat, trackingData.currentLng);
+
+  if (!hasDriverLocation || trackingData.locationStale || trackingData.driverLocationFresh === false) {
+    return null;
+  }
+
+  const bookings = trackingData.bookingRequests || [];
+  const booking = bookings.find((b) => b.passengerId === userId);
+  const status = booking?.participantStatus;
+
+  if (status === 'PICKED_UP') {
+    return (
+      booking?.etaToDropoffMin ??
+      booking?.etaToDropoffMinutes ??
+      trackingData.etaToDropoffMin ??
+      null
+    );
+  }
+
+  if (status === 'DROPPED_OFF' || status === 'NO_SHOW') {
+    return null;
+  }
+
+  return (
+    booking?.etaToPickupMin ??
+    booking?.etaToPickupMinutes ??
+    trackingData.etaToPickupMin ??
+    trackingData.estimatedArrivalMinutes ??
+    null
+  );
+};
+
 export default function PassengerTrackRidePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -101,12 +146,9 @@ export default function PassengerTrackRidePage() {
       setRide(rideRes.data);
       setTracking(trackRes.data);
 
-      // Reset countdown from backend ETA each poll
-      if (trackRes.data?.estimatedArrivalMinutes != null) {
-        setEtaSeconds(Math.round(trackRes.data.estimatedArrivalMinutes * 60));
-      } else {
-        setEtaSeconds(null);
-      }
+      // Reset countdown from the booking-specific backend ETA each poll.
+      const liveEtaMinutes = getPassengerEtaMinutes(trackRes.data, user?.id);
+      setEtaSeconds(liveEtaMinutes == null ? null : Math.round(liveEtaMinutes * 60));
 
       // Check payment status if dropped off or completed
       const rideStatus = trackRes.data?.status || rideRes.data?.status;
@@ -194,7 +236,6 @@ export default function PassengerTrackRidePage() {
 
   const driver = tracking?.driver || {};
   const vehicle = tracking?.vehicle || {};
-  const etaMins = tracking?.estimatedArrivalMinutes ?? ride?.durationMin ?? '—';
   const bookings = tracking?.bookingRequests || [];
   const myBooking = bookings.find(b => b.passengerId === user?.id);
   const pickupAddress = myBooking?.pickupStopName || tracking?.startLocation || ride?.startLocation || 'Your stop';
@@ -206,13 +247,21 @@ export default function PassengerTrackRidePage() {
   const rideStatus = tracking?.status || ride?.status;
   const isCancelled = rideStatus === 'CANCELLED';
   const isCompleted = rideStatus === 'COMPLETED';
+  const driverLat = toFiniteNumber(tracking?.currentLat);
+  const driverLng = toFiniteNumber(tracking?.currentLng);
+  const hasDriverLocation = tracking?.hasDriverLocation ?? hasCoords(driverLat, driverLng);
+  const waitingForLiveLocation =
+    !hasDriverLocation ||
+    tracking?.locationStale === true ||
+    tracking?.driverLocationFresh === false;
+  const etaMinutes = etaSeconds == null ? null : Math.max(1, Math.ceil(etaSeconds / 60));
 
   // Map data
   const polylinePositions = ride?.routeGeometry?.coordinates?.map(c => [c[1], c[0]]) || [];
   const startPoint = polylinePositions[0];
   const endPoint = polylinePositions[polylinePositions.length - 1];
-  const driverPos = (tracking?.currentLat && tracking?.currentLng) ? [tracking.currentLat, tracking.currentLng] : null;
-  const pickupPos = (myBooking?.pickupLat && myBooking?.pickupLng) ? [myBooking.pickupLat, myBooking.pickupLng] : null;
+  const driverPos = hasCoords(driverLat, driverLng) ? [driverLat, driverLng] : null;
+  const pickupPos = hasCoords(myBooking?.pickupLat, myBooking?.pickupLng) ? [myBooking.pickupLat, myBooking.pickupLng] : null;
 
   const allPoints = [
     ...(startPoint ? [startPoint] : []),
@@ -224,14 +273,6 @@ export default function PassengerTrackRidePage() {
   const vehicleLabel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
   const vehicleColor = vehicle.color ? `(${vehicle.color})` : '';
   const plate = vehicle.registrationNumber || '—';
-
-  /* ── Status text for bottom sheet ──────────────────────────────── */
-  const getStatusDisplay = () => {
-    if (isPickedUp) return { label: 'You are in the vehicle', icon: '🚗', color: '#10b981' };
-    if (isDroppedOff) return { label: 'You have been dropped off', icon: '✅', color: '#10b981' };
-    return { label: 'Arriving at your stop in:', icon: null, color: '#10b981' };
-  };
-  const statusDisplay = getStatusDisplay();
 
   /* ── Render ────────────────────────────────────────────────────── */
 
@@ -358,24 +399,23 @@ export default function PassengerTrackRidePage() {
               <div className="ptr-eta-text-group">
                 {isDroppedOff ? (
                   <span className="ptr-eta-label" style={{ color: '#10b981' }}>You have arrived 🎉</span>
+                ) : isNoShow ? (
+                  <span className="ptr-eta-label" style={{ color: '#ef4444' }}>Pickup unavailable.</span>
+                ) : waitingForLiveLocation || etaMinutes == null ? (
+                  <span className="ptr-eta-label" style={{ color: '#9ca3af' }}>Waiting for live location.</span>
                 ) : isPickedUp ? (
-                  <span className="ptr-eta-label" style={{ color: '#6366f1' }}>In vehicle — heading to destination</span>
-                ) : etaSeconds == null ? (
-                  <span className="ptr-eta-label" style={{ color: '#9ca3af' }}>Calculating ETA…</span>
+                  <>
+                    <span className="ptr-eta-label" style={{ color: '#6366f1' }}>Drop-off in</span>
+                    <span className="ptr-eta-time">{etaMinutes} min{etaMinutes !== 1 ? 's' : ''}.</span>
+                  </>
                 ) : (
                   <>
-                    <span className="ptr-eta-label">Arriving at your stop in</span>
-                    <span className="ptr-eta-time">{Math.max(1, Math.ceil(etaSeconds / 60))} min{Math.ceil(etaSeconds / 60) !== 1 ? 's' : ''}</span>
+                    <span className="ptr-eta-label">Driver arriving in</span>
+                    <span className="ptr-eta-time">{etaMinutes} min{etaMinutes !== 1 ? 's' : ''}.</span>
                   </>
                 )}
               </div>
             </div>
-            {tracking?.driverLocationFresh === false && !isPickedUp && !isDroppedOff && (
-              <div className="ptr-stale-note">
-                ⏳ Waiting for driver location…
-              </div>
-            )}
-
             {/* ── Address & Message Row ────────────────────────────── */}
             <div className="ptr-address-card">
               <div className="ptr-addr-icon">

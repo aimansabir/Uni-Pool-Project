@@ -173,12 +173,21 @@ export default function VehicleFormPage() {
     <div className="premium-vehicle-page fade-in">
       {/* ── Section Header ── */}
       <div className="vehicle-section-header">
-        <h1 className="vehicle-section-title">
-          {isEdit ? 'Edit Vehicle' : 'Vehicle Details'}
-        </h1>
-        <p className="vehicle-section-subtitle">
-          {isEdit ? 'Update your vehicle information' : 'Enter your vehicle information below'}
-        </p>
+        <div className="vehicle-header-top">
+          <button className="vehicle-back-btn" onClick={() => navigate(-1)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div className="vehicle-header-text">
+            <h1 className="vehicle-section-title">
+              {isEdit ? 'Edit Vehicle' : 'Vehicle Details'}
+            </h1>
+            <p className="vehicle-section-subtitle">
+              {isEdit ? 'Update your vehicle information' : 'Enter your vehicle information below'}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="premium-vehicle-content">

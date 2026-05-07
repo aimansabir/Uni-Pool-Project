@@ -329,7 +329,14 @@ export default function PublishRidePage() {
   const selectedRouteOption = routeIntelligence?.routeOptions?.find(
     o => o.optionNumber === selectedRouteOptionNumber
   );
-  const routeOptions = routeIntelligence?.routeOptions || [];
+  const routeOptionsRaw = routeIntelligence?.routeOptions || [];
+  const routeOptions = routeOptionsRaw.map((opt, idx) => {
+    const otherRoutes = routeOptionsRaw.filter((_, i) => i !== idx);
+    const allOtherRoads = new Set(otherRoutes.flatMap(r => r.roadHighlights || []));
+    const uniqueRoads = opt.roadHighlights?.filter(road => !allOtherRoads.has(road)) || [];
+    const commonRoads = opt.roadHighlights?.filter(road => allOtherRoads.has(road)) || [];
+    return { ...opt, uniqueRoads, commonRoads };
+  });
   const showRouteSelection = routeOptions.length > 1;
   const selectedLandmarks = selectedRouteOption?.suggestedLandmarks || [];
 
@@ -1031,13 +1038,14 @@ export default function PublishRidePage() {
                     onClick={() => handleRouteSelect(opt.optionNumber)}
                   >
                     <div className="route-option-card__top">
-                      <span className="route-option-card__badge">Route {opt.optionNumber}</span>
+                      <span className="route-option-card__badge">{opt.routeLabel || `Route ${opt.optionNumber}`}</span>
                       {isActive && (
                         <div className="route-option-card__check">
                           <Check size={12} strokeWidth={4} />
                         </div>
                       )}
                     </div>
+                    
                     <div className="route-option-card__stats">
                       <div className="route-stat">
                         <Navigation size={13} strokeWidth={2.5} />
@@ -1048,11 +1056,37 @@ export default function PublishRidePage() {
                         <span>{opt.durationMin} min</span>
                       </div>
                     </div>
+
                     {opt.roadHighlights?.length > 0 && (
-                      <div className="route-option-card__highlights">
-                        {opt.roadHighlights.slice(0, 3).map((road, i) => (
-                          <span key={i} className="road-highlight-pill">{road}</span>
-                        ))}
+                      <div className="route-option-card__via-v2">
+                        <div className="via-v2__header">
+                          <Route size={12} strokeWidth={2.5} color="#9CA3AF" />
+                          <span className="via-v2__label">Route passes through</span>
+                        </div>
+                        
+                        <div className="via-v2__roads-list">
+                          {opt.commonRoads.slice(0, 3).map((road, i) => (
+                            <div key={`common-${i}`} className="via-v2__road-item">
+                              <div className="road-dot" />
+                              <span className="road-name">{road}</span>
+                            </div>
+                          ))}
+                          
+                          {opt.uniqueRoads.length > 0 && (
+                            <div className="via-v2__difference-section">
+                              <div className="difference-tag-row">
+                                <span className="difference-label">Main difference</span>
+                                <Zap size={10} fill="#FDBA2E" color="#FDBA2E" />
+                              </div>
+                              {opt.uniqueRoads.slice(0, 2).map((road, i) => (
+                                <div key={`unique-${i}`} className="via-v2__road-item unique">
+                                  <div className="road-dot unique" />
+                                  <span className="road-name unique">{road}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

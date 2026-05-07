@@ -71,8 +71,17 @@ export default function VehiclesPage() {
     <div className="vehicles-page fade-in">
       {/* ── Section Header ── */}
       <div className="vehicles-section-header">
-        <h1 className="vehicles-section-title">Choose Your Car</h1>
-        <p className="vehicles-section-subtitle">Select a vehicle to continue</p>
+        <div className="vehicles-header-top">
+          <button className="vehicles-back-btn" onClick={() => navigate(-1)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div className="vehicles-header-text">
+            <h1 className="vehicles-section-title">Choose Your Car</h1>
+            <p className="vehicles-section-subtitle">Select a vehicle to continue</p>
+          </div>
+        </div>
       </div>
 
       {vehicles.length === 0 ? (

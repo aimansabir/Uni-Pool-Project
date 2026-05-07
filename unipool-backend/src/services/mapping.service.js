@@ -157,12 +157,24 @@ const extractRoadHighlights = (route) => {
     const seen = new Set();
     const highlights = [];
 
+    // Filter to keep only readable English names (ASCII characters mainly)
+    // We want to avoid Urdu scripts or very cryptic names
+    const isReadable = (text) => {
+        if (!text) return false;
+        // Basic check for Urdu/Arabic characters range: \u0600-\u06FF
+        const hasUrdu = /[\u0600-\u06FF]/.test(text);
+        if (hasUrdu) return false;
+        // Check if it has at least some alphabetic characters
+        return /[a-zA-Z]/.test(text);
+    };
+
     for (const leg of route.legs || []) {
         for (const step of leg.steps || []) {
             const name = String(step.name || '').trim();
 
             if (!name) continue;
             if (name.length < 4) continue;
+            if (!isReadable(name)) continue;
             if (seen.has(name.toLowerCase())) continue;
 
             seen.add(name.toLowerCase());
@@ -234,10 +246,13 @@ const buildRideIntelligence = async ({
         const durationMin = Math.ceil(route.duration / 60);
         const suggestedLandmarks = detectLandmarksAlongRoute(route.geometry.coordinates);
         const roadHighlights = extractRoadHighlights(route);
+        
+        const routeLabel = index === 0 ? 'Recommended route' : `Alternative route ${index}`;
 
         return {
             optionNumber: index + 1,
             isPrimary: index === 0,
+            routeLabel,
             distanceKm,
             durationMin,
             roadHighlights,
